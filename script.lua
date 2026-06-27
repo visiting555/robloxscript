@@ -9,8 +9,7 @@ local states = {
     noclip = false,
     fly = false,
     esp = false,
-    spinbot = false,
-    teleport = false
+    spinbot = false
 }
 local connections = {}
 local flyParts = {gyro = nil, vel = nil}
@@ -20,7 +19,7 @@ local teleportGui = nil
 
 function getOtherPlayers()
     local t = {}
-    for _, p in ipairs(Players:GetPlayers()) do
+    for _,p in ipairs(Players:GetPlayers()) do
         if p ~= LocalPlayer and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
             table.insert(t, p)
         end
@@ -196,7 +195,7 @@ function showTeleportMenu()
         btns[i].TextColor3 = Color3.new(1,1,1)
         btns[i].AutoButtonColor = false
         btns[i].MouseButton1Click:Connect(function()
-            if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+            if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
                 LocalPlayer.Character.HumanoidRootPart.CFrame = p.Character.HumanoidRootPart.CFrame + Vector3.new(0,3,0)
                 teleportGui:Destroy()
             end
@@ -217,7 +216,7 @@ function showTeleportMenu()
             updateSelBtn()
         elseif input.KeyCode == Enum.KeyCode.A then
             local tgt = tPlayers[selectedTPIndex]
-            if tgt and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+            if tgt and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") and tgt.Character and tgt.Character:FindFirstChild("HumanoidRootPart") then
                 LocalPlayer.Character.HumanoidRootPart.CFrame = tgt.Character.HumanoidRootPart.CFrame + Vector3.new(0,3,0)
             end
             teleportGui:Destroy()
@@ -348,17 +347,6 @@ function showMenu()
         end
     end)
 end
-
-toggleFeature("aimbot")
-toggleFeature("aimbot")
-toggleFeature("noclip")
-toggleFeature("noclip")
-toggleFeature("fly")
-toggleFeature("fly")
-toggleFeature("esp")
-toggleFeature("esp")
-toggleFeature("spinbot")
-toggleFeature("spinbot")
 
 UserInputService.InputBegan:Connect(function(input,gp)
     if gp then return end
