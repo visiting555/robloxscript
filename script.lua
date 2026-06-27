@@ -1,56 +1,58 @@
 local sg=Instance.new("ScreenGui")sg.Parent=game.CoreGui
-local mf=Instance.new("Frame")mf.Parent=sg mf.Size=UDim2.new(0,420,0,610)mf.Position=UDim2.new(0.32,0,0.18,0)mf.BackgroundColor3=Color3.fromRGB(18,22,30)mf.BorderSizePixel=0 local mc=Instance.new("UICorner",mf)mc.CornerRadius=UDim.new(0,18)
-local tt=Instance.new("TextLabel",mf)tt.Size=UDim2.new(1,0,0,59)tt.Position=UDim2.new(0,0,0,0)tt.Text="EĞİTİM HİLE MENÜ"tt.TextColor3=Color3.fromRGB(80,200,255)tt.Font=Enum.Font.GothamBlack tt.TextScaled=true tt.BackgroundTransparency=1
-local cbtn=Instance.new("TextButton",mf)cbtn.Size=UDim2.new(0,46,0,46)cbtn.Position=UDim2.new(1,-66,0,14)cbtn.BackgroundColor3=Color3.fromRGB(255,58,58)cbtn.Text="X"cbtn.Font=Enum.Font.GothamBold cbtn.TextColor3=Color3.new(1,1,1)cbtn.TextScaled=true local cbtnu=Instance.new("UICorner",cbtn)cbtnu.CornerRadius=UDim.new(0,13)
-local dragging,dragInput,dragStart,startPos
-mf.InputBegan:Connect(function(input)if input.UserInputType==Enum.UserInputType.MouseButton1 then dragging=true dragStart=input.Position startPos=mf.Position input.Changed:Connect(function()if input.UserInputState==Enum.UserInputState.End then dragging=false end end)end end)
-mf.InputChanged:Connect(function(input)if input.UserInputType==Enum.UserInputType.MouseMovement then dragInput=input end end)
-game:GetService("UserInputService").InputChanged:Connect(function(input)if input==dragInput and dragging then local delta=input.Position-dragStart mf.Position=UDim2.new(startPos.X.Scale,startPos.X.Offset+delta.X,startPos.Y.Scale,startPos.Y.Offset+delta.Y)end end)
+local mf=Instance.new("Frame")mf.Size=UDim2.new(0,480,0,440)mf.Position=UDim2.new(0.35,0,0.22,0)mf.BackgroundColor3=Color3.fromRGB(17,23,37)mf.Parent=sg mf.BorderSizePixel=0 local mc=Instance.new("UICorner",mf)mc.CornerRadius=UDim.new(0,17)
+local header=Instance.new("Frame",mf)header.Size=UDim2.new(1,0,0,55)header.Position=UDim2.new(0,0,0,0)header.BackgroundColor3=Color3.fromRGB(20,30,45)header.BorderSizePixel=0 local hcr=Instance.new("UICorner",header)hcr.CornerRadius=UDim.new(0,17)
+local t=Instance.new("TextLabel",header)t.Size=UDim2.new(1,0,1,0)t.BackgroundTransparency=1 t.Text="EĞİTİM HİLE MENÜ"t.TextColor3=Color3.fromRGB(86,190,255)t.Font=Enum.Font.GothamBlack t.TextScaled=true
+local cbtn=Instance.new("TextButton",header)cbtn.Size=UDim2.new(0,40,0,40)cbtn.Position=UDim2.new(1,-48,0,8)cbtn.BackgroundColor3=Color3.fromRGB(255,75,75)cbtn.Text="X"cbtn.Font=Enum.Font.GothamBold cbtn.TextColor3=Color3.new(1,1,1)cbtn.TextScaled=true local cbcr=Instance.new("UICorner",cbtn)cbcr.CornerRadius=UDim.new(0,14)
 cbtn.MouseButton1Click:Connect(function()sg:Destroy()end)
-local btnFrame=Instance.new("Frame",mf)btnFrame.Size=UDim2.new(1,0,0,296)btnFrame.Position=UDim2.new(0,0,0,70)btnFrame.BackgroundTransparency=1
-local layout=Instance.new("UIListLayout",btnFrame)layout.Padding=UDim.new(0,14)layout.HorizontalAlignment=Enum.HorizontalAlignment.Center layout.SortOrder=Enum.SortOrder.LayoutOrder layout.VerticalAlignment=Enum.VerticalAlignment.Top
-local function mkbtn(txt,icol)
-    local b=Instance.new("TextButton",btnFrame)
-    b.Size=UDim2.new(0.8,0,0,48)
-    b.BackgroundColor3=icol or Color3.fromRGB(35,40,55)
-    b.Text=txt b.TextColor3=Color3.fromRGB(245,245,245)
+local left=Instance.new("Frame",mf)left.Size=UDim2.new(0,170,1,-55)left.Position=UDim2.new(0,0,0,55)left.BackgroundColor3=Color3.fromRGB(23,29,44)left.BorderSizePixel=0 local lcr=Instance.new("UICorner",left)lcr.CornerRadius=UDim.new(0,13)
+local right=Instance.new("Frame",mf)right.Size=UDim2.new(1,-170,1,-55)right.Position=UDim2.new(0,170,0,55)right.BackgroundTransparency=1
+local layout=Instance.new("UIListLayout",left)layout.SortOrder=Enum.SortOrder.LayoutOrder layout.Padding=UDim.new(0,12)layout.HorizontalAlignment=Enum.HorizontalAlignment.Center layout.VerticalAlignment=Enum.VerticalAlignment.Top
+left.ClipsDescendants=true right.ClipsDescendants=false
+local sp=Instance.new("Frame",left)sp.Size=UDim2.new(1,0,0,14)sp.BackgroundTransparency=1
+local function mkbtn(txt,icol,ht)
+    local b=Instance.new("TextButton")b.Parent=left
+    b.Size=UDim2.new(0.86,0,0,ht or 38)b.BackgroundColor3=icol or Color3.fromRGB(37,40,54)
+    b.Text=txt b.TextColor3=Color3.fromRGB(243,243,243)
     b.Font=Enum.Font.GothamBold b.TextScaled=true
     local c=Instance.new("UICorner",b)c.CornerRadius=UDim.new(0,14)
+    b.AutoButtonColor=true
     return b
 end
-local aimb=mkbtn("AIMBOT")
-local flyb=mkbtn("FLY")
-local noclipb=mkbtn("NOCLIP")
-local spinb=mkbtn("SPINBOT")
-local gmb=mkbtn("GODMODE",Color3.fromRGB(80,150,80))
-local tlt=Instance.new("TextLabel",mf)tlt.Size=UDim2.new(0.8,0,0,29)tlt.Position=UDim2.new(0.1,0,0,380)tlt.BackgroundTransparency=1 tlt.Text="TP İÇİN OYUNCU SEÇİN"tlt.Font=Enum.Font.GothamSemibold tlt.TextColor3=Color3.fromRGB(210,210,220)tlt.TextScaled=true
-local dp=Instance.new("Frame",mf)dp.Size=UDim2.new(0.8,0,0,100)dp.Position=UDim2.new(0.1,0,0,420)dp.BackgroundColor3=Color3.fromRGB(40,54,62)local dpc=Instance.new("UICorner",dp)dpc.CornerRadius=UDim.new(0,11)
-local lst=Instance.new("ScrollingFrame",dp)lst.Size=UDim2.new(1,0,1,0)lst.Position=UDim2.new(0,0,0,0)lst.CanvasSize=UDim2.new(0,0,0,0)lst.ScrollBarThickness=5 lst.BackgroundTransparency=1 lst.AutomaticCanvasSize=Enum.AutomaticSize.Y
+local aimb=mkbtn("AIMBOT",Color3.fromRGB(30,135,255))
+local spinb=mkbtn("SPINBOT",Color3.fromRGB(60,77,183))
+local flyb=mkbtn("FLY",Color3.fromRGB(185,140,29))
+local noclipb=mkbtn("NOCLIP",Color3.fromRGB(127,57,175))
+local gmb=mkbtn("GODMODE",Color3.fromRGB(70,185,86))
+local tpheader=Instance.new("TextLabel",right)tpheader.Size=UDim2.new(1,0,0,26)tpheader.Position=UDim2.new(0,0,0,0)tpheader.Text="Oyuncu Listesi"tpheader.Font=Enum.Font.GothamBold tpheader.TextColor3=Color3.fromRGB(156,148,250)tpheader.TextScaled=true tpheader.BackgroundTransparency=1
+local dlist=Instance.new("Frame",right)dlist.Size=UDim2.new(1,0,0,238)dlist.Position=UDim2.new(0,0,0,30)dlist.BackgroundColor3=Color3.fromRGB(37,43,68)
+local dcr=Instance.new("UICorner",dlist)dcr.CornerRadius=UDim.new(0,11)
+local lst=Instance.new("ScrollingFrame",dlist)lst.Size=UDim2.new(1,0,1,0)lst.Position=UDim2.new(0,0,0,0)lst.CanvasSize=UDim2.new(0,0,0,0)lst.ScrollBarThickness=3 lst.BackgroundTransparency=1 lst.AutomaticCanvasSize=Enum.AutomaticSize.Y
 local layout2=Instance.new("UIListLayout",lst)layout2.SortOrder=Enum.SortOrder.LayoutOrder layout2.Padding=UDim.new(0,8)
 lst.ChildAdded:Connect(function()lst.CanvasSize=UDim2.new(0,0,0,lst.UIListLayout.AbsoluteContentSize.Y)end)
-local tplsel
-local tplbl=Instance.new("TextLabel",mf)tplbl.Size=UDim2.new(0.8,0,0,24)tplbl.Position=UDim2.new(0.1,0,0,530)tplbl.BackgroundTransparency=1 tplbl.Font=Enum.Font.Gotham tplbl.TextScaled=true tplbl.TextColor3=Color3.fromRGB(156,148,250)tplbl.Text="Seçili: Yok"
-local tpb=Instance.new("TextButton",mf)tpb.Size=UDim2.new(0.8,0,0,42)tpb.Position=UDim2.new(0.1,0,0,560)tpb.BackgroundColor3=Color3.fromRGB(80,110,190)
-tpb.Text="SEÇİLENİ TP AT" tpb.TextColor3=Color3.fromRGB(250,250,255)tpb.Font=Enum.Font.GothamBold tpb.TextScaled=true
-local c2=Instance.new("UICorner",tpb)c2.CornerRadius=UDim.new(0,11)
+local tplbl=Instance.new("TextLabel",right)tplbl.Size=UDim2.new(1,0,0,24)tplbl.Position=UDim2.new(0,0,0,280)tplbl.BackgroundTransparency=1 tplbl.Font=Enum.Font.Gotham tplbl.TextScaled=true tplbl.TextColor3=Color3.fromRGB(255,223,57)tplbl.Text="Seçili: Yok"
+local tpb=Instance.new("TextButton",right)tpb.Size=UDim2.new(0.7,0,0,38)tpb.Position=UDim2.new(0.15,0,0,314)tpb.BackgroundColor3=Color3.fromRGB(49,82,255)
+tpb.Text="SEÇİLENİ TP AT" tpb.TextColor3=Color3.fromRGB(255,255,255)tpb.Font=Enum.Font.GothamBold tpb.TextScaled=true local tpcr=Instance.new("UICorner",tpb)tpcr.CornerRadius=UDim.new(0,11)
 local pl=game.Players.LocalPlayer
+local tplsel=nil
 local function mklist()
     lst:ClearAllChildren() tplsel=nil tplbl.Text="Seçili: Yok"
     local ps={}for _,v in ipairs(game.Players:GetPlayers())do if v~=pl then table.insert(ps,v)end end
     for _,v in ipairs(ps)do
         local li=Instance.new("TextButton",lst)li.Size=UDim2.new(1,0,0,30)
-        li.BackgroundColor3=Color3.fromRGB(60,98,125)
-        li.Text=v.Name li.Font=Enum.Font.Gotham li.TextColor3=Color3.new(1,1,1)li.TextScaled=true
+        li.BackgroundColor3=Color3.fromRGB(64,113,189)
+        li.Text=v.Name li.Font=Enum.Font.Gotham li.TextColor3=Color3.new(1,1,1)li.TextScaled=true li.AutoButtonColor=true
         local lco=Instance.new("UICorner",li)lco.CornerRadius=UDim.new(0,8)
         li.MouseButton1Click:Connect(function()
             tplsel=v
-            for _,b in pairs(lst:GetChildren())do if b:IsA("TextButton")then b.BackgroundColor3=Color3.fromRGB(60,98,125)end end
-            li.BackgroundColor3=Color3.fromRGB(120,72,201)
+            for _,b in pairs(lst:GetChildren())do if b:IsA("TextButton")then b.BackgroundColor3=Color3.fromRGB(64,113,189)end end
+            li.BackgroundColor3=Color3.fromRGB(255,195,85)
             tplbl.Text="Seçili: "..v.Name
         end)
     end
 end
-mklist()game.Players.PlayerAdded:Connect(mklist)game.Players.PlayerRemoving:Connect(mklist)
+mklist()
+game.Players.PlayerAdded:Connect(mklist)
+game.Players.PlayerRemoving:Connect(mklist)
 local aimbotOn=false local abConn
 function closest()
     local m=pl:GetMouse()local s=math.huge local cl=nil
@@ -77,6 +79,24 @@ end
 function disableAimbot()if abConn then abConn:Disconnect()abConn=nil end end
 aimb.MouseButton1Click:Connect(function()
     aimbotOn=not aimbotOn if aimbotOn then aimb.Text="AIMBOT KAPAT" enableAimbot() else aimb.Text="AIMBOT"disableAimbot()end
+end)
+local sbOn=false local sbConn
+function enableSpinbot()
+    if sbConn then sbConn:Disconnect()end
+    sbConn=game:GetService("RunService").Heartbeat:Connect(function()
+        if sbOn and pl.Character and pl.Character:FindFirstChild("HumanoidRootPart")then
+            pl.Character.HumanoidRootPart.CFrame=pl.Character.HumanoidRootPart.CFrame*CFrame.Angles(0,math.rad(45),0)
+        end
+    end)
+end
+function disableSpinbot()if sbConn then sbConn:Disconnect()sbConn=nil end end
+spinb.MouseButton1Click:Connect(function()
+    sbOn=not sbOn if sbOn then spinb.Text="SPINBOT KAPAT"enableSpinbot()else spinb.Text="SPINBOT"disableSpinbot()end
+end)
+game:GetService("RunService").Heartbeat:Connect(function()
+    if sbOn and flyOn and pl.Character and pl.Character:FindFirstChild("HumanoidRootPart")then
+        pl.Character.HumanoidRootPart.CFrame=pl.Character.HumanoidRootPart.CFrame*CFrame.Angles(0,math.rad(45),0)
+    end
 end)
 local flyOn=false local flyConn
 function enableFly()
@@ -112,24 +132,6 @@ function disableNoclip()ncOn=false if ncConn then ncConn:Disconnect()ncConn=nil 
 noclipb.MouseButton1Click:Connect(function()
     ncOn=not ncOn if ncOn then noclipb.Text="NOCLIP KAPAT"enableNoclip()else noclipb.Text="NOCLIP"disableNoclip()end
 end)
-local sbOn=false local sbConn
-function enableSpinbot()
-    if sbConn then sbConn:Disconnect()end
-    sbConn=game:GetService("RunService").Heartbeat:Connect(function()
-        if sbOn and pl.Character and pl.Character:FindFirstChild("HumanoidRootPart")then
-            pl.Character.HumanoidRootPart.CFrame=pl.Character.HumanoidRootPart.CFrame*CFrame.Angles(0,math.rad(45),0)
-        end
-    end)
-end
-function disableSpinbot()if sbConn then sbConn:Disconnect()sbConn=nil end end
-spinb.MouseButton1Click:Connect(function()
-    sbOn=not sbOn if sbOn then spinb.Text="SPINBOT KAPAT"enableSpinbot()else spinb.Text="SPINBOT"disableSpinbot()end
-end)
-game:GetService("RunService").Heartbeat:Connect(function()
-    if sbOn and flyOn and pl.Character and pl.Character:FindFirstChild("HumanoidRootPart")then
-        pl.Character.HumanoidRootPart.CFrame=pl.Character.HumanoidRootPart.CFrame*CFrame.Angles(0,math.rad(45),0)
-    end
-end)
 local gmOn=false local gmConns={} local orgWlkSpd,orgJump,orgHp
 function enableGodmode()
     gmOn=true
@@ -140,7 +142,7 @@ function enableGodmode()
     pcall(function()h.MaxHealth=9e9 h.Health=9e9 h.WalkSpeed=200 h.JumpPower=200 end)
     if gmConns["death"] then gmConns["death"]:Disconnect()end
     gmConns["death"]=h.Died:Connect(function()
-        task.wait(0.3)
+        task.wait(0.35)
         if gmOn then
             local ch=pl.Character repeat task.wait() until ch and ch:FindFirstChild("Humanoid")
             orgWlkSpd=16 orgJump=50 orgHp=100
@@ -174,3 +176,7 @@ tpb.MouseButton1Click:Connect(function()
         local ch=pl.Character if ch and ch:FindFirstChild("HumanoidRootPart")then ch.HumanoidRootPart.CFrame=tplsel.Character.HumanoidRootPart.CFrame+Vector3.new(2,1,0)end
     end
 end)
+local dragging,dragInput,dragStart,startPos
+mf.InputBegan:Connect(function(input)if input.UserInputType==Enum.UserInputType.MouseButton1 then dragging=true dragStart=input.Position startPos=mf.Position input.Changed:Connect(function()if input.UserInputState==Enum.UserInputState.End then dragging=false end end)end end)
+mf.InputChanged:Connect(function(input)if input.UserInputType==Enum.UserInputType.MouseMovement then dragInput=input end end)
+game:GetService("UserInputService").InputChanged:Connect(function(input)if input==dragInput and dragging then local delta=input.Position-dragStart mf.Position=UDim2.new(startPos.X.Scale,startPos.X.Offset+delta.X,startPos.Y.Scale,startPos.Y.Offset+delta.Y)end end)
