@@ -521,32 +521,50 @@ function startFly()
     end)
 end
 
-do
-    local ncConn
-    local function realNoclip(on)
-        if LP.Character then
-            for _,v in pairs(LP.Character:GetDescendants()) do
-                if v:IsA("BasePart") and v.CanCollide ~= (not on) then
-                    v.CanCollide = not on
-                end
+-- Noclip TAM FONKSİYONEL (Tüm BasePartlar ve Fallback ChildAdded)
+local function fullNoclip(on)
+    local char = LP.Character
+    if char then
+        for _,v in pairs(char:GetDescendants()) do
+            if v:IsA("BasePart") and v.CanCollide ~= (not on) then
+                v.CanCollide = not on
             end
         end
-    end
-    if ncConn then pcall(function() ncConn:Disconnect() end) end
-    ncConn = RS.Stepped:Connect(function()
-        if optStates["Noclip"] then
-            realNoclip(true)
+        if on then
+            if not char:FindFirstChild("__NoclipFN") then
+                local marker = Instance.new("BoolValue")
+                marker.Name = "__NoclipFN"
+                marker.Parent = char
+                char.DescendantAdded:Connect(function(desc)
+                    if desc:IsA("BasePart") then desc.CanCollide = false end
+                end)
+            end
         else
-            realNoclip(false)
+            local node = char:FindFirstChild("__NoclipFN")
+            if node then node:Destroy() end
+        end
+    end
+end
+local function noclipRunner()
+    local nclipTick = 0
+    RS.Stepped:Connect(function(_,step)
+        nclipTick = nclipTick + 1
+        if nclipTick % 3 == 0 then -- optimize: do not set every frame
+            if optStates["Noclip"] and LP.Character then
+                fullNoclip(true)
+            elseif LP.Character then
+                fullNoclip(false)
+            end
         end
     end)
     Players.LocalPlayer.CharacterAdded:Connect(function(c)
-        task.wait(0.2)
+        wait(.35)
         if optStates["Noclip"] then
-            realNoclip(true)
+            fullNoclip(true)
         end
     end)
 end
+noclipRunner()
 
 function startGorunmezlik()
     RS.RenderStepped:Connect(function()
