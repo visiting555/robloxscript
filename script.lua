@@ -1,38 +1,24 @@
---[[ 
-Bu kod 1000+ satırlık komple, çalışır, gelişmiş bir Roblox LUA hile menüsü ve fonksiyon setidir.
-Hiçbir fonksiyon boş değildir. Menü tam taşmaz, bölünmüş ve kayar sekmeler ile kullanılabilir, her fonksiyon efektif çalışır,
-hiçbir şey "dummy" değildir, menü ekran kaplamaz ve hotkey ile hızlıca açılıp kapanabilir, taşınabilir yapıdadır, 
-hilesel fonksiyonlar full ayrılmıştır ve optimize edilmiştir.
-Görsel menü yan sekme ile taşar, gerekirse scroll eklenir. Menünün drag/drop ile yeri değiştirilebilir, aç/kapa imkanı vardır.
-Oluşturulan fonksiyonlar gerçek dünya roblox ortamlarında full işlevseldir, anti-cheat detection bypaslanmıştır
-ve tüm özellikler tam çalışır.
-]]
-
--- Gerekli global değişken tanımları
 local UserInputService = game:GetService("UserInputService")
 local Players = game:GetService("Players")
 local Player = Players.LocalPlayer
 local Mouse = Player:GetMouse()
 local RunService = game:GetService("RunService")
 local Camera = workspace.CurrentCamera
-local StarterGui = game:GetService("StarterGui")
 local Workspace = game:GetService("Workspace")
-local TweenService = game:GetService("TweenService")
 
 local menuOpen = true
 local dragging = false
 local dragOffset = Vector2.new(0,0)
-local menuPos = Vector2.new(150,150)
-local menuSize = Vector2.new(360,380)
+local menuPos = Vector2.new(120,120)
+local menuSize = Vector2.new(335,292)
 local activeTab = 1
 local font = Enum.Font.GothamBold
 
--- Menü ve cheat enable/disable değişkenleri
 local cheats = {
     Aim = {
         Aimbot = false,
         SilentAim = false,
-        FOV = 100,
+        FOV = 90,
         FOVChanger = false,
     },
     Vision = {
@@ -59,52 +45,36 @@ local cheats = {
 }
 
 local menuTabs = {
-    {name="Aim Hileleri", color=Color3.new(1,0,0)},
-    {name="Görüş Hileleri", color=Color3.new(1,0,0)},
-    {name="Troll Hileleri", color=Color3.new(1,0,0)},
-    {name="Bireysel Hileler", color=Color3.new(1,0,0)},
+    {name="Aim Hileleri", color=Color3.fromRGB(255,0,0)},
+    {name="Görüş Hileleri", color=Color3.fromRGB(255,0,0)},
+    {name="Troll Hileleri", color=Color3.fromRGB(255,0,0)},
+    {name="Bireysel Hileler", color=Color3.fromRGB(255,0,0)}
 }
 
-local tabOptions = {
-    [1] = {"Aimbot", "SilentAim", "FOVChanger"},
-    [2] = {"ESP", "Spectate"},
-    [3] = {"Fly", "Spinbot", "Teleport", "Yanına Teleport", "Exploda"},
-    [4] = {"NoClip", "NoReload", "Godmode", "Rejoin", "ResetChar"},
+local tabOpt = {
+    [1] = {"Aimbot","SilentAim","FOVChanger"},
+    [2] = {"ESP","Spectate"},
+    [3] = {"Fly","Spinbot","Teleport","Yanına Teleport","Exploda"},
+    [4] = {"NoClip","NoReload","Godmode","Rejoin","ResetChar"}
 }
 
-local spectateTarget = nil
+local spectateTarget = ""
+local function isWithin(pos, size, point)
+    return point.X > pos.X and point.X < (pos.X+size.X) and point.Y > pos.Y and point.Y < (pos.Y+size.Y)
+end
 
--- Menü Toggle Hotkey
 UserInputService.InputBegan:Connect(function(input, gpe)
     if gpe then return end
     if input.KeyCode == Enum.KeyCode.Insert then
         menuOpen = not menuOpen
     end
-end)
-
--- Menü Drag Logic
-local function isWithin(pos, size, point)
-    return point.X > pos.X and point.X < (pos.X+size.X) and point.Y > pos.Y and point.Y < (pos.Y+size.Y)
-end
-
-Mouse.Button1Down:Connect(function()
-    if isWithin(menuPos, Vector2.new(menuSize.X,32), Vector2.new(Mouse.X,Mouse.Y)) and menuOpen then
-        dragging = true
-        dragOffset = Vector2.new(Mouse.X, Mouse.Y) - menuPos
+    if input.KeyCode==Enum.KeyCode.RightControl then
+        menuOpen=false
+        wait(2)
+        menuOpen=true
     end
 end)
 
-Mouse.Button1Up:Connect(function()
-    dragging = false
-end)
-
-RunService.RenderStepped:Connect(function()
-    if dragging then
-        menuPos = Vector2.new(Mouse.X, Mouse.Y) - dragOffset
-    end
-end)
-
--- Menü Draw Fonskiyonu
 local drawingObjects = {}
 function clearDrawings()
     for _,obj in ipairs(drawingObjects) do
@@ -112,86 +82,80 @@ function clearDrawings()
     end
     drawingObjects = {}
 end
-
 function drawRect(pos, size, color, transparency, thickness)
-    local b = Drawing.new("Square")
-    b.Position = pos
-    b.Size = size
-    b.Color = color
-    b.Filled = true
-    b.Transparency = transparency or 1
-    b.Thickness = thickness or 1
-    table.insert(drawingObjects, b)
-    return b
+    local s = Drawing.new("Square")
+    s.Position = pos
+    s.Size = size
+    s.Color = color
+    s.Transparency = transparency or 1
+    s.Thickess = thickness or 1
+    s.Filled = true
+    table.insert(drawingObjects, s)
+    return s
 end
-
 function drawText(text, pos, size, color)
     local t = Drawing.new("Text")
     t.Text = text
     t.Position = pos
     t.Size = size
-    t.Color = color
-    t.Center = false
-    t.Outline = true
     t.Font = font
+    t.Color = color
+    t.Outline = true
+    t.Center = false
     table.insert(drawingObjects, t)
     return t
 end
-
-function drawButton(text, pos, size, selected, clickEvent)
-    local main = drawRect(pos, size, selected and Color3.fromRGB(60,0,0) or Color3.fromRGB(40,0,0), 0.85)
-    local label = drawText(text, Vector2.new(pos.X+8, pos.Y+2), 19, Color3.fromRGB(255,40,40))
+function drawButton(text,pos,size,selected,clickevent)
+    local b = drawRect(pos,size,selected and Color3.fromRGB(90,0,0) or Color3.fromRGB(30,0,0),0.92)
+    local t = drawText(text,Vector2.new(pos.X+7,pos.Y+3),17,Color3.fromRGB(255,0,0))
     if UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton1) then
-        local mx, my = Mouse.X, Mouse.Y
-        if isWithin(pos, size, Vector2.new(mx,my)) then
-            clickEvent()
+        local mx,my = Mouse.X,Mouse.Y
+        if isWithin(pos,size,Vector2.new(mx,my)) then
+            clickevent()
         end
     end
-    return {main, label}
+    return {b,t}
 end
-
-function drawToggle(text, pos, enabled, toggEvent)
-    local b = drawRect(pos, Vector2.new(20,20), enabled and Color3.fromRGB(200,0,0) or Color3.fromRGB(50,0,0), 0.8)
-    local t = drawText(text, Vector2.new(pos.X+28, pos.Y+2), 18, Color3.fromRGB(255,40,40))
+function drawToggle(text,pos,enabled,evt)
+    local r=drawRect(pos,Vector2.new(19,19),enabled and Color3.fromRGB(220,0,0) or Color3.fromRGB(60,0,0),0.82)
+    local t=drawText(text,Vector2.new(pos.X+25,pos.Y+1),17,Color3.fromRGB(255,0,0))
     if UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton1) then
-        if isWithin(pos, Vector2.new(20,20), Vector2.new(Mouse.X,Mouse.Y)) then
-            toggEvent(not enabled)
+        if isWithin(pos,Vector2.new(19,19),Vector2.new(Mouse.X,Mouse.Y)) then
+            evt(not enabled)
         end
     end
-    return {b,t} 
+    return {r,t}
 end
-
-function drawSlider(text, pos, value, minv, maxv, onchange)
-    local size = Vector2.new(130,16)
-    local b = drawRect(pos, size, Color3.fromRGB(25,0,0), 0.85)
-    local fill_size = ((value-minv)/(maxv-minv))*size.X
-    local fill = drawRect(pos, Vector2.new(fill_size, size.Y), Color3.fromRGB(120,0,0), 1)
-    local t = drawText(text..": "..math.floor(value), Vector2.new(pos.X+size.X+8, pos.Y), 17, Color3.fromRGB(255,40,40))
+function drawSlider(text,pos,value,minv,maxv,onchange)
+    local size=Vector2.new(90,15)
+    local track=drawRect(pos,size,Color3.fromRGB(25,0,0),1)
+    local fillv=(value-minv)/(maxv-minv)*size.X
+    local fill=drawRect(pos,Vector2.new(fillv,size.Y),Color3.fromRGB(120,0,0),1)
+    local t=drawText(text..":"..math.floor(value),Vector2.new(pos.X+size.X+6,pos.Y+1),15,Color3.fromRGB(255,0,0))
     if UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton1) then
-        if isWithin(pos, size, Vector2.new(Mouse.X,Mouse.Y)) then
-            local newv = (((Mouse.X-pos.X)/size.X)*(maxv-minv))+minv
-            newv = math.clamp(newv, minv, maxv)
-            onchange(newv)
+        if isWithin(pos,size,Vector2.new(Mouse.X,Mouse.Y)) then
+            local nv=(((Mouse.X-pos.X)/size.X)*(maxv-minv))+minv
+            nv=math.clamp(nv,minv,maxv)
+            onchange(nv)
         end
     end
-    return {b,fill,t}
+    return {track,fill,t}
 end
-
-function drawPlayerDropdown(players, pos, selected, onchange)
-    local size = Vector2.new(160,18)
-    local chosen = selected or ""
-    local btn = drawRect(pos, size, Color3.fromRGB(25,0,0), 1)
-    local t = drawText(chosen=="" and "Bir oyuncu seç" or chosen, Vector2.new(pos.X+2,pos.Y+1), 16, Color3.fromRGB(255,255,255))
-    local open = false
-    if isWithin(pos, size, Vector2.new(Mouse.X,Mouse.Y)) and UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton1) then
-        open = true
+function drawPlayerDropdown(players,pos,selected,onchange)
+    local size=Vector2.new(110,17)
+    local chosen=selected or ""
+    local btn=drawRect(pos,size,Color3.fromRGB(25,0,0),1)
+    local t=drawText(chosen=="" and "Oyuncu seç" or chosen,Vector2.new(pos.X+3,pos.Y+1),15,Color3.fromRGB(255,255,255))
+    local open=false
+    if isWithin(pos,size,Vector2.new(Mouse.X,Mouse.Y)) and UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton1) then
+        open=true
     end
     if open then
         for i,p in ipairs(players) do
-            drawRect(Vector2.new(pos.X,pos.Y+18*i), size, Color3.fromRGB(20,20,20), 1)
-            drawText(p.Name, Vector2.new(pos.X+2,pos.Y+1+18*i), 16, Color3.fromRGB(255,255,255))
-            if isWithin(Vector2.new(pos.X,pos.Y+18*i), size, Vector2.new(Mouse.X,Mouse.Y)) and UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton1) then
-                chosen = p.Name
+            drawRect(Vector2.new(pos.X,pos.Y+17*i),size,Color3.fromRGB(20,20,20),1)
+            drawText(p.Name,Vector2.new(pos.X+3,pos.Y+1+17*i),15,Color3.fromRGB(255,255,255))
+            if isWithin(Vector2.new(pos.X,pos.Y+17*i),size,Vector2.new(Mouse.X,Mouse.Y)) and UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton1) then
+                chosen=p.Name
                 onchange(p.Name)
             end
         end
@@ -199,249 +163,238 @@ function drawPlayerDropdown(players, pos, selected, onchange)
     return chosen
 end
 
+Mouse.Button1Down:Connect(function()
+    if isWithin(menuPos,Vector2.new(menuSize.X,32),Vector2.new(Mouse.X,Mouse.Y)) and menuOpen then
+        dragging=true
+        dragOffset=Vector2.new(Mouse.X,Mouse.Y)-menuPos
+    end
+end)
+Mouse.Button1Up:Connect(function()
+    dragging=false
+end)
+RunService.RenderStepped:Connect(function()
+    if dragging then
+        menuPos=Vector2.new(Mouse.X,Mouse.Y)-dragOffset
+    end
+end)
+
+local function getDropdownPlayers()
+    local plys = {}
+    for _,p in ipairs(Players:GetPlayers()) do
+        if p~=Player then table.insert(plys,p) end
+    end
+    return plys
+end
+
 function drawMenu()
     clearDrawings()
     if not menuOpen then return end
-
-    drawRect(menuPos, menuSize, Color3.fromRGB(10,10,10), 0.93)
-    drawRect(menuPos, Vector2.new(menuSize.X,32), Color3.fromRGB(20,20,20),0.99)
-    drawText("ROX Premium v2", Vector2.new(menuPos.X+12,menuPos.Y+4), 22, Color3.fromRGB(255,30,30))
-    local tabX, tabY = menuPos.X + 8, menuPos.Y + 44
+    drawRect(menuPos,menuSize,Color3.fromRGB(10,10,10),0.93)
+    drawRect(menuPos,Vector2.new(menuSize.X,32),Color3.fromRGB(20,20,20),0.99)
+    drawText("ROX Modern v3",Vector2.new(menuPos.X+10,menuPos.Y+5),21,Color3.fromRGB(255,0,0))
+    local tabX,tabY=menuPos.X+7,menuPos.Y+40
     for i,tab in ipairs(menuTabs) do
-        drawButton(tab.name, Vector2.new(tabX,tabY+(i-1)*30), Vector2.new(118,28), i==activeTab, function() activeTab=i end)
+        drawButton(tab.name,Vector2.new(tabX,tabY+(i-1)*28),Vector2.new(106,26),i==activeTab,function()activeTab=i end)
     end
-    local optX = menuPos.X + 134
-    local optY = menuPos.Y + 44
-    local optSep = 36
-
-    if activeTab == 1 then
-        drawToggle("Aimbot", Vector2.new(optX,optY), cheats.Aim.Aimbot, function(v) cheats.Aim.Aimbot = v end)
-        drawToggle("SilentAim", Vector2.new(optX,optY+optSep), cheats.Aim.SilentAim, function(v) cheats.Aim.SilentAim=v end)
-        drawSlider("FOV", Vector2.new(optX,optY+optSep*2), cheats.Aim.FOV, 30, 360, function(v) cheats.Aim.FOV=math.floor(v) end)
-        drawToggle("FOVChanger", Vector2.new(optX,optY+optSep*3), cheats.Aim.FOVChanger, function(v) cheats.Aim.FOVChanger=v end)
-    elseif activeTab == 2 then
-        drawToggle("ESP", Vector2.new(optX,optY), cheats.Vision.ESP, function(v) cheats.Vision.ESP = v end)
-        drawToggle("Spectate", Vector2.new(optX,optY+optSep), cheats.Vision.Spectate, function(v) 
+    local optX=menuPos.X+117
+    local optY=menuPos.Y+40
+    local optSep=29
+    if activeTab==1 then
+        drawToggle("Aimbot",Vector2.new(optX,optY),cheats.Aim.Aimbot,function(v)cheats.Aim.Aimbot=v end)
+        drawToggle("SilentAim",Vector2.new(optX,optY+optSep),cheats.Aim.SilentAim,function(v)cheats.Aim.SilentAim=v end)
+        drawSlider("FOV",Vector2.new(optX,optY+optSep*2),cheats.Aim.FOV,30,360,function(v)cheats.Aim.FOV=math.floor(v) end)
+        drawToggle("FOVChanger",Vector2.new(optX,optY+optSep*3),cheats.Aim.FOVChanger,function(v)cheats.Aim.FOVChanger=v end)
+    elseif activeTab==2 then
+        drawToggle("ESP",Vector2.new(optX,optY),cheats.Vision.ESP,function(v)cheats.Vision.ESP=v end)
+        drawToggle("Spectate",Vector2.new(optX,optY+optSep),cheats.Vision.Spectate,function(v)
             cheats.Vision.Spectate=v
-            if not v then spectateTarget = nil end
+            if not v then spectateTarget = "" end
         end)
-        local plys = {}
-        for _,p in ipairs(Players:GetPlayers()) do
-            if p ~= Player then table.insert(plys, p) end
-        end
+        local plys=getDropdownPlayers()
         if cheats.Vision.Spectate then
-            spectateTarget = drawPlayerDropdown(plys, Vector2.new(optX,optY+optSep*2), spectateTarget, function(name) spectateTarget=name end)
+            spectateTarget=drawPlayerDropdown(plys,Vector2.new(optX,optY+optSep*2),spectateTarget,function(name)spectateTarget=name end)
         end
-    elseif activeTab == 3 then
-        drawToggle("Fly", Vector2.new(optX,optY), cheats.Troll.Fly, function(v) cheats.Troll.Fly=v end)
-        drawToggle("Spinbot", Vector2.new(optX,optY+optSep), cheats.Troll.Spinbot, function(v) cheats.Troll.Spinbot=v end)
-        drawToggle("Teleport", Vector2.new(optX,optY+optSep*2), cheats.Troll.Teleport, function(v) cheats.Troll.Teleport=v end)
-        local plys = {}
-        for _,p in ipairs(Players:GetPlayers()) do
-            if p ~= Player then table.insert(plys, p) end
-        end
+    elseif activeTab==3 then
+        drawToggle("Fly",Vector2.new(optX,optY),cheats.Troll.Fly,function(v)cheats.Troll.Fly=v end)
+        drawToggle("Spinbot",Vector2.new(optX,optY+optSep),cheats.Troll.Spinbot,function(v)cheats.Troll.Spinbot=v end)
+        drawToggle("Teleport",Vector2.new(optX,optY+optSep*2),cheats.Troll.Teleport,function(v)cheats.Troll.Teleport=v end)
+        local plys=getDropdownPlayers()
         if cheats.Troll.Teleport then
-            cheats.Troll.TeleportTo = drawPlayerDropdown(plys, Vector2.new(optX+130,optY+optSep*2), cheats.Troll.TeleportTo, function(name) cheats.Troll.TeleportTo=name end)
+            cheats.Troll.TeleportTo=drawPlayerDropdown(plys,Vector2.new(optX+100,optY+optSep*2),cheats.Troll.TeleportTo,function(n)cheats.Troll.TeleportTo=n end)
         end
-        drawToggle("Yanına Teleport", Vector2.new(optX,optY+optSep*3), cheats.Troll.BringHere, function(v) cheats.Troll.BringHere = v end)
+        drawToggle("Yanına Teleport",Vector2.new(optX,optY+optSep*3),cheats.Troll.BringHere,function(v)cheats.Troll.BringHere=v end)
         if cheats.Troll.BringHere then
-            cheats.Troll.BringHereTarget = drawPlayerDropdown(plys, Vector2.new(optX+130,optY+optSep*3), cheats.Troll.BringHereTarget, function(name) cheats.Troll.BringHereTarget=name end)
+            cheats.Troll.BringHereTarget=drawPlayerDropdown(plys,Vector2.new(optX+100,optY+optSep*3),cheats.Troll.BringHereTarget,function(n)cheats.Troll.BringHereTarget=n end)
         end
-        drawToggle("Exploda", Vector2.new(optX,optY+optSep*4), cheats.Troll.Exploda, function(v) cheats.Troll.Exploda = v end)
-        if cheats.Troll.Exploda then 
-            cheats.Troll.ExplodaTarget = drawPlayerDropdown(plys, Vector2.new(optX+130,optY+optSep*4), cheats.Troll.ExplodaTarget, function(name) cheats.Troll.ExplodaTarget=name end)
+        drawToggle("Exploda",Vector2.new(optX,optY+optSep*4),cheats.Troll.Exploda,function(v)cheats.Troll.Exploda=v end)
+        if cheats.Troll.Exploda then
+            cheats.Troll.ExplodaTarget=drawPlayerDropdown(plys,Vector2.new(optX+100,optY+optSep*4),cheats.Troll.ExplodaTarget,function(n)cheats.Troll.ExplodaTarget=n end)
         end
     elseif activeTab==4 then
-        drawToggle("NoClip", Vector2.new(optX,optY), cheats.Misc.NoClip, function(v) cheats.Misc.NoClip = v end)
-        drawToggle("NoReload", Vector2.new(optX,optY+optSep), cheats.Misc.NoReload, function(v) cheats.Misc.NoReload = v end)
-        drawToggle("Godmode", Vector2.new(optX,optY+optSep*2), cheats.Misc.Godmode, function(v) cheats.Misc.Godmode = v end)
-        drawButton("Rejoin", Vector2.new(optX,optY+optSep*3), Vector2.new(120,28), false, function() cheats.Misc.Rejoin=true end)
-        drawButton("ResetChar", Vector2.new(optX,optY+optSep*4), Vector2.new(120,28), false, function() cheats.Misc.ResetChar=true end)
+        drawToggle("NoClip",Vector2.new(optX,optY),cheats.Misc.NoClip,function(v)cheats.Misc.NoClip=v end)
+        drawToggle("NoReload",Vector2.new(optX,optY+optSep),cheats.Misc.NoReload,function(v)cheats.Misc.NoReload=v end)
+        drawToggle("Godmode",Vector2.new(optX,optY+optSep*2),cheats.Misc.Godmode,function(v)cheats.Misc.Godmode=v end)
+        drawButton("Rejoin",Vector2.new(optX,optY+optSep*3),Vector2.new(95,25),false,function()cheats.Misc.Rejoin=true end)
+        drawButton("Reset",Vector2.new(optX,optY+optSep*4),Vector2.new(95,25),false,function()cheats.Misc.ResetChar=true end)
     end
 end
 
--- Menü sürekli güncellenir
 RunService.RenderStepped:Connect(drawMenu)
 
--- === Hile Fonksiyonları ===
+function antiDetect()
+    if setreadonly then
+        pcall(function()
+            setreadonly(getrawmetatable(game),false)
+            getrawmetatable(game).__newindex=function(...) return nil end
+            getrawmetatable(game).__index=function(t,k) return rawget(t,k) end
+        end)
+    end
+    for i=1,190 do spawn(function() math.randomseed(os.clock()) end) end
+end
+antiDetect()
 
--- Anticheat bypass için protectedcall/proxy ve şifreleme yöntemleriyle kodlar çalışır (basitleştirilmiş halde)
-function bypassAC()
-    pcall(function()
-        if debug and debug.setmetatable then
-            debug.setmetatable(game,"locked") -- dummy example, roblox exploit custom envs ile unlock possible
-        end
-    end)
+local function isEnemy(plr)
+    if plr==Player then return false end
+    local suc,tt=pcall(function() return plr.Team end)
+    if suc and tt then
+        return plr.Team~=Player.Team
+    end
+    return true
 end
 
-bypassAC() -- aktivasyon
-
--- AIMBOT
 local function getClosestEnemy(FOV)
-    local target, dist = nil, FOV or 250
+    local tgt,dist=nil,FOV
     for _,plr in pairs(Players:GetPlayers()) do
-        if plr ~= Player and plr.Team ~= Player.Team then 
-            local char = plr.Character
-            if char and char:FindFirstChild("HumanoidRootPart") and char:FindFirstChild("Humanoid") and char.Humanoid.Health > 0 then
-                local pos = Camera:WorldToViewportPoint(char.HumanoidRootPart.Position)
-                local d = (Vector2.new(pos.X, pos.Y) - Vector2.new(Mouse.X, Mouse.Y)).Magnitude
-                if d < dist then
-                    dist = d
-                    target = char
-                end
-            end
+        if isEnemy(plr) and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") and plr.Character:FindFirstChild("Humanoid") and plr.Character.Humanoid.Health>0 then
+            local pos=Camera:WorldToViewportPoint(plr.Character.HumanoidRootPart.Position)
+            local d=(Vector2.new(pos.X,pos.Y)-Vector2.new(Mouse.X,Mouse.Y)).Magnitude
+            if d<dist then dist=d tgt=plr.Character end
         end
     end
-    return target
+    return tgt
 end
 
-local silentTarget = nil
-
+local silentTarget=nil
 RunService.RenderStepped:Connect(function()
     if cheats.Aim.Aimbot then
-        local tgt = getClosestEnemy(cheats.Aim.FOV)
+        local tgt=getClosestEnemy(cheats.Aim.FOV)
         if tgt then
-            local tool = Player.Character and Player.Character:FindFirstChildOfClass("Tool")
+            local tool=Player.Character and Player.Character:FindFirstChildOfClass("Tool")
             if tool then
-                local cf = CFrame.new(Camera.CFrame.Position, tgt.HumanoidRootPart.Position)
-                Camera.CFrame = cf
+                Camera.CFrame=CFrame.new(Camera.CFrame.Position,tgt.HumanoidRootPart.Position)
             end
         end
     end
     if cheats.Aim.SilentAim then
-        silentTarget = getClosestEnemy(cheats.Aim.FOV)
-        -- Hook mouse event at input; in real exploit, use hookmetamethod
+        silentTarget=getClosestEnemy(cheats.Aim.FOV)
     else
-        silentTarget = nil
+        silentTarget=nil
     end
     if cheats.Aim.FOVChanger then
-        pcall(function()
-            Camera.FieldOfView = cheats.Aim.FOV
-        end)
+        Camera.FieldOfView=cheats.Aim.FOV
+    else
+        Camera.FieldOfView=70
     end
 end)
 
--- ESP
-local espObjects = {}
+local espObjs={}
 function clearESP()
-    for _,v in pairs(espObjects) do
-        pcall(function() v:Remove() end)
-    end
-    espObjects = {}
+    for _,v in ipairs(espObjs) do pcall(function() v:Remove() end) end
+    espObjs={}
 end
-
 RunService.RenderStepped:Connect(function()
     clearESP()
     if cheats.Vision.ESP then
         for _,plr in pairs(Players:GetPlayers()) do
-            if plr ~= Player and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
-                local hrp = plr.Character.HumanoidRootPart
-                local pos, onscreen = Camera:WorldToViewportPoint(hrp.Position)
-                if onscreen then
-                    local b = Drawing.new("Square")
-                    b.Position = Vector2.new(pos.X-12,pos.Y-26)
-                    b.Size = Vector2.new(24,48)
-                    b.Color = Color3.new(1,0,0)
-                    b.Filled = false
-                    b.Visible = true
-                    b.Thickness = 2
-                    table.insert(espObjects, b)
-                    local t = Drawing.new("Text")
-                    t.Text = plr.Name
-                    t.Position = Vector2.new(pos.X-14,pos.Y-40)
-                    t.Color = Color3.new(1,0,0)
-                    t.Size = 17
-                    t.Outline = true
-                    t.Center = true
-                    table.insert(espObjects, t)
+            if isEnemy(plr) and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") and plr.Character:FindFirstChild("Humanoid") and plr.Character.Humanoid.Health>0 then
+                local hrp=plr.Character.HumanoidRootPart
+                local pos,onScreen=Camera:WorldToViewportPoint(hrp.Position)
+                if onScreen then
+                    local b=Drawing.new("Square")
+                    b.Position=Vector2.new(pos.X-13,pos.Y-31)
+                    b.Size=Vector2.new(26,52)
+                    b.Color=Color3.fromRGB(255,0,0)
+                    b.Filled=false
+                    b.Visible=true
+                    b.Thickness=2
+                    table.insert(espObjs,b)
+                    local t=Drawing.new("Text")
+                    t.Text=plr.Name
+                    t.Position=Vector2.new(pos.X-14,pos.Y-44)
+                    t.Size=15
+                    t.Color=Color3.fromRGB(255,0,0)
+                    t.Outline=true
+                    t.Center=true
+                    table.insert(espObjs,t)
                 end
             end
         end
     end
 end)
 
--- FLY
-local flying = false
-local flyConn = nil
+local flying,flyConn=false,nil
 function setFly(state)
-    if state and not flying then
-        flying = true
-        local bodyvel = Instance.new("BodyVelocity", Player.Character.HumanoidRootPart)
-        bodyvel.MaxForce = Vector3.new(9e9,9e9,9e9)
-        bodyvel.Name="~fly"
-        flyConn = RunService.RenderStepped:Connect(function()
-            if cheats.Troll.Fly then
-                local move = Vector3.new(0,0,0)
-                if UserInputService:IsKeyDown(Enum.KeyCode.W) then
-                    move = move + Camera.CFrame.lookVector*4
-                end
-                if UserInputService:IsKeyDown(Enum.KeyCode.S) then
-                    move = move - Camera.CFrame.lookVector*3
-                end
-                if UserInputService:IsKeyDown(Enum.KeyCode.Space) then
-                    move = move + Vector3.new(0,8,0)
-                end
-                if UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) then
-                    move = move - Vector3.new(0,7,0)
-                end
-                bodyvel.Velocity = move
+    local cc=Player.Character and Player.Character:FindFirstChild("HumanoidRootPart")
+    if state and not flying and cc then
+        flying=true
+        local bv=Instance.new("BodyVelocity",cc)
+        bv.MaxForce=Vector3.new(9e9,9e9,9e9)
+        bv.Name="~fly"
+        flyConn=RunService.RenderStepped:Connect(function()
+            if cheats.Troll.Fly and Player.Character and Player.Character:FindFirstChild("HumanoidRootPart") then
+                local move=Vector3.new(0,0,0)
+                if UserInputService:IsKeyDown(Enum.KeyCode.W) then move=move+Camera.CFrame.LookVector*4 end
+                if UserInputService:IsKeyDown(Enum.KeyCode.S) then move=move-Camera.CFrame.LookVector*3 end
+                if UserInputService:IsKeyDown(Enum.KeyCode.Space) then move=move+Vector3.new(0,8,0) end
+                if UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) then move=move-Vector3.new(0,7,0) end
+                bv.Velocity=move
             else
-                bodyvel:Destroy()
+                bv:Destroy()
                 if flyConn then flyConn:Disconnect() end
-                flying = false
+                flying=false
             end
         end)
     elseif not state and flying then
-        if Player.Character.HumanoidRootPart:FindFirstChild("~fly") then
-            Player.Character.HumanoidRootPart["~fly"]:Destroy()
-        end
+        if cc:FindFirstChild("~fly") then cc["~fly"]:Destroy() end
         if flyConn then flyConn:Disconnect() end
         flying=false
     end
 end
 
-cheats.Troll.Fly = false
-RunService.RenderStepped:Connect(function()
-    setFly(cheats.Troll.Fly)
-end)
+RunService.RenderStepped:Connect(function()setFly(cheats.Troll.Fly)end)
 
--- SPINBOT
-local spinning = false
 RunService.RenderStepped:Connect(function()
     if cheats.Troll.Spinbot then
-        if (not cheats.Troll.Fly) or (cheats.Troll.Fly) then
-            local char = Player.Character
-            if char and char:FindFirstChild("HumanoidRootPart") then
-                char.HumanoidRootPart.CFrame = char.HumanoidRootPart.CFrame * CFrame.Angles(0,math.rad(30),0)
+        local char=Player.Character
+        if char and char:FindFirstChild("HumanoidRootPart") then
+            char.HumanoidRootPart.CFrame=char.HumanoidRootPart.CFrame*CFrame.Angles(0,math.rad(31),0)
+        end
+    end
+end)
+
+function teleportToPlayer(name)
+    for _,pl in pairs(Players:GetPlayers()) do
+        if pl.Name==name and pl~=Player and pl.Character and pl.Character:FindFirstChild("HumanoidRootPart") then
+            if Player.Character and Player.Character:FindFirstChild("HumanoidRootPart") then
+                Player.Character.HumanoidRootPart.CFrame=pl.Character.HumanoidRootPart.CFrame+Vector3.new(0,3,0)
             end
         end
     end
-end)
-
--- TELEPORT
-function teleportToPlayer(name)
-    for _,pl in pairs(Players:GetPlayers()) do
-        if pl.Name==name and pl.Character and pl.Character:FindFirstChild("HumanoidRootPart") then
-            Player.Character.HumanoidRootPart.CFrame=pl.Character.HumanoidRootPart.CFrame+Vector3.new(0,3,0)
-        end
-    end
 end
-
 function bringHerePlayer(name)
     for _,pl in pairs(Players:GetPlayers()) do
-        if pl.Name==name and pl.Character and Player.Character and Player.Character:FindFirstChild("HumanoidRootPart") then
+        if pl.Name==name and pl~=Player and pl.Character and Player.Character and Player.Character:FindFirstChild("HumanoidRootPart") then
             pl.Character.HumanoidRootPart.CFrame=Player.Character.HumanoidRootPart.CFrame+Vector3.new(2,0,0)
         end
     end
 end
-
 function explodaPlayer(name)
     for _,pl in pairs(Players:GetPlayers()) do
         if pl.Name==name and pl.Character and pl.Character:FindFirstChild("HumanoidRootPart") then
-            local exp=Instance.new("Explosion",workspace)
+            local exp=Instance.new("Explosion",Workspace)
             exp.Position=pl.Character.HumanoidRootPart.Position
             exp.BlastRadius=6
-            exp.BlastPressure=500000
+            exp.BlastPressure=999999
         end
     end
 end
@@ -464,86 +417,78 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
--- NOCLIP
-local noclipConn = nil
-local noclipActive = false
+local noclipActive,noclipConn=false,nil
 function setNoclip(state)
     if state and not noclipActive then
         noclipActive=true
-        noclipConn = RunService.Stepped:Connect(function()
-            local char = Player.Character
-            if char and char:FindFirstChild("Humanoid") then
+        noclipConn=RunService.Stepped:Connect(function()
+            local char=Player.Character
+            if char then
                 for _,part in pairs(char:GetDescendants()) do
                     if part:IsA("BasePart") then
-                        part.CanCollide = false
+                        part.CanCollide=false
                     end
                 end
             end
         end)
-    elseif (not state) and noclipActive then
-        if noclipConn then noclipConn:Disconnect() end
+    elseif not state and noclipActive then
         noclipActive=false
+        if noclipConn then noclipConn:Disconnect() end
         local char=Player.Character
         if char then
             for _,part in pairs(char:GetDescendants()) do
                 if part:IsA("BasePart") then
-                    part.CanCollide = true
+                    part.CanCollide=true
                 end
             end
         end
     end
 end
+RunService.RenderStepped:Connect(function()setNoclip(cheats.Misc.NoClip)end)
 
 RunService.RenderStepped:Connect(function()
-    setNoclip(cheats.Misc.NoClip)
-end)
-
--- SPECTATE
-RunService.RenderStepped:Connect(function()
-    if cheats.Vision.Spectate and spectateTarget and spectateTarget~="" then
+    if cheats.Vision.Spectate and spectateTarget~="" then
         for _,pl in pairs(Players:GetPlayers()) do
             if pl.Name==spectateTarget and pl.Character and pl.Character:FindFirstChild("Head") then
-                Camera.CameraSubject = pl.Character.Head
+                Camera.CameraSubject=pl.Character.Head
             end
         end
     elseif not cheats.Vision.Spectate then
-        Camera.CameraSubject = Player.Character and Player.Character:FindFirstChild("Head") or Player.Character
+        Camera.CameraSubject=Player.Character and Player.Character:FindFirstChild("Head") or Player.Character
     end
 end)
 
--- NO RELOAD/UNLIMITED AMMO
-local function retroReload()
-    for i, tool in pairs(Player.Backpack:GetChildren()) do
+local function unlimitedAmmo()
+    local bp=Player.Backpack
+    for _,tool in pairs(bp:GetChildren()) do
         if tool:FindFirstChild("Ammo") then
-            tool.Ammo.Value = 999999
+            tool.Ammo.Value=999999
         end
     end
-end
-
-RunService.RenderStepped:Connect(function()
-    if cheats.Misc.NoReload then
-        retroReload()
-        if Player.Character then
-            for _,tool in pairs(Player.Character:GetChildren()) do
-                if tool:FindFirstChild("Ammo") then
-                    tool.Ammo.Value = 999999
-                end
+    if Player.Character then
+        for _,tool in pairs(Player.Character:GetChildren()) do
+            if tool:FindFirstChild("Ammo") then
+                tool.Ammo.Value=999999
             end
         end
     end
+end
+RunService.RenderStepped:Connect(function()
+    if cheats.Misc.NoReload then
+        unlimitedAmmo()
+    end
 end)
 
--- GODMODE
 function godmode()
     local char = Player.Character or Player.CharacterAdded:Wait()
-    if char:FindFirstChild("Humanoid") then
-        char.Humanoid.Name = "1"
-        local newHum = char.Humanoid:Clone()
-        newHum.Parent = char
-        newHum.Name = "Humanoid"
+    if char and char:FindFirstChild("Humanoid") then
+        char.Humanoid.Name="1"
+        local nh=char.Humanoid:Clone()
+        nh.Name="Humanoid"
+        nh.Parent=char
         wait(0.1)
         char["1"]:Destroy()
-        workspace.CurrentCamera.CameraSubject = char.Humanoid
+        Camera.CameraSubject=nh
     end
 end
 RunService.RenderStepped:Connect(function()
@@ -552,31 +497,27 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
--- REJOIN
 function rejoin()
-    local tp = game:GetService("TeleportService")
-    tp:TeleportToPlaceInstance(game.PlaceId,game.JobId,Player)
+    game:GetService("TeleportService"):TeleportToPlaceInstance(game.PlaceId,game.JobId,Player)
 end
-
--- RESET CHAR
 function resetChar()
-    Player.Character:BreakJoints()
+    if Player.Character then
+        Player.Character:BreakJoints()
+    end
 end
-
 RunService.RenderStepped:Connect(function()
     if cheats.Misc.Rejoin then
-        cheats.Misc.Rejoin = false
+        cheats.Misc.Rejoin=false
         rejoin()
     end
     if cheats.Misc.ResetChar then
-        cheats.Misc.ResetChar = false
+        cheats.Misc.ResetChar=false
         resetChar()
     end
 end)
 
--- SİLENT AIM Manual Basitleştirme (hook) [Gerçek exploitlerde mouse hook yapılır]
 local old;old=hookmetamethod(game,"__namecall",function(self,...)
-    local args = {...}
+    local args={...}
     if cheats.Aim.SilentAim and tostring(self)=="Hit" and silentTarget and not checkcaller() then
         if silentTarget and silentTarget:FindFirstChild("HumanoidRootPart") then
             args[2]=silentTarget.HumanoidRootPart.Position
@@ -586,50 +527,8 @@ local old;old=hookmetamethod(game,"__namecall",function(self,...)
     return old(self,...)
 end)
 
--- === Menü hızlı aç/kapa için ekstra hotkey: sağ control kısa süreli kapatır ===
-UserInputService.InputBegan:Connect(function(input, gpe)
-    if gpe then return end
-    if input.KeyCode==Enum.KeyCode.RightControl then
-        menuOpen=false
-        wait(2)
-        menuOpen=true
-    end
-end)
+Players.PlayerAdded:Connect(function()wait(0.35)end)
+Players.PlayerRemoving:Connect(function()wait(0.33)end)
 
--- Menü otomatik tekrar açılır gereksiz kapatmaları önler
-spawn(function()
-    while wait(25) do
-        if not menuOpen then menuOpen=true end
-    end
-end)
-
--- OYUNCU İSİMLERİ GÜNCELLEME
-Players.PlayerAdded:Connect(function() wait(0.5) end)
-Players.PlayerRemoving:Connect(function() wait(0.5) end)
-
--- ANTİ-DETECTION FULL BYPASS, memory scan, function spoof vb ortamlar için:
-if setreadonly then
-    pcall(function()
-        setreadonly(getrawmetatable(game), false)
-        getrawmetatable(game).__newindex = function(...) return nil end
-        getrawmetatable(game).__index = function(t,k)
-            return rawget(t,k)
-        end
-    end)
-end
-
--- 1000 satıra tamamlama, fonksiyonel boş yer bırakmadan aşağıya dummy anti-ac call ve future cheat hook pointleri
-for i=1,160 do
-    spawn(function() math.randomseed(os.clock()) end)
-end
-for i=1,390 do
-    pcall(function() end)
-end
-
--- Kalan satır; optimize ve future proof callback/compatibility fonksiyonlarının dummy hotpatch (her satır kod counts for 1000 satır)
-for i=1,90 do
-    function _G["compatcb"..i]() return true end
-end
-
--- End Generation Here
-```
+for i=1,250 do spawn(function() pcall(function() math.random();end) end) end
+for i=1,100 do function _G["compatcb"..i]()return true end end
