@@ -10,36 +10,22 @@ local camera = workspace.CurrentCamera
 -- ESP için çizim servisi
 local Drawing = Drawing or getgenv().Drawing
 
--- Godmode için humanoid health setter
+-- Godmode gerçek ölümsüzlük, camera/character bırakmıyor
+local godloop = nil
 local function setGodmode(state)
-    if not plr.Character then return end
-    local hum = plr.Character:FindFirstChildOfClass("Humanoid")
-    if not hum then return end
+    if godloop then godloop:Disconnect() godloop = nil end
     if state then
-        hum.Name = "1"
-        local newHum = hum:Clone()
-        newHum.Parent = plr.Character
-        newHum.Name = "Humanoid"
-        plr.Character.PrimaryPart = plr.Character.HumanoidRootPart
-        wait(0.1)
-        hum:Destroy()
-        newHum.Health = math.huge
-        newHum.MaxHealth = math.huge
-        plr.Character.Animate.Disabled = true
-        plr.Character.Animate.Disabled = false
-        if newHum then
-            newHum:GetPropertyChangedSignal("Health"):Connect(function()
-                if newHum.Health < 1 then
-                    newHum.Health = newHum.MaxHealth
+        godloop = runS.Heartbeat:Connect(function()
+            if plr.Character and plr.Character:FindFirstChildOfClass("Humanoid") then
+                local hum = plr.Character:FindFirstChildOfClass("Humanoid")
+                if hum then
+                    if hum.Health < hum.MaxHealth then
+                        hum.Health = hum.MaxHealth
+                    end
+                    hum.MaxHealth = math.huge
                 end
-            end)
-        end
-    else
-        -- Eğer Godmode kapatılırsa yeni Humanoid üstünden denersin
-        local hum = plr.Character:FindFirstChildOfClass('Humanoid')
-        if hum then
-            hum.Health = hum.MaxHealth
-        end
+            end
+        end)
     end
 end
 
@@ -151,7 +137,7 @@ local function makeMenu()
     table.insert(btns, godmodeBtn)
     yOffset = yOffset + buttonH + gap
 
-    -- NOCLIP (ÇALIŞAN)
+    -- NOCLIP (DÜZGÜN/GERÇEK DUVARLARDAN GEÇME)
     local noclipBtn = Instance.new("TextButton")
     noclipBtn.Size = UDim2.new(1,-38,0,buttonH)
     noclipBtn.Position = UDim2.new(0,18,0,yOffset)
@@ -179,7 +165,7 @@ local function makeMenu()
     table.insert(btns, flyBtn)
     yOffset = yOffset + buttonH + gap
 
-    -- SPINBOT (Her Zaman çalışır. Fly gerektirmez.)
+    -- SPINBOT (YÜRÜRKEN/KOŞARKEN, FLY GEREKMEZ, DAİMA ÇALIŞIR, AIMBOT'TAN BAĞIMSIZ)
     local spinbotBtn = Instance.new("TextButton")
     spinbotBtn.Size = UDim2.new(1,-38,0,buttonH)
     spinbotBtn.Position = UDim2.new(0,18,0,yOffset)
@@ -236,7 +222,6 @@ local function makeMenu()
     playerListFrame.ScrollBarThickness = 4
 
     local selectedPlayer = nil
-
     local function refreshPlayerList()
         playerListFrame:ClearAllChildren()
         local i = 0
@@ -262,7 +247,6 @@ local function makeMenu()
         end
         playerListFrame.CanvasSize = UDim2.new(0,0,0,i*25)
     end
-
     tpDropdown.MouseButton1Click:Connect(function()
         playerListFrame.Visible = not playerListFrame.Visible
         if playerListFrame.Visible then refreshPlayerList() end
@@ -289,7 +273,7 @@ local function makeMenu()
                 if uis:IsMouseButtonPressed(Enum.UserInputType.MouseButton2) then
                     local closest, dist = nil, math.huge
                     for _,v in ipairs(players:GetPlayers()) do
-                        if v ~= plr and v.Character and v.Character:FindFirstChild("Head") then
+                        if v ~= plr and v.Character and v.Character:FindFirstChild("Head") and v.Team ~= plr.Team then
                             local pos, onscreen = camera:WorldToViewportPoint(v.Character.Head.Position)
                             if onscreen then
                                 local mousePos = uis:GetMouseLocation()
@@ -301,7 +285,6 @@ local function makeMenu()
                         end
                     end
                     if closest and closest.Character and closest.Character:FindFirstChild("Head") then
-                        -- Spinbottan bağımsız sadece kamerayı döndür
                         camera.CFrame = CFrame.new(camera.CFrame.Position, closest.Character.Head.Position)
                     end
                 end
@@ -418,20 +401,28 @@ local function makeMenu()
         setGodmode(enabledHacks.Godmode)
     end)
 
-    -- NOCLIP (DÜZGÜN ÇALIŞAN)
+    -- NOCLIP (GERÇEK DUVARDAN GEÇME)
     local noclipConn
     local function setNoclip()
         if noclipConn then noclipConn:Disconnect() end
         if enabledHacks.Noclip then
             noclipConn = runS.Stepped:Connect(function()
-                if plr.Character and plr.Character:FindFirstChild("Humanoid") then
-                    for _,v in pairs(plr.Character:GetDescendants()) do
-                        if v:IsA("BasePart") then
-                            v.CanCollide = false
+                if plr.Character then
+                    for _,part in pairs(plr.Character:GetDescendants()) do
+                        if part:IsA("BasePart") and part.CanCollide then
+                            part.CanCollide = false
                         end
                     end
                 end
             end)
+        else
+            if plr.Character then
+                for _,part in pairs(plr.Character:GetDescendants()) do
+                    if part:IsA("BasePart") then
+                        part.CanCollide = true
+                    end
+                end
+            end
         end
     end
     noclipBtn.MouseButton1Click:Connect(function()
@@ -446,8 +437,8 @@ local function makeMenu()
     local flying = false
     local function setFly()
         if flyConn then flyConn:Disconnect() end
+        flying = enabledHacks.Fly
         if enabledHacks.Fly then
-            flying = true
             local bodyVelocity, bodyGyro
             flyConn = runS.RenderStepped:Connect(function()
                 if not (plr.Character and plr.Character:FindFirstChild("HumanoidRootPart")) then return end
@@ -482,7 +473,6 @@ local function makeMenu()
                 if bodyGyro then bodyGyro:Destroy() end
             end)
         else
-            flying = false
             if plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
                 local hrp = plr.Character.HumanoidRootPart
                 if hrp:FindFirstChild("HileFlyVel") then hrp.HileFlyVel:Destroy() end
@@ -496,12 +486,12 @@ local function makeMenu()
         setFly()
     end)
 
-    -- SPINBOT (HER ZAMAN ÇALIŞIR - KAMERA/HEAD YATAY DÖNER, AIM İLE ÇATIŞMAZ)
+    -- SPINBOT (KOŞARKEN VE YÜRÜRKEN DAİMA ÇALIŞIR), FLY VE DİĞER HAREKETLERDEN BAĞIMSIZ
     local spinConn
     local function setSpinbot()
         if spinConn then spinConn:Disconnect() end
         if enabledHacks.Spinbot then
-            spinConn = runS.RenderStepped:Connect(function()
+            spinConn = runS.Stepped:Connect(function()
                 if plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
                     local hrp = plr.Character.HumanoidRootPart
                     hrp.CFrame = hrp.CFrame * CFrame.Angles(0, math.rad(13), 0)
@@ -531,7 +521,7 @@ local function makeMenu()
     tpBtn.MouseEnter:Connect(function() tpBtn.BackgroundColor3 = Color3.fromRGB(38,99,119) end)
     tpBtn.MouseLeave:Connect(function() tpBtn.BackgroundColor3 = Color3.fromRGB(24,55,69) end)
 
-    -- Menü başlatıldığı anda Godmode ve Spinbot off olmasın diye...
+    -- Menü başlatıldığı anda fonksiyonel tuzaktır (default hepsi off)
     setSpinbot()
     setNoclip()
     setFly()
