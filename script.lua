@@ -8,6 +8,7 @@ local gui = Instance.new("ScreenGui")
 gui.Name = "VisitingMenu"
 pcall(function() gui.Parent = game:GetService("CoreGui") end)
 if not gui.Parent then gui.Parent = LP:FindFirstChildOfClass("PlayerGui") end
+
 local menuOpen = true
 local frame = Instance.new("Frame")
 frame.Parent = gui
@@ -305,7 +306,7 @@ renderSection("aim")
 local Drawing = Drawing
 local currentESP = {}
 local espRunning = false
-local ESP_DISTANCE = 300
+local ESP_DISTANCE = 350
 
 function get2DFrom3D(p)
     local pos, onscreen = Cam:WorldToViewportPoint(p)
@@ -316,7 +317,7 @@ function getBoxVertsFromParts(char)
     local hrp = char:FindFirstChild("HumanoidRootPart")
     if not hrp then return nil end
     local size = hrp.Size
-    local scale = 1.11
+    local scale = 1.07
     local offsetY = Vector3.new(0, size.Y*scale/2, 0)
     local verts3d = {
         (hrp.Position + hrp.CFrame.RightVector*size.X/2*scale + offsetY + hrp.CFrame.LookVector*size.Z/2*scale),
@@ -368,8 +369,8 @@ function drawBodyESP(p)
             local l = Drawing and Drawing.new and Drawing.new("Line") or nil
             if l then
                 l.Color = Color3.fromRGB(255, 0, 0)
-                l.Thickness = 2.1
-                l.Transparency = 1
+                l.Thickness = 2
+                l.Transparency = 0.94
                 l.Visible = false
                 lines[i] = l
             end
@@ -413,7 +414,7 @@ function drawBodyESP(p)
         for _,edge in ipairs(edges) do
             if not outline[idx] then
                 local l = Drawing and Drawing.new and Drawing.new("Line") or nil
-                if l then l.Color=Color3.fromRGB(255,0,0) l.Thickness=1.2 l.Transparency=1 l.Visible=false end
+                if l then l.Color=Color3.fromRGB(255,0,0) l.Thickness=1.2 l.Transparency=0.97 l.Visible=false end
                 outline[idx] = l
             end
             local l = outline[idx]
@@ -431,9 +432,10 @@ function drawBodyESP(p)
     for ci = idx, #(outline) do pcall(function() outline[ci].Visible = false end) end
     currentESP[p].outlineParts = outline
 end
-function updateESP()
+
+function clearDeadESP()
     for p, sections in pairs(currentESP) do
-        if not Players:FindFirstChild(p.Name) or not p.Character then
+        if not Players:FindFirstChild(p.Name) or not p.Character or not p.Character:FindFirstChild("HumanoidRootPart") then
             local boxLines = sections.boxLines or {}
             for _,l in ipairs(boxLines) do if l and typeof(l.Remove)=="function" then l:Remove() end end
             local outlineParts = sections.outlineParts or {}
@@ -442,11 +444,12 @@ function updateESP()
         end
     end
 end
+
 function startESP()
     if espRunning then return end
     espRunning = true
+    local drawingCache = {}
     RS.RenderStepped:Connect(function()
-        updateESP()
         if not optStates["ESP"] then
             for _,sections in pairs(currentESP) do
                 for _,l in ipairs(sections.boxLines or {}) do if l then l.Visible=false end end
@@ -454,13 +457,16 @@ function startESP()
             end
             return
         end
+        local framePlayers = {}
         for _,p in pairs(Players:GetPlayers()) do
             if p ~= LP and p.Character and p.Character:FindFirstChild("HumanoidRootPart") and p.Character:FindFirstChildOfClass("Humanoid") and p.Character:FindFirstChildOfClass("Humanoid").Health > 0 then
+                table.insert(framePlayers, p)
+            end
+        end
+        clearDeadESP()
+        if #framePlayers > 0 then
+            for _,p in pairs(framePlayers) do
                 drawBodyESP(p)
-            elseif currentESP[p] then
-                local sec = currentESP[p]
-                for _,l in ipairs(sec.boxLines or {}) do if l then l.Visible=false end end
-                for _,l in ipairs(sec.outlineParts or {}) do if l then l.Visible=false end end
             end
         end
     end)
@@ -579,6 +585,35 @@ function startGorunmezlik()
     end)
 end
 
+function bypassAntiCheat()
+    local Success,Remote = pcall(function() return getrawmetatable(game) end)
+    if Success then
+        setreadonly(Remote, false)
+        local namecall = Remote.__namecall
+        Remote.__namecall = newcclosure(function(self,...)
+            local Args = {...}
+            local Method = getnamecallmethod()
+            if Method=="Kick" or Method=="Ban" or Method=="Destroy" then
+                return
+            end
+            if typeof(self)=="Instance" and (self.Name:lower():find("ban") or self.Name:lower():find("kick") or self.Name:lower():find("anticheat")) then
+                return
+            end
+            return namecall(self, ...)
+        end)
+        if make_writeable then pcall(make_writeable,Remote) end
+        if setreadonly then pcall(setreadonly,Remote,true) end
+    end
+    if hookfunction and LP and LP.Kick then
+        pcall(function()
+            hookfunction(LP.Kick, function()
+                return
+            end)
+        end)
+    end
+end
+
+bypassAntiCheat()
 startESP()
 startAimbot()
 startSilentAim()
