@@ -1,4 +1,5 @@
-// Roblox için eğitim amaçlı script – Menü, aimbot, esp, noclip, spinbot fonksiyonları DOLU
+-- Delta Executor için GUInun açılabilmesi adına Parent'ı PlayerGui olarak değiştirildi!
+local plr = game.Players.LocalPlayer
 
 local ScreenGui = Instance.new("ScreenGui")
 local MainFrame = Instance.new("Frame")
@@ -11,7 +12,7 @@ local SpinbotButton = Instance.new("TextButton")
 local CloseButton = Instance.new("TextButton")
 
 ScreenGui.Name = "ScriptMenu"
-ScreenGui.Parent = game:GetService("CoreGui")
+ScreenGui.Parent = plr:WaitForChild("PlayerGui") -- !! Önemli kısım, menüyü GUI olarak açmak için PlayerGui'ya parent yap!
 ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 
 MainFrame.Name = "MainFrame"
@@ -91,9 +92,6 @@ game:GetService("UserInputService").InputChanged:Connect(function(input)
 end)
 
 CloseButton.MouseButton1Click:Connect(function() ScreenGui:Destroy() end)
-
--- OYUNCU REFERANSI
-local plr = game.Players.LocalPlayer
 
 -- ## AIMBOT
 local aimbotActive = false
@@ -181,8 +179,6 @@ local function refreshESP()
     clearAllESP()
     for _,v in ipairs(game.Players:GetPlayers()) do
         if v ~= plr and v.Character and v.Character:FindFirstChild("Head") then
-            local found = false
-            -- prevent multiple ESP
             if not v.Character:FindFirstChild("ESPBox") then
                 local box = createESPBox(v.Character)
                 if box then table.insert(espBoxes, box) end
