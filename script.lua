@@ -1,4 +1,4 @@
--- Roblox Gelişmiş Hile Menü (ESP insan iskeleti/kafatası, Noclip çalışır, Spinbot yürürken/koşarken çalışır)
+-- Roblox Gelişmiş Hile Menü: Spinbot (her zaman aktiftir), Noclip (tam duvar geçişi, Patchli)
 local players = game:GetService("Players")
 local plr = players.LocalPlayer
 local uis = game:GetService("UserInputService")
@@ -7,6 +7,7 @@ local camera = workspace.CurrentCamera
 
 local Drawing = Drawing or getgenv().Drawing
 
+-- Godmode Updater
 local godloop = nil
 local function setGodmode(state)
     if godloop then godloop:Disconnect() godloop = nil end
@@ -15,10 +16,12 @@ local function setGodmode(state)
             if plr.Character and plr.Character:FindFirstChildOfClass("Humanoid") then
                 local hum = plr.Character:FindFirstChildOfClass("Humanoid")
                 if hum then
-                    if hum.Health < hum.MaxHealth then
-                        hum.Health = hum.MaxHealth
-                    end
+                    hum.Health = hum.MaxHealth
                     hum.MaxHealth = math.huge
+                    hum.BreakJointsOnDeath = false
+                    if hum.Parent and hum:GetState().Name == "Dead" then
+                        hum:ChangeState(Enum.HumanoidStateType.Running)
+                    end
                 end
             end
         end)
@@ -128,7 +131,7 @@ local function makeMenu()
     table.insert(btns, godmodeBtn)
     yOffset = yOffset + buttonH + gap
 
-    -- NOCLIP (GÜNCELLENDİ - HER ZAMAN ÇALIŞIR)
+    -- NOCLIP
     local noclipBtn = Instance.new("TextButton")
     noclipBtn.Size = UDim2.new(1,-38,0,buttonH)
     noclipBtn.Position = UDim2.new(0,18,0,yOffset)
@@ -156,7 +159,7 @@ local function makeMenu()
     table.insert(btns, flyBtn)
     yOffset = yOffset + buttonH + gap
 
-    -- SPINBOT (YÜRÜRKEN, KOŞARKEN HER ZAMAN AKTİF)
+    -- SPINBOT (Her zaman, yani yürüken-koşarken-uçarken)
     local spinbotBtn = Instance.new("TextButton")
     spinbotBtn.Size = UDim2.new(1,-38,0,buttonH)
     spinbotBtn.Position = UDim2.new(0,18,0,yOffset)
@@ -287,7 +290,7 @@ local function makeMenu()
         aimbotFunc()
     end)
 
-    -- Yeni ESP: İskelet + Kafatası
+    -- ESP: Skelet/Kafatası Sistemi
     local espObjs = {}
     local espConn
     local function clearESP()
@@ -304,7 +307,6 @@ local function makeMenu()
         {"LeftUpperLeg","LeftLowerLeg"}, {"LeftLowerLeg","LeftFoot"},
         {"RightUpperLeg","RightLowerLeg"}, {"RightLowerLeg","RightFoot"}
     }
-    local headParts = {"Head"}
     local function espLoop()
         clearESP()
         if espConn then espConn:Disconnect() espConn = nil end
@@ -314,7 +316,6 @@ local function makeMenu()
                 if v ~= plr and v.Character and v.Character:FindFirstChild("HumanoidRootPart") and v.Character:FindFirstChild("Head") then
                     if not espObjs[v] then
                         espObjs[v] = {}
-                        -- Skeleton lines (red)
                         for i=1,#skeleton do
                             local line = Drawing.new("Line")
                             line.Color = Color3.new(1,0,0)
@@ -323,7 +324,6 @@ local function makeMenu()
                             line.Visible = false
                             espObjs[v]["line"..i] = line
                         end
-                        -- Head Skull circle
                         local circle = Drawing.new("Circle")
                         circle.Color = Color3.new(1,0,0)
                         circle.Thickness = 4
@@ -351,7 +351,6 @@ local function makeMenu()
                             line.Visible = false
                         end
                     end
-                    -- Head circle: Kafatası
                     local head = ch:FindFirstChild("Head")
                     local circ = espObjs[v].headcircle
                     if head then
@@ -381,14 +380,14 @@ local function makeMenu()
         end
     end)
 
-    -- Godmode
+    -- Godmode Button
     godmodeBtn.MouseButton1Click:Connect(function()
         enabledHacks.Godmode = not enabledHacks.Godmode
         godmodeBtn.Text = hackText("Godmode",enabledHacks.Godmode)
         setGodmode(enabledHacks.Godmode)
     end)
 
-    -- Noclip (Çalışıyor/Her Saniye Kontrol)
+    -- NOCLIP: Tam Geçiş (Her base part disable, Humanoid collisions Off)
     local noclipConn
     local function setNoclip()
         if noclipConn then noclipConn:Disconnect() end
@@ -398,7 +397,12 @@ local function makeMenu()
                     for _,part in pairs(plr.Character:GetDescendants()) do
                         if part:IsA("BasePart") then
                             part.CanCollide = false
+                            part.Massless = true
                         end
+                    end
+                    local hum = plr.Character:FindFirstChildWhichIsA("Humanoid")
+                    if hum and hum:GetState() ~= Enum.HumanoidStateType.Physics then
+                        hum:ChangeState(Enum.HumanoidStateType.Physics)
                     end
                 end
             end)
@@ -407,7 +411,12 @@ local function makeMenu()
                 for _,part in pairs(plr.Character:GetDescendants()) do
                     if part:IsA("BasePart") then
                         part.CanCollide = true
+                        part.Massless = false
                     end
+                end
+                local hum = plr.Character:FindFirstChildWhichIsA("Humanoid")
+                if hum then
+                    hum:ChangeState(Enum.HumanoidStateType.Running)
                 end
             end
         end
@@ -418,13 +427,11 @@ local function makeMenu()
         setNoclip()
     end)
 
-    -- FLY (Flydayken ve uçarken çalışır, spinbot ile uyumlu)
+    -- FLY Fonksiyon
     local flyConn
     local flySpeed = 50
-    local flying = false
     local function setFly()
         if flyConn then flyConn:Disconnect() end
-        flying = enabledHacks.Fly
         if enabledHacks.Fly then
             local bodyVelocity, bodyGyro
             flyConn = runS.RenderStepped:Connect(function()
@@ -473,28 +480,15 @@ local function makeMenu()
         setFly()
     end)
 
-    -- Spinbot (KOŞARKEN/YÜRÜRKEN ÇALIŞIYOR)
+    -- SPINBOT: Her zaman çalışır, fly/noclip/koşu/yürüme fark etmez
     local spinConn
-    local prevVel = Vector3.zero
-    local prevGrounded = false
-    function isMovingAndOnGround()
-        if plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") and plr.Character:FindFirstChildOfClass("Humanoid") then
-            local hum = plr.Character:FindFirstChildOfClass("Humanoid")
-            local hrp = plr.Character.HumanoidRootPart
-            -- Yürüyor/koşuyor ve yerde (jump/fly değil)
-            return (hrp.Velocity * Vector3.new(1,0,1)).Magnitude > 0.5 and hum.FloorMaterial ~= Enum.Material.Air
-        end
-        return false
-    end
     local function setSpinbot()
         if spinConn then spinConn:Disconnect() end
         if enabledHacks.Spinbot then
             spinConn = runS.Stepped:Connect(function()
-                if isMovingAndOnGround() then
-                    if plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
-                        local hrp = plr.Character.HumanoidRootPart
-                        hrp.CFrame = hrp.CFrame * CFrame.Angles(0, math.rad(13), 0)
-                    end
+                if plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
+                    local hrp = plr.Character.HumanoidRootPart
+                    hrp.CFrame = hrp.CFrame * CFrame.Angles(0, math.rad(15), 0)
                 end
             end)
         end
