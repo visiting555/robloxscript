@@ -1,69 +1,39 @@
 local Players = game:GetService("Players")
 local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
+local TweenService = game:GetService("TweenService")
 local LocalPlayer = Players.LocalPlayer
 local Camera = workspace.CurrentCamera
-
-local gui = Instance.new("ScreenGui")
-gui.Name = "hilescriptmenu"
-gui.Parent = game.CoreGui
-
-local frame = Instance.new("Frame")
-frame.Size = UDim2.new(0, 300, 0, 380)
-frame.Position = UDim2.new(0, 25, 0.5, -190)
-frame.BackgroundColor3 = Color3.fromRGB(25,25,25)
-frame.BorderSizePixel = 0
-frame.Active = true
-frame.Draggable = true
-frame.Parent = gui
-
-local title = Instance.new("TextLabel")
-title.Size = UDim2.new(1, 0, 0, 40)
-title.Position = UDim2.new(0, 0, 0, 0)
-title.Text = "Hile Script Menüsü"
-title.Font = Enum.Font.SourceSansBold
-title.TextSize = 22
-title.TextColor3 = Color3.new(1,1,1)
-title.BackgroundTransparency = 1
-title.Parent = frame
-
-local yOffset = 45
-
-function makeButton(text, callback)
-    local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(1, -30, 0, 35)
-    btn.Position = UDim2.new(0, 15, 0, yOffset)
-    btn.BackgroundColor3 = Color3.fromRGB(44,44,44)
-    btn.BorderSizePixel = 0
-    btn.Text = text
-    btn.TextColor3 = Color3.new(1,1,1)
-    btn.Font = Enum.Font.SourceSansBold
-    btn.TextSize = 18
-    btn.Parent = frame
-    yOffset = yOffset + 40
-    btn.MouseButton1Click:Connect(callback)
-    return btn
-end
 
 local aimbotEnabled = false
 local noclipEnabled = false
 local flyEnabled = false
 local espEnabled = false
 local spinbotEnabled = false
-local teleportGui = nil
 local teleporting = false
-local flySpeed = 60
-local bodyGyro = nil
-local bodyVelocity = nil
+local flySpeed = 70
+local spinSpeed = 10
+local selectedTPIndex = 1
+local bodyGyro, bodyVelocity = nil, nil
 
-function getClosestPlayer()
+local function getAllPlayers()
+    local plrs = {}
+    for _, p in ipairs(Players:GetPlayers()) do
+        if p ~= LocalPlayer and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
+            table.insert(plrs, p)
+        end
+    end
+    return plrs
+end
+
+local function getClosestPlayer()
     local closest = nil
     local shortest = math.huge
-    for _, player in pairs(Players:GetPlayers()) do
+    for _, player in ipairs(Players:GetPlayers()) do
         if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") and player.Character:FindFirstChildOfClass("Humanoid") and player.Character:FindFirstChildOfClass("Humanoid").Health > 0 then
-            local pos = Camera:WorldToViewportPoint(player.Character.HumanoidRootPart.Position)
-            if pos.Z > 0 then
-                local dist = (Vector2.new(pos.X, pos.Y) - UserInputService:GetMouseLocation()).magnitude
+            local pos, ons = Camera:WorldToViewportPoint(player.Character.HumanoidRootPart.Position)
+            if ons then
+                local dist = (Vector2.new(pos.X, pos.Y) - UserInputService:GetMouseLocation()).Magnitude
                 if dist < shortest then
                     shortest = dist
                     closest = player
@@ -74,185 +44,230 @@ function getClosestPlayer()
     return closest
 end
 
-makeButton("Aimbot [AÇ/KAPA]", function()
-    aimbotEnabled = not aimbotEnabled
-end)
-
-makeButton("Noclip [AÇ/KAPA]", function()
-    noclipEnabled = not noclipEnabled
-end)
-
-makeButton("Fly [AÇ/KAPA]", function()
-    flyEnabled = not flyEnabled
-    if flyEnabled then
-        if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
-            local root = LocalPlayer.Character.HumanoidRootPart
-            bodyGyro = Instance.new("BodyGyro", root)
-            bodyGyro.MaxTorque = Vector3.new(9e9,9e9,9e9)
-            bodyGyro.P = 1e5
-            bodyVelocity = Instance.new("BodyVelocity", root)
-            bodyVelocity.MaxForce = Vector3.new(9e9,9e9,9e9)
+local function enableESP()
+    espEnabled = true
+    for _, player in ipairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("Head") and not player.Character.Head:FindFirstChild("ESPBox") then
+            local bb = Instance.new("BillboardGui", player.Character.Head)
+            bb.Name = "ESPBox"
+            bb.Size = UDim2.new(4,0,4,0)
+            bb.Adornee = player.Character.Head
+            bb.AlwaysOnTop = true
+            local f = Instance.new("Frame", bb)
+            f.Size = UDim2.new(1,0,1,0)
+            f.Transparency = 0.6
+            f.BackgroundColor3 = Color3.fromRGB(13,255,0)
+            f.BorderSizePixel = 0
         end
-    else
-        if bodyGyro then bodyGyro:Destroy() end
-        if bodyVelocity then bodyVelocity:Destroy() end
-        bodyGyro = nil
-        bodyVelocity = nil
     end
-end)
-
-makeButton("ESP [AÇ/KAPA]", function()
-    espEnabled = not espEnabled
-    if espEnabled then
-        for _, player in pairs(Players:GetPlayers()) do
-            if player ~= LocalPlayer then
-                if player.Character and player.Character:FindFirstChild("Head") and not player.Character.Head:FindFirstChild("ESP") then
-                    local box = Instance.new("BillboardGui", player.Character.Head)
-                    box.Name = "ESP"
-                    box.Size = UDim2.new(4, 0, 4, 0)
-                    box.AlwaysOnTop = true
-                    local frame2 = Instance.new("Frame", box)
-                    frame2.Size = UDim2.new(1, 0, 1, 0)
-                    frame2.BackgroundColor3 = Color3.new(1, 0, 0)
-                    frame2.BackgroundTransparency = 0.5
-                    frame2.BorderSizePixel = 0
-                end
-            end
-        end
-    else
-        for _, player in pairs(Players:GetPlayers()) do
+    RunService.RenderStepped:Connect(function()
+        if not espEnabled then return end
+        for _, player in ipairs(Players:GetPlayers()) do
             if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("Head") then
-                if player.Character.Head:FindFirstChild("ESP") then
-                    player.Character.Head.ESP:Destroy()
+                local bb = player.Character.Head:FindFirstChild("ESPBox")
+                if bb then
+                    bb.Enabled = player.Character:FindFirstChildOfClass("Humanoid").Health > 0
                 end
             end
         end
-    end
-end)
-
-makeButton("Spinbot [AÇ/KAPA]", function()
-    spinbotEnabled = not spinbotEnabled
-end)
-
-makeButton("Teleport Player", function()
-    if teleporting then return end
-    teleporting = true
-    teleportGui = Instance.new("ScreenGui", game.CoreGui)
-    teleportGui.Name = "TeleportGUI"
-    local win = Instance.new("Frame", teleportGui)
-    win.Size = UDim2.new(0, 260, 0, 370)
-    win.Position = UDim2.new(0, 340, 0.5, -180)
-    win.BackgroundColor3 = Color3.fromRGB(30,30,30)
-    win.Active = true
-    win.Draggable = true
-
-    local lbl = Instance.new("TextLabel", win)
-    lbl.Size = UDim2.new(1, 0, 0, 40)
-    lbl.Text = "Teleport Olmak İçin Oyuncu Seç"
-    lbl.Font = Enum.Font.SourceSansBold
-    lbl.TextColor3 = Color3.new(1,1,1)
-    lbl.BackgroundTransparency = 1
-    lbl.TextSize = 18
-
-    local plList = Instance.new("ScrollingFrame", win)
-    plList.Size = UDim2.new(1, -10, 1, -60)
-    plList.Position = UDim2.new(0,5,0,45)
-    plList.CanvasSize = UDim2.new(0,0,0, #Players:GetPlayers() * 40)
-    plList.BackgroundTransparency = 1
-    plList.BorderSizePixel = 0
-    local uilayout = Instance.new("UIListLayout", plList)
-    uilayout.Padding = UDim.new(0, 2)
-    plList.ScrollBarThickness = 8
-
-    for _, player in pairs(Players:GetPlayers()) do
-        if player ~= LocalPlayer then
-            local plbtn = Instance.new("TextButton", plList)
-            plbtn.Size = UDim2.new(1, 0, 0, 35)
-            plbtn.BackgroundColor3 = Color3.new(0.3,0.3,0.3)
-            plbtn.Text = player.Name
-            plbtn.TextColor3 = Color3.new(1,1,1)
-            plbtn.Font = Enum.Font.SourceSansBold
-            plbtn.TextSize = 17
-            plbtn.Name = player.Name
-            plbtn.MouseButton1Click:Connect(function()
-                if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-                    LocalPlayer.Character.HumanoidRootPart.CFrame = player.Character.HumanoidRootPart.CFrame + Vector3.new(2,0,0)
-                end
-            end)
-        end
-    end
-
-    local close = Instance.new("TextButton", win)
-    close.Size = UDim2.new(1,0,0,32)
-    close.Position = UDim2.new(0,0,1,-32)
-    close.Text = "Kapat"
-    close.BackgroundColor3 = Color3.fromRGB(80,0,0)
-    close.TextColor3 = Color3.new(1,1,1)
-    close.Font = Enum.Font.SourceSansBold
-    close.TextSize = 18
-    close.MouseButton1Click:Connect(function()
-        teleportGui:Destroy()
-        teleporting = false
     end)
-end)
-
-RunService.RenderStepped:Connect(function()
-    if noclipEnabled and LocalPlayer.Character then
-        for _, part in pairs(LocalPlayer.Character:GetDescendants()) do
-            if part:IsA("BasePart") then
-                part.CanCollide = false
+end
+local function disableESP()
+    espEnabled = false
+    for _, player in ipairs(Players:GetPlayers()) do
+        if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("Head") then
+            local bb = player.Character.Head:FindFirstChild("ESPBox")
+            if bb then
+                bb:Destroy()
             end
         end
     end
-    if flyEnabled then
-        if not bodyGyro or not bodyVelocity or not LocalPlayer.Character or not LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then return end
-        local root = LocalPlayer.Character.HumanoidRootPart
-        root.Anchored = false
-        bodyGyro.CFrame = Camera.CFrame
-        local moveDir = Vector3.new()
-        if UserInputService:IsKeyDown(Enum.KeyCode.W) then moveDir = moveDir + Camera.CFrame.LookVector end
-        if UserInputService:IsKeyDown(Enum.KeyCode.S) then moveDir = moveDir - Camera.CFrame.LookVector end
-        if UserInputService:IsKeyDown(Enum.KeyCode.A) then moveDir = moveDir - Camera.CFrame.RightVector end
-        if UserInputService:IsKeyDown(Enum.KeyCode.D) then moveDir = moveDir + Camera.CFrame.RightVector end
-        if UserInputService:IsKeyDown(Enum.KeyCode.Space) then moveDir = moveDir + Camera.CFrame.UpVector end
-        if UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) then moveDir = moveDir - Camera.CFrame.UpVector end
-        if moveDir.Magnitude > 0 then
-            bodyVelocity.Velocity = moveDir.Unit * flySpeed
-        else
-            bodyVelocity.Velocity = Vector3.new(0, 0, 0)
-        end
-    end
-    if spinbotEnabled and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
-        LocalPlayer.Character.HumanoidRootPart.CFrame = LocalPlayer.Character.HumanoidRootPart.CFrame * CFrame.Angles(0, math.rad(25), 0)
-    end
-end)
+end
 
-UserInputService.InputBegan:Connect(function(input, processed)
-    if processed then return end
-    if input.UserInputType == Enum.UserInputType.MouseButton2 and aimbotEnabled then
-        local target = getClosestPlayer()
-        if target and target.Character and target.Character:FindFirstChild("Head") and (not flyEnabled or (flyEnabled and not spinbotEnabled)) then
-            local cf = CFrame.new(Camera.CFrame.Position, target.Character.Head.Position)
-            Camera.CFrame = cf
-        end
-    end
-end)
-
-Players.PlayerAdded:Connect(function(player)
-    if espEnabled then
-        player.CharacterAdded:Connect(function(char)
-            char:WaitForChild("Head")
-            if not char.Head:FindFirstChild("ESP") then
-                local box = Instance.new("BillboardGui", char.Head)
-                box.Name = "ESP"
-                box.Size = UDim2.new(4, 0, 4, 0)
-                box.AlwaysOnTop = true
-                local frame2 = Instance.new("Frame", box)
-                frame2.Size = UDim2.new(1, 0, 1, 0)
-                frame2.BackgroundColor3 = Color3.new(1, 0, 0)
-                frame2.BackgroundTransparency = 0.5
-                frame2.BorderSizePixel = 0
+local function enableNoclip()
+    noclipEnabled = true
+    RunService.Stepped:Connect(function()
+        if noclipEnabled and LocalPlayer.Character then
+            for _, v in pairs(LocalPlayer.Character:GetDescendants()) do
+                if v:IsA("BasePart") then
+                    v.CanCollide = false
+                end
             end
+        end
+    end)
+end
+local function disableNoclip()
+    noclipEnabled = false
+    if LocalPlayer.Character then
+        for _, v in pairs(LocalPlayer.Character:GetDescendants()) do
+            if v:IsA("BasePart") then
+                v.CanCollide = true
+            end
+        end
+    end
+end
+
+local function startFly()
+    flyEnabled = true
+    local char = LocalPlayer.Character
+    local hrp = char and char:FindFirstChild("HumanoidRootPart")
+    if char and hrp then
+        bodyGyro = Instance.new("BodyGyro", hrp)
+        bodyGyro.P = 9e4
+        bodyGyro.MaxTorque = Vector3.new(9e9,9e9,9e9)
+        bodyGyro.CFrame = hrp.CFrame
+        bodyVelocity = Instance.new("BodyVelocity", hrp)
+        bodyVelocity.Velocity = Vector3.new(0,0,0)
+        bodyVelocity.MaxForce = Vector3.new(9e9,9e9,9e9)
+        local flying = true
+        local speed = flySpeed
+        local controls = {F=0,B=0,L=0,R=0,U=0,D=0}
+        local function flyFunc()
+            while flyEnabled and flying and char and hrp and bodyGyro and bodyVelocity do
+                local new = hrp.Position
+                local camCF = workspace.CurrentCamera.CFrame
+                local mv = Vector3.new()
+                if controls.F == 1 then mv += camCF.LookVector end
+                if controls.B == 1 then mv -= camCF.LookVector end
+                if controls.L == 1 then mv -= camCF.RightVector end
+                if controls.R == 1 then mv += camCF.RightVector end
+                if controls.U == 1 then mv += camCF.UpVector end
+                if controls.D == 1 then mv -= camCF.UpVector end
+                bodyVelocity.Velocity = mv.Unit * speed
+                bodyGyro.CFrame = workspace.CurrentCamera.CFrame
+                if mv.Magnitude == 0 then
+                    bodyVelocity.Velocity = Vector3.new(0,0,0)
+                end
+                RunService.RenderStepped:Wait()
+            end
+        end
+        local inputBinds = {}
+        inputBinds[Enum.KeyCode.W] = function(b) controls.F = b and 1 or 0 end
+        inputBinds[Enum.KeyCode.S] = function(b) controls.B = b and 1 or 0 end
+        inputBinds[Enum.KeyCode.A] = function(b) controls.L = b and 1 or 0 end
+        inputBinds[Enum.KeyCode.D] = function(b) controls.R = b and 1 or 0 end
+        inputBinds[Enum.KeyCode.Space] = function(b) controls.U = b and 1 or 0 end
+        inputBinds[Enum.KeyCode.LeftControl] = function(b) controls.D = b and 1 or 0 end
+        UserInputService.InputBegan:Connect(function(input)
+            if inputBinds[input.KeyCode] then inputBinds[input.KeyCode](true) end
         end)
+        UserInputService.InputEnded:Connect(function(input)
+            if inputBinds[input.KeyCode] then inputBinds[input.KeyCode](false) end
+        end)
+        coroutine.wrap(flyFunc)()
+    end
+end
+local function stopFly()
+    flyEnabled = false
+    local char = LocalPlayer.Character
+    local hrp = char and char:FindFirstChild("HumanoidRootPart")
+    pcall(function() if bodyGyro then bodyGyro:Destroy() end end)
+    pcall(function() if bodyVelocity then bodyVelocity:Destroy() end end)
+end
+
+local function aimbot()
+    aimbotEnabled = true
+    RunService.RenderStepped:Connect(function()
+        if aimbotEnabled and Camera and (not flyEnabled or (flyEnabled and spinbotEnabled == false)) then
+            local plr = getClosestPlayer()
+            if plr and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
+                local targetPos = plr.Character.HumanoidRootPart.Position
+                Camera.CFrame = CFrame.new(Camera.CFrame.Position, targetPos)
+            end
+        end
+    end)
+end
+local function stopAimbot() aimbotEnabled = false end
+
+local function spinbot()
+    spinbotEnabled = true
+    RunService.RenderStepped:Connect(function()
+        if spinbotEnabled and flyEnabled and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+            LocalPlayer.Character.HumanoidRootPart.CFrame = LocalPlayer.Character.HumanoidRootPart.CFrame * CFrame.Angles(0,math.rad(spinSpeed),0)
+        end
+    end)
+end
+local function stopSpinbot() spinbotEnabled = false end
+
+local function getTPPlayers()
+    local plrs = {}
+    for _, p in ipairs(Players:GetPlayers()) do
+        if p ~= LocalPlayer and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
+            table.insert(plrs, p)
+        end
+    end
+    return plrs
+end
+
+local function teleportMenu()
+    teleporting = true
+    local plrs = getTPPlayers()
+    if #plrs == 0 then return end
+    local gui = Instance.new("ScreenGui", game.CoreGui)
+    gui.Name = "TPMenu"
+    local frame = Instance.new("Frame", gui)
+    frame.Size = UDim2.new(0,250,0,30+#plrs*30)
+    frame.Position = UDim2.new(0.5,-125,0.3,0)
+    frame.BackgroundColor3 = Color3.fromRGB(30, 30, 30)
+    frame.BorderSizePixel = 0
+    local layout = Instance.new("UIListLayout", frame)
+    layout.FillDirection = Enum.FillDirection.Vertical
+
+    for i, p in ipairs(plrs) do
+        local btn = Instance.new("TextButton", frame)
+        btn.Size = UDim2.new(1,0,0,30)
+        btn.Text = "["..i.."] "..p.DisplayName.." ("..p.Name..")"
+        btn.BackgroundColor3 = Color3.fromRGB(65,65,65)
+        btn.TextColor3 = Color3.new(1,1,1)
+        btn.MouseButton1Click:Connect(function()
+            if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+                LocalPlayer.Character.HumanoidRootPart.CFrame = p.Character.HumanoidRootPart.CFrame + Vector3.new(0,3,0)
+            end
+            if gui then gui:Destroy() end
+            teleporting = false
+        end)
+    end
+    UserInputService.InputBegan:Connect(function(input)
+        if not teleporting then return end
+        if input.KeyCode == Enum.KeyCode.A then
+            local num = tonumber(UserInputService:GetFocusedTextBox() and UserInputService:GetFocusedTextBox().Text or "")
+            if not num then num = selectedTPIndex end
+            local tgt = plrs[selectedTPIndex]
+            if tgt and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+                LocalPlayer.Character.HumanoidRootPart.CFrame = tgt.Character.HumanoidRootPart.CFrame + Vector3.new(0,3,0)
+            end
+            if gui then gui:Destroy() end
+            teleporting = false
+        elseif input.KeyCode == Enum.KeyCode.Down then
+            selectedTPIndex = math.clamp(selectedTPIndex+1, 1, #plrs)
+        elseif input.KeyCode == Enum.KeyCode.Up then
+            selectedTPIndex = math.clamp(selectedTPIndex-1, 1, #plrs)
+        elseif input.KeyCode == Enum.KeyCode.Escape then
+            if gui then gui:Destroy() end
+            teleporting = false
+        end
+    end)
+end
+
+enableESP()
+aimbot()
+enableNoclip()
+startFly()
+spinbot()
+
+UserInputService.InputBegan:Connect(function(input, gpe)
+    if gpe then return end
+    if input.KeyCode == Enum.KeyCode.F1 then
+        if aimbotEnabled then stopAimbot() else aimbot() end
+    elseif input.KeyCode == Enum.KeyCode.F2 then
+        if noclipEnabled then disableNoclip() else enableNoclip() end
+    elseif input.KeyCode == Enum.KeyCode.F3 then
+        if flyEnabled then stopFly() else startFly() end
+    elseif input.KeyCode == Enum.KeyCode.F4 then
+        if espEnabled then disableESP() else enableESP() end
+    elseif input.KeyCode == Enum.KeyCode.F5 then
+        if spinbotEnabled then stopSpinbot() else spinbot() end
+    elseif input.KeyCode == Enum.KeyCode.T then
+        if not teleporting then teleportMenu() end
     end
 end)
