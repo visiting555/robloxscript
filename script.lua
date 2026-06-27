@@ -1,4 +1,4 @@
--- Hile Menü V3 — GÜNCELLENDİ: SPINBOT KOŞARKEN TAMAM, ESP ve NOCLIP MÜKEMMEL! (Beyaz kutu, iskelet, baş, yakın oyuncular, NOCLIP tamamen gövde+kafa her parça Collide=false)
+-- Hile Menü V3 — SÜPER SÜRÜM SON DOKUNUŞ: ESP normal roblox karakteri etrafında, sadece yeterince yakındakilerde düzgün box, iskelet, kafa/baş çizimi var; diğer hileler bozulmadı!
 
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
@@ -276,7 +276,7 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
--- ESP: YAKIN oyuncular, kutu OYUNCU BOYUTUNDA ve beyaz, DUVAR ARKASI body alanı yarı saydam beyaz, iskelet+baş kutu içinde
+-- ESP: YAKINDAKİLERDE klasik roblox karakter (torso+head) etrafında kutu, skeleton, kafa/baş — Hepsi beyaz. Diğerleri çizilmiyor!
 local espDrawn = {}
 local function removeESP()
     for _, obj in pairs(espDrawn) do
@@ -326,148 +326,105 @@ RunService:BindToRenderStep("ESP_V2",200,function()
             local head = ply.Character.Head
             local hum = ply.Character:FindFirstChildOfClass("Humanoid")
             local dist = (hrp.Position - Camera.CFrame.Position).Magnitude
-            if dist < 275 then -- sadece yakın oyuncular
-                -- Kutu 
-                local min = Vector3.new(math.huge,math.huge,math.huge)
-                local max = Vector3.new(-math.huge,-math.huge,-math.huge)
-                for _,bp in ipairs(ply.Character:GetChildren()) do
-                    if bp:IsA("BasePart") then
-                        local p = bp.Position
-                        min = Vector3.new(math.min(min.X,p.X),math.min(min.Y,p.Y),math.min(min.Z,p.Z))
-                        max = Vector3.new(math.max(max.X,p.X),math.max(max.Y,p.Y),math.max(max.Z,p.Z))
-                    end
-                end
-                -- WorldToViewport
-                local vecs = {
-                    Vector3.new(min.X,min.Y,min.Z),
-                    Vector3.new(max.X,min.Y,min.Z),
-                    Vector3.new(min.X,max.Y,min.Z),
-                    Vector3.new(min.X,min.Y,max.Z),
-                    Vector3.new(max.X,max.Y,min.Z),
-                    Vector3.new(min.X,max.Y,max.Z),
-                    Vector3.new(max.X,min.Y,max.Z),
-                    Vector3.new(max.X,max.Y,max.Z),
-                }
-                local TL,BR = Vector2.new(9e9,9e9), Vector2.new(-9e9,-9e9)
-                local visible = false
-                for _,v3 in ipairs(vecs) do
-                    local v,onscr = Camera:WorldToViewportPoint(v3)
-                    if onscr and v.Z > 0 then
-                        visible = true
-                        TL = Vector2.new(math.min(TL.X,v.X),math.min(TL.Y,v.Y))
-                        BR = Vector2.new(math.max(BR.X,v.X),math.max(BR.Y,v.Y))
-                    end
-                end
-                if visible then
-                    local box = DrawBox(TL,BR)
-                    for _,l in ipairs(box) do table.insert(espDrawn,l) end
-                    -- DUVAR ARKASI VÜCUT: body hepsi collidable ise, alt transparan rect
-                    if not ply.Character.Head:IsDescendantOf(workspace.CurrentCamera) then
-                        local rect = Drawing.new("Quad")
-                        rect.Visible = true
-                        rect.Color = Color3.new(1,1,1)
-                        rect.Thickness = 0
-                        rect.Transparency = 0.1
-                        rect.PointA = TL
-                        rect.PointB = Vector2.new(BR.X, TL.Y)
-                        rect.PointC = BR
-                        rect.PointD = Vector2.new(TL.X, BR.Y)
-                        table.insert(espDrawn,rect)
-                    end
-                end
-                -- Kafa: ÇEMBER VE KAFATASI
-                local headWorld, headOnScreen = Camera:WorldToViewportPoint(head.Position)
-                if headOnScreen and headWorld.Z > 0 then
-                    local r = math.abs(Camera:WorldToViewportPoint(head.Position + Vector3.new(0,0.5,0)).Y - headWorld.Y)
-                    r = math.clamp(r, 11, 28)
-                    local circ = DrawCircle(Vector2.new(headWorld.X, headWorld.Y), r)
-                    table.insert(espDrawn,circ)
+            if dist < 200 then  -- Yeterli yakın olanlar (200-stud altı)
+                local torso = ply.Character:FindFirstChild("Torso") or ply.Character:FindFirstChild("UpperTorso") or ply.Character:FindFirstChild("LowerTorso")
+                if torso and head then
+                    -- Kutu: BAŞ (head) ile TORSO gibi gövdeyi kapsayan dikdörtgen yap
+                    local sizeY = (torso.Position.Y - head.Position.Y)
+                    local wb1, ons1 = Camera:WorldToViewportPoint(head.Position + Vector3.new(-1,0.2,0))
+                    local wb2, ons2 = Camera:WorldToViewportPoint(torso.Position + Vector3.new(1,-1,0))
+                    if ons1 and ons2 and wb1.Z > 0 and wb2.Z > 0 then
+                        local p1 = Vector2.new(wb1.X, wb1.Y)
+                        local p2 = Vector2.new(wb2.X, wb2.Y)
+                        local minY,maxY = math.min(p1.Y,p2.Y), math.max(p1.Y,p2.Y)
+                        local minX,maxX = math.min(p1.X,p2.X), math.max(p1.X,p2.X)
+                        -- Player Box
+                        local box = DrawBox(Vector2.new(minX,minY), Vector2.new(maxX,maxY), Color3.new(1,1,1))
+                        for _,l in ipairs(box) do table.insert(espDrawn,l) end
 
-                    -- Basit Kafatası—üstte küçük çapraz ve düz
-                    local skullT = DrawLine(
-                        Vector2.new(headWorld.X,headWorld.Y - r),
-                        Vector2.new(headWorld.X,headWorld.Y - r*1.7)
-                    )
-                    table.insert(espDrawn,skullT)
-                    local skullL = DrawLine(
-                        Vector2.new(headWorld.X-r*.66,headWorld.Y-r*.66),
-                        Vector2.new(headWorld.X-r*1.13,headWorld.Y-r*1.13)
-                    )
-                    table.insert(espDrawn,skullL)
-                    local skullR = DrawLine(
-                        Vector2.new(headWorld.X+r*.66,headWorld.Y-r*.66),
-                        Vector2.new(headWorld.X+r*1.13,headWorld.Y-r*1.13)
-                    )
-                    table.insert(espDrawn,skullR)
-                end
-                -- İSKELET: head>body>kollar>bacaklar çizgilerle
-                local function W2V(pos)
-                    local v,ok=Camera:WorldToViewportPoint(pos)
-                    return Vector2.new(v.X,v.Y),ok and v.Z>0
-                end
-                local skeletonParts = {
-                    head = ply.Character:FindFirstChild("Head"),
-                    root = ply.Character:FindFirstChild("HumanoidRootPart"),
-                    ptorso = ply.Character:FindFirstChild("Torso") or ply.Character:FindFirstChild("UpperTorso") or ply.Character:FindFirstChild("LowerTorso"),
-                    rsho = ply.Character:FindFirstChild("RightUpperArm") or ply.Character:FindFirstChild("Right Arm"),
-                    lsho = ply.Character:FindFirstChild("LeftUpperArm") or ply.Character:FindFirstChild("Left Arm"),
-                    rwrist = ply.Character:FindFirstChild("RightHand") or ply.Character:FindFirstChild("Right Arm"),
-                    lwrist = ply.Character:FindFirstChild("LeftHand") or ply.Character:FindFirstChild("Left Arm"),
-                    rleg = ply.Character:FindFirstChild("RightUpperLeg") or ply.Character:FindFirstChild("Right Leg"),
-                    lleg = ply.Character:FindFirstChild("LeftUpperLeg") or ply.Character:FindFirstChild("Left Leg"),
-                    rfoot = ply.Character:FindFirstChild("RightFoot") or ply.Character:FindFirstChild("Right Leg"),
-                    lfoot = ply.Character:FindFirstChild("LeftFoot") or ply.Character:FindFirstChild("Left Leg")
-                }
+                        -- HEAD CIRCLE
+                        local center, onhead = Camera:WorldToViewportPoint(head.Position)
+                        if onhead and center.Z > 0 then
+                            local r = math.abs(Camera:WorldToViewportPoint(head.Position + Vector3.new(0,0.5,0)).Y - center.Y)
+                            r = math.clamp(r, 11, 28)
+                            local circ = DrawCircle(Vector2.new(center.X, center.Y), r, Color3.new(1,1,1))
+                            table.insert(espDrawn,circ)
 
-                if skeletonParts.head and skeletonParts.ptorso then
-                    local h,hh=W2V(skeletonParts.head.Position)
-                    local p,pp=W2V(skeletonParts.ptorso.Position)
-                    if hh and pp then table.insert(espDrawn,DrawLine(h,p)) end
-                end
-                if skeletonParts.ptorso and skeletonParts.rsho then
-                    local p,pp = W2V(skeletonParts.ptorso.Position)
-                    local s,ss = W2V(skeletonParts.rsho.Position)
-                    if pp and ss then table.insert(espDrawn,DrawLine(p,s)) end
-                end
-                if skeletonParts.ptorso and skeletonParts.lsho then
-                    local p,pp = W2V(skeletonParts.ptorso.Position)
-                    local s,ss = W2V(skeletonParts.lsho.Position)
-                    if pp and ss then table.insert(espDrawn,DrawLine(p,s)) end
-                end
-                if skeletonParts.rsho and skeletonParts.rwrist then
-                    local s,ss = W2V(skeletonParts.rsho.Position)
-                    local w,ww = W2V(skeletonParts.rwrist.Position)
-                    if ss and ww then table.insert(espDrawn,DrawLine(s,w)) end
-                end
-                if skeletonParts.lsho and skeletonParts.lwrist then
-                    local s,ss = W2V(skeletonParts.lsho.Position)
-                    local w,ww = W2V(skeletonParts.lwrist.Position)
-                    if ss and ww then table.insert(espDrawn,DrawLine(s,w)) end
-                end
-                if skeletonParts.ptorso and skeletonParts.root then
-                    local p,pp = W2V(skeletonParts.ptorso.Position)
-                    local r,rr = W2V(skeletonParts.root.Position)
-                    if pp and rr then table.insert(espDrawn,DrawLine(p,r)) end
-                end
-                if skeletonParts.root and skeletonParts.rleg then
-                    local r,rr = W2V(skeletonParts.root.Position)
-                    local l,ll = W2V(skeletonParts.rleg.Position)
-                    if rr and ll then table.insert(espDrawn,DrawLine(r,l)) end
-                end
-                if skeletonParts.root and skeletonParts.lleg then
-                    local r,rr = W2V(skeletonParts.root.Position)
-                    local l,ll = W2V(skeletonParts.lleg.Position)
-                    if rr and ll then table.insert(espDrawn,DrawLine(r,l)) end
-                end
-                if skeletonParts.rleg and skeletonParts.rfoot then
-                    local l,ll = W2V(skeletonParts.rleg.Position)
-                    local f,ff = W2V(skeletonParts.rfoot.Position)
-                    if ll and ff then table.insert(espDrawn,DrawLine(l,f)) end
-                end
-                if skeletonParts.lleg and skeletonParts.lfoot then
-                    local l,ll = W2V(skeletonParts.lleg.Position)
-                    local f,ff = W2V(skeletonParts.lfoot.Position)
-                    if ll and ff then table.insert(espDrawn,DrawLine(l,f)) end
+                            -- Kafatası/ Skull cross yukarıya
+                            local skullT = DrawLine(
+                                Vector2.new(center.X,center.Y - r),
+                                Vector2.new(center.X,center.Y - r*1.7),
+                                Color3.new(1,1,1)
+                            )
+                            table.insert(espDrawn,skullT)
+                        end
+
+                        -- SKELETON (torso-head, torso-kollar, torso-bacaklar)
+                        local shoulderR = ply.Character:FindFirstChild("RightUpperArm") or ply.Character:FindFirstChild("Right Arm")
+                        local shoulderL = ply.Character:FindFirstChild("LeftUpperArm") or ply.Character:FindFirstChild("Left Arm")
+                        local handR = ply.Character:FindFirstChild("RightHand") or ply.Character:FindFirstChild("Right Arm")
+                        local handL = ply.Character:FindFirstChild("LeftHand") or ply.Character:FindFirstChild("Left Arm")
+                        local legR = ply.Character:FindFirstChild("RightUpperLeg") or ply.Character:FindFirstChild("Right Leg")
+                        local legL = ply.Character:FindFirstChild("LeftUpperLeg") or ply.Character:FindFirstChild("Left Leg")
+                        local footR = ply.Character:FindFirstChild("RightFoot") or ply.Character:FindFirstChild("Right Leg")
+                        local footL = ply.Character:FindFirstChild("LeftFoot") or ply.Character:FindFirstChild("Left Leg")
+
+                        local function W2V(pos)
+                            local v,ok=Camera:WorldToViewportPoint(pos)
+                            return Vector2.new(v.X,v.Y),ok and v.Z>0
+                        end
+
+                        if torso and head then
+                            local h,hh = W2V(head.Position)
+                            local t,tt = W2V(torso.Position)
+                            if hh and tt then table.insert(espDrawn,DrawLine(h,t,Color3.new(1,1,1))) end
+                        end
+                        if torso and shoulderR then
+                            local t,tt = W2V(torso.Position)
+                            local s,ss = W2V(shoulderR.Position)
+                            if tt and ss then table.insert(espDrawn,DrawLine(t,s,Color3.new(1,1,1))) end
+                        end
+                        if torso and shoulderL then
+                            local t,tt = W2V(torso.Position)
+                            local s,ss = W2V(shoulderL.Position)
+                            if tt and ss then table.insert(espDrawn,DrawLine(t,s,Color3.new(1,1,1))) end
+                        end
+                        if shoulderR and handR then
+                            local s,ss = W2V(shoulderR.Position)
+                            local h,hh = W2V(handR.Position)
+                            if ss and hh then table.insert(espDrawn,DrawLine(s,h,Color3.new(1,1,1))) end
+                        end
+                        if shoulderL and handL then
+                            local s,ss = W2V(shoulderL.Position)
+                            local h,hh = W2V(handL.Position)
+                            if ss and hh then table.insert(espDrawn,DrawLine(s,h,Color3.new(1,1,1))) end
+                        end
+                        if torso and hrp then
+                            local t,tt = W2V(torso.Position)
+                            local r,rr = W2V(hrp.Position)
+                            if tt and rr then table.insert(espDrawn,DrawLine(t,r,Color3.new(1,1,1))) end
+                        end
+                        if hrp and legR then
+                            local r,rr = W2V(hrp.Position)
+                            local l,ll = W2V(legR.Position)
+                            if rr and ll then table.insert(espDrawn,DrawLine(r,l,Color3.new(1,1,1))) end
+                        end
+                        if hrp and legL then
+                            local r,rr = W2V(hrp.Position)
+                            local l,ll = W2V(legL.Position)
+                            if rr and ll then table.insert(espDrawn,DrawLine(r,l,Color3.new(1,1,1))) end
+                        end
+                        if legR and footR then
+                            local l,ll = W2V(legR.Position)
+                            local f,ff = W2V(footR.Position)
+                            if ll and ff then table.insert(espDrawn,DrawLine(l,f,Color3.new(1,1,1))) end
+                        end
+                        if legL and footL then
+                            local l,ll = W2V(legL.Position)
+                            local f,ff = W2V(footL.Position)
+                            if ll and ff then table.insert(espDrawn,DrawLine(l,f,Color3.new(1,1,1))) end
+                        end
+                    end
                 end
             end
         end
