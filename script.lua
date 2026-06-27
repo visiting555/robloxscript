@@ -255,7 +255,7 @@ function createOption(idx, name, typ)
             elseif name=="Yanına Çek" then
                 playerDropdown(function(plr)
                     if plr and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") and LP.Character and LP.Character:FindFirstChild("HumanoidRootPart") then
-                        plr.Character.HumanoidRootPart.CFrame = LP.Character.HumanoidRootPart.CFrame + Vector3.new(0,7,0)
+                        plr.Character:SetPrimaryPartCFrame(LP.Character.HumanoidRootPart.CFrame + Vector3.new(0,3,0))
                         notify(plr.Name.." sana çekildi!")
                     end
                 end)
@@ -264,12 +264,15 @@ function createOption(idx, name, typ)
                     if plr and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
                         local hrp = plr.Character.HumanoidRootPart
                         local boom = Instance.new("Explosion")
-                        boom.BlastRadius = 8
-                        boom.BlastPressure = 100000
-                        boom.DestroyJointRadiusPercent = 0.65
+                        boom.BlastRadius = 6
+                        boom.BlastPressure = 500000
+                        boom.DestroyJointRadiusPercent = 0.95
                         boom.Position = hrp.Position + Vector3.new(0,2,0)
                         boom.Parent = workspace
-                        plr.Character:FindFirstChildOfClass("Humanoid").Health = 0
+                        task.wait(.08)
+                        if plr.Character and plr.Character:FindFirstChildOfClass("Humanoid") then
+                            plr.Character:FindFirstChildOfClass("Humanoid").Health = 0
+                        end
                         notify(plr.Name.." patlatıldı!")
                     end
                 end)
@@ -308,7 +311,7 @@ renderSection("aim")
 
 local currentESP = {}
 local DrawValid = pcall(function() return Drawing and Drawing.new and Drawing.new("Line") and true end)
-local ESP_DISTANCE = 350
+local ESP_DISTANCE = 175 -- optimize için 175 metre
 
 function get2DFrom3D(p)
     local pos, onscreen = Cam:WorldToViewportPoint(p)
@@ -340,6 +343,10 @@ function drawBodyESP(p)
     if not currentESP[p] then currentESP[p] = {} end
     for _,v in pairs(currentESP[p]) do v.Visible = false end
     local parts = getBodyParts(char)
+    local lines = {
+        {1,2},{1,3},{1,5},{2,4},{2,6},{3,4},{3,7},{4,8},
+        {5,6},{5,7},{6,8},{7,8}
+    }
     for _,part in ipairs(parts) do
         local size = part.Size
         local cf = part.CFrame
@@ -352,19 +359,15 @@ function drawBodyESP(p)
                 end
             end
         end
-        local lines = {
-            {1,2},{1,3},{1,5},{2,4},{2,6},{3,4},{3,7},{4,8},
-            {5,6},{5,7},{6,8},{7,8}
-        }
         for idx,ln in ipairs(lines) do
             local a2d,on1 = get2DFrom3D(corners[ln[1]])
             local b2d,on2 = get2DFrom3D(corners[ln[2]])
             if on1 and on2 then
                 if not currentESP[p][part.Name..idx] and DrawValid then
                     local d = Drawing.new("Line")
-                    d.Thickness = 1.05
+                    d.Thickness = 2
                     d.Color = Color3.fromRGB(255,0,0)
-                    d.Transparency = 0.84
+                    d.Transparency = 1
                     d.Visible = true
                     currentESP[p][part.Name..idx] = d
                 end
@@ -392,16 +395,17 @@ function clearDeadESP()
 end
 
 local espConn = nil
-local esptoggle = false
+local espOptimTick = 0
 function startESP()
     if espConn then pcall(function() espConn:Disconnect() end) end
-    espConn = RS.RenderStepped:Connect(function()
+    espConn = RS.RenderStepped:Connect(function(dt)
         if not optStates.ESP then
             for k,t in pairs(currentESP) do for _,line in pairs(t) do if line then line.Visible = false end end end
-            esptoggle = false
             return
         end
-        if not esptoggle then esptoggle = true end
+        espOptimTick = espOptimTick + dt
+        if espOptimTick < 0.033 then return end -- Her 2 frame'de bir çiz
+        espOptimTick = 0
         clearDeadESP()
         local list = {}
         for _,p in pairs(Players:GetPlayers()) do
@@ -467,6 +471,8 @@ end
 
 local flyBV
 function startFly()
+    local flying = false
+    local flyDir = Vector3.new()
     RS.RenderStepped:Connect(function()
         if optStates["Fly"] and LP.Character and LP.Character:FindFirstChild("HumanoidRootPart") then
             if not flyBV then
@@ -484,65 +490,73 @@ function startFly()
             if UIS:IsKeyDown(Enum.KeyCode.Q) then vel = vel - Cam.CFrame.UpVector end
             if vel.Magnitude > 0 then vel = vel.Unit * spd end
             flyBV.Velocity = vel
+            flying = true
         else
             if flyBV then flyBV:Destroy() flyBV = nil end
+            flying = false
         end
     end)
 end
 
 function startNoclip()
-    RS.Stepped:Connect(function()
-        if optStates["Noclip"] and LP.Character then
-            for _, v in pairs(LP.Character:GetDescendants()) do
-                if v:IsA("BasePart") then v.CanCollide = false end
+    local isNoclipping = false
+    local function setNoclip(state)
+        if LP.Character then
+            for _,v in pairs(LP.Character:GetDescendants()) do
+                if v:IsA("BasePart") then v.CanCollide = not state end
             end
+        end
+    end
+    RS.Stepped:Connect(function()
+        if optStates["Noclip"] then
+            setNoclip(true)
+            isNoclipping = true
+        elseif isNoclipping then
+            setNoclip(false)
+            isNoclipping = false
         end
     end)
 end
 
 function startGorunmezlik()
-    RS.RenderStepped:Connect(function()
-        if optStates["Görünmezlik"] and LP.Character then
-            for _,v in ipairs(LP.Character:GetDescendants()) do
-                if (v:IsA("BasePart") or v:IsA("MeshPart")) then
-                    if v.Name ~= "HumanoidRootPart" then
-                        v.Transparency=1
-                        v.LocalTransparencyModifier=1
-                    end
+    local invisRemote, con, humdescBackups
+    con = RS.RenderStepped:Connect(function()
+        if optStates["Görünmezlik"] and LP.Character and LP.Character:FindFirstChildOfClass("Humanoid") then
+            local char = LP.Character
+            for _,v in ipairs(char:GetDescendants()) do
+                if v:IsA("BasePart") or v:IsA("MeshPart") then
+                    v.Transparency = 1
                 end
                 if v.ClassName=="Decal" or v.ClassName=="Texture" then
-                    v.Transparency=1
+                    v.Transparency = 1
                 end
             end
-            if LP.Character:FindFirstChild("HumanoidRootPart") then
-                LP.Character.HumanoidRootPart.Transparency=1
-            end
-            -- Server-side invisibility (for FE games)
-            if _G.__invisRemoteCheckRan ~= true then
-                _G.__invisRemoteCheckRan = true
-                for _,val in pairs(LP.Character:GetDescendants()) do
-                    if val:IsA("BasePart") then
-                        local oldCF = val.CFrame
-                        val:BreakJoints()
-                        val.Anchored = true
-                        val.CFrame = oldCF
-                    end
-                end
-                task.wait(0.3)
-                for _,val in pairs(LP.Character:GetDescendants()) do
-                    if val:IsA("BasePart") then
-                        val.Anchored = false
+            local hum = char:FindFirstChildOfClass("Humanoid")
+            if hum then
+                if not humdescBackups then
+                    humdescBackups = {}
+                    for _,child in ipairs(char:GetChildren()) do
+                        if child:IsA("CharacterMesh") or child:IsA("Accessory") then
+                            humdescBackups[child] = child.Parent
+                            child.Parent = nil
+                        end
                     end
                 end
             end
-        elseif LP.Character then
-            for _,v in ipairs(LP.Character:GetDescendants()) do
-                if v:IsA("BasePart") or v:IsA("MeshPart") then v.Transparency=0 v.LocalTransparencyModifier=0 end
+        else
+            if LP.Character then
+                for _,v in ipairs(LP.Character:GetDescendants()) do
+                    if v:IsA("BasePart") or v:IsA("MeshPart") then v.Transparency=0 end
+                    if v.ClassName=="Decal" or v.ClassName=="Texture" then v.Transparency=0 end
+                end
+                local hum = LP.Character and LP.Character:FindFirstChildOfClass("Humanoid")
+                if hum and humdescBackups then
+                    for acc,parent in pairs(humdescBackups) do
+                        pcall(function() acc.Parent = parent end)
+                    end
+                    humdescBackups = nil
+                end
             end
-            if LP.Character:FindFirstChild("HumanoidRootPart") then
-                LP.Character.HumanoidRootPart.Transparency=0
-            end
-            _G.__invisRemoteCheckRan = false
         end
     end)
 end
