@@ -1,145 +1,153 @@
--- ANTICHEAT BYPASS --
-local meta = getrawmetatable(game)
-setreadonly(meta, false)
-local old __namecall = meta.__namecall
-meta.__namecall = newcclosure(function(self,...)
-    local n = getnamecallmethod()
-    if (tostring(self):lower():find("ban") or tostring(self):lower():find("kick") or tostring(self):lower():find("detect")) then
-        return
-    end
-    return old __namecall(self,...)
-end)
-setreadonly(meta, true)
+--[[ QUARTZ.LUA | Prison Life Full Modern Türkçe Menü | RC 2024 ]]--
+local function Bypass()
+    local mt = getrawmetatable(game)
+    setreadonly(mt, false)
+    local __namecall = mt.__namecall
+    mt.__namecall = newcclosure(function(self, ...)
+        local m = getnamecallmethod()
+        if tostring(self):lower():find("ban") or tostring(self):lower():find("kick") or tostring(self):lower():find("detect") then
+            return nil
+        end
+        return __namecall(self, ...)
+    end)
+    setreadonly(mt, true)
+end
+Bypass()
 
 if game.PlaceId ~= 155615604 then return end
 
 local UIS = game:GetService("UserInputService")
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
-local Camera = workspace.CurrentCamera
 local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
 local RepStorage = game:GetService("ReplicatedStorage")
-local Remotes = RepStorage:WaitForChild("ReloadEvent").Parent
 local Workspace = game:GetService("Workspace")
 local RunService = game:GetService("RunService")
+local Camera = Workspace.CurrentCamera
 
-function Notification(msg)
-    pcall(function() game.StarterGui:SetCore("SendNotification", {Title="QUARTZ", Text=msg, Duration=2}) end)
+local function Notification(msg)
+    pcall(function()
+        game:GetService("StarterGui"):SetCore("SendNotification", {Title="QUARTZ", Text=msg, Duration=2})
+    end)
 end
 
-function GetPlayer(name)
+local function GetPlayer(name)
     name = name:lower()
     for _,p in ipairs(Players:GetPlayers()) do
         if p.Name:lower():sub(1, #name) == name then return p end
     end
 end
 
-if pcall(function() game.CoreGui:FindFirstChild("QUARTZ_GUI"):Destroy() end) then end
+for _,v in ipairs(game.CoreGui:GetChildren()) do if v.Name=="QUARTZ_GUI" then v:Destroy() end end
 local QuartzGUI = Instance.new("ScreenGui")
 QuartzGUI.Name = "QUARTZ_GUI"
-QuartzGUI.Parent = game.CoreGui
 QuartzGUI.ResetOnSpawn = false
+QuartzGUI.Parent = game.CoreGui
+
+local Visible = true
 
 local OpenCloseBtn = Instance.new("TextButton")
 OpenCloseBtn.Parent = QuartzGUI
-OpenCloseBtn.Size = UDim2.new(0, 70, 0, 26)
-OpenCloseBtn.Position = UDim2.new(0, 30, 0, 70)
-OpenCloseBtn.BackgroundColor3 = Color3.fromRGB(16,16,16)
+OpenCloseBtn.Size = UDim2.new(0, 80, 0, 30)
+OpenCloseBtn.Position = UDim2.new(0, 40, 0, 45)
+OpenCloseBtn.BackgroundColor3 = Color3.fromRGB(10,10,10)
 OpenCloseBtn.Text = "Aç/Kapat"
-OpenCloseBtn.TextColor3 = Color3.fromRGB(235,235,235)
+OpenCloseBtn.TextColor3 = Color3.fromRGB(250,250,250)
 OpenCloseBtn.Font = Enum.Font.GothamBold
 OpenCloseBtn.TextSize = 14
 OpenCloseBtn.BorderSizePixel = 0
-local OpenCloseUIC = Instance.new("UICorner",OpenCloseBtn)
-OpenCloseUIC.CornerRadius = UDim.new(0,7)
+local ocCr = Instance.new("UICorner", OpenCloseBtn)
+ocCr.CornerRadius = UDim.new(0,8)
+
 OpenCloseBtn.MouseButton1Click:Connect(function()
-    QuartzGUI.Enabled = not QuartzGUI.Enabled
+    Visible = not Visible
+    QuartzGUI.Enabled = Visible
 end)
 
 local MainPanel = Instance.new("Frame")
-MainPanel.Size = UDim2.new(0, 350, 0, 500)
-MainPanel.Position = UDim2.new(0.5, -175, 0.5, -250)
-MainPanel.BackgroundColor3 = Color3.fromRGB(6,6,6)
+MainPanel.Size = UDim2.new(0, 370, 0, 540)
+MainPanel.Position = UDim2.new(0.5, -185, 0.5, -270)
+MainPanel.BackgroundColor3 = Color3.fromRGB(16,16,16)
 MainPanel.BorderSizePixel = 0
 MainPanel.Active = true
 MainPanel.Draggable = true
 MainPanel.AnchorPoint = Vector2.new(0.5,0.5)
 MainPanel.Parent = QuartzGUI
 local Corner = Instance.new("UICorner",MainPanel)
-Corner.CornerRadius = UDim.new(0, 15)
+Corner.CornerRadius = UDim.new(0, 18)
 
 local TabBar = Instance.new("Frame")
-TabBar.Size = UDim2.new(1,0,0,48)
-TabBar.BackgroundColor3 = Color3.fromRGB(15,15,15)
+TabBar.Size = UDim2.new(1,0,0,46)
+TabBar.BackgroundColor3 = Color3.fromRGB(10,10,10)
 TabBar.BorderSizePixel = 0
 TabBar.Parent = MainPanel
 TabBar.Position = UDim2.new(0,0,0,0)
 local TabLayout = Instance.new("UIListLayout", TabBar)
 TabLayout.FillDirection = Enum.FillDirection.Horizontal
-TabLayout.Padding = UDim.new(0,4)
+TabLayout.Padding = UDim.new(0,3)
 
 local Tabs = {
     "Takım & Rol", "Silah Mod", "Hareket", "ESP & Savaş", "Koruma", "Sunucu"
 }
 local TabFrames = {}
 
-function MakeSection(parent,text)
+local function MakeSection(parent, text)
     local Section = Instance.new("Frame")
-    Section.Size = UDim2.new(1, -10, 0, 34)
-    Section.BackgroundColor3 = Color3.fromRGB(25,25,25)
+    Section.Size = UDim2.new(1, -6, 0, 32)
+    Section.BackgroundColor3 = Color3.fromRGB(22,22,22)
     Section.BorderSizePixel = 0
-    Section.BackgroundTransparency = 0.13
+    Section.BackgroundTransparency = 0.14
     Section.Parent = parent
-    local lbl = Instance.new("TextLabel",Section)
-    lbl.Text = "  "..text
-    lbl.TextColor3 = Color3.fromRGB(230,230,230)
+    local lbl = Instance.new("TextLabel", Section)
+    lbl.Text = "  " .. text
+    lbl.TextColor3 = Color3.fromRGB(220,220,225)
     lbl.TextXAlignment = Enum.TextXAlignment.Left
     lbl.BackgroundTransparency = 1
     lbl.Font = Enum.Font.GothamBold
-    lbl.TextSize = 21
-    lbl.Size = UDim2.new(1,0,1,0)
+    lbl.TextSize = 19
+    lbl.Size = UDim2.new(1, 0, 1, 0)
 end
 
-function MakeButton(parent, name, callback)
+local function MakeButton(parent, name, callback)
     local Btn = Instance.new("TextButton")
-    Btn.Size = UDim2.new(1, -18, 0, 32)
+    Btn.Size = UDim2.new(1, -14, 0, 32)
     Btn.Text = name
-    Btn.TextColor3 = Color3.fromRGB(250,250,250)
-    Btn.TextSize = 18
+    Btn.TextColor3 = Color3.fromRGB(239,241,240)
+    Btn.TextSize = 17
     Btn.Font = Enum.Font.Gotham
-    Btn.BackgroundColor3 = Color3.fromRGB(30,30,30)
+    Btn.BackgroundColor3 = Color3.fromRGB(28,28,28)
     Btn.BorderSizePixel = 0
     Btn.AutoButtonColor = true
     Btn.Parent = parent
     local c1 = Instance.new("UICorner", Btn)
-    c1.CornerRadius = UDim.new(0,7)
+    c1.CornerRadius = UDim.new(0, 8)
     Btn.MouseButton1Click:Connect(callback)
     return Btn
 end
 
-function MakeSlider(parent,text, min, max, def, callback)
+local function MakeSlider(parent, text, min, max, def, callback)
     local frame = Instance.new("Frame", parent)
-    frame.Size = UDim2.new(1, -18, 0, 36)
+    frame.Size = UDim2.new(1, -14, 0, 34)
     frame.BackgroundColor3 = Color3.fromRGB(34,34,34)
     frame.BorderSizePixel = 0
     local lbl = Instance.new("TextLabel", frame)
     lbl.Text = text.." ["..tostring(def).."]"
-    lbl.TextColor3 = Color3.fromRGB(200,200,200)
-    lbl.TextSize = 16
+    lbl.TextColor3 = Color3.fromRGB(190,190,200)
+    lbl.TextSize = 15
     lbl.Font = Enum.Font.Gotham
     lbl.BackgroundTransparency = 1
     lbl.Size = UDim2.new(0.65, 0, 1, 0)
     lbl.TextXAlignment = Enum.TextXAlignment.Left
     local slide = Instance.new("TextButton", frame)
-    slide.Size = UDim2.new(0.31, 0, 0.78, 0)
-    slide.Position = UDim2.new(0.69, 8, 0.11, 0)
+    slide.Size = UDim2.new(0.31, 0, 0.82, 0)
+    slide.Position = UDim2.new(0.69, 9, 0.09, 0)
     slide.Text = tostring(def)
-    slide.TextColor3 = Color3.fromRGB(240,240,240)
+    slide.TextColor3 = Color3.fromRGB(245,245,245)
     slide.Font = Enum.Font.Gotham
-    slide.BackgroundColor3 = Color3.fromRGB(25,25,25)
+    slide.BackgroundColor3 = Color3.fromRGB(26,26,26)
     slide.BorderSizePixel = 0
     local c1 = Instance.new("UICorner",slide)
-    c1.CornerRadius = UDim.new(0,6)
+    c1.CornerRadius = UDim.new(0,7)
     slide.MouseButton1Click:Connect(function()
         local newval = tonumber(game:GetService("StarterGui"):PromptInput(text.." ["..min.." - "..max.."]"))
         if newval and newval >= min and newval <= max then
@@ -153,21 +161,21 @@ function MakeSlider(parent,text, min, max, def, callback)
     return frame
 end
 
-function MakeTab(name)
+local function MakeTab(name)
     local frame = Instance.new("Frame")
-    frame.BackgroundColor3 = Color3.fromRGB(18,18,18)
-    frame.Size = UDim2.new(0, 330, 0, 435)
+    frame.BackgroundColor3 = Color3.fromRGB(24,24,24)
+    frame.Size = UDim2.new(0, 344, 0, 465)
     frame.BorderSizePixel = 0
     frame.Visible = false
-    frame.Position = UDim2.new(0,10,0,58)
+    frame.Position = UDim2.new(0,13,0,52)
     frame.Parent = MainPanel
-    local lbl = Instance.new("TextLabel",frame)
+    local lbl = Instance.new("TextLabel", frame)
     lbl.Text = "QUARTZ | "..name
-    lbl.Size = UDim2.new(1,0,0,40)
-    lbl.TextColor3 = Color3.fromRGB(253,253,253)
-    lbl.BackgroundColor3 = Color3.fromRGB(12,12,12)
+    lbl.Size = UDim2.new(1,0,0,35)
+    lbl.TextColor3 = Color3.fromRGB(251,251,253)
+    lbl.BackgroundColor3 = Color3.fromRGB(16,16,16)
     lbl.Font = Enum.Font.GothamBold
-    lbl.TextSize = 22
+    lbl.TextSize = 19
     lbl.BorderSizePixel = 0
     local layout = Instance.new("UIListLayout", frame)
     layout.Padding = UDim.new(0,5)
@@ -178,11 +186,11 @@ end
 for idx, tabname in ipairs(Tabs) do
     local btn = Instance.new("TextButton",TabBar)
     btn.Text = tabname
-    btn.Size = UDim2.new(0, 105, 1, 0)
-    btn.BackgroundColor3 = Color3.fromRGB(36,36,36)
+    btn.Size = UDim2.new(0, 112, 1, 0)
+    btn.BackgroundColor3 = Color3.fromRGB(38,38,39)
     btn.TextColor3 = Color3.fromRGB(240,240,240)
     btn.Font = Enum.Font.GothamSemibold
-    btn.TextSize = 17
+    btn.TextSize = 15
     btn.BorderSizePixel = 0
     btn.AutoButtonColor = true
     local cr = Instance.new("UICorner", btn)
@@ -199,32 +207,31 @@ end
 
 local EnableKey = Enum.KeyCode.RightShift
 UIS.InputBegan:Connect(function(input, gp)
-    if input.KeyCode == EnableKey then
-        QuartzGUI.Enabled = not QuartzGUI.Enabled
+    if input.KeyCode == EnableKey and not gp then
+        Visible = not Visible
+        QuartzGUI.Enabled = Visible
     end
 end)
 
 local tab_team = TabFrames[1]
 MakeSection(tab_team,"Takım & Rol Yönetimi")
 MakeButton(tab_team,"Auto Criminal",function()
-    for _,door in pairs(Workspace.Doors:GetChildren()) do
-        if door:FindFirstChild("Open") then door.Open:FireServer() end
-    end
+    for _,d in pairs(Workspace.Doors:GetChildren()) do if d:FindFirstChild("Open") then d.Open:FireServer() end end
     RunService.RenderStepped:Wait()
     Workspace.Remote.TeamEvent:FireServer("Criminal")
-    Notification("Suçlu takımına geçildi!")
+    Notification("Suçlu takımına anında geçildi.")
 end)
 MakeButton(tab_team,"Become Guard",function()
     Workspace.Remote.TeamEvent:FireServer("Guard")
-    Notification("Polis takımına geçildi!")
+    Notification("Polis takımına anında geçildi.")
 end)
 MakeButton(tab_team,"Become Prisoner",function()
     Workspace.Remote.TeamEvent:FireServer("Prisoner")
-    Notification("Mahkum takımına geçildi!")
+    Notification("Mahkum takımına döndün.")
 end)
 MakeButton(tab_team,"Neutral Mode",function()
     Workspace.Remote.TeamEvent:FireServer("Neutral")
-    Notification("Nötr moda geçildi!")
+    Notification("Nötr moda geçildi.")
 end)
 MakeButton(tab_team,"Force Inmate",function()
     for _,p in pairs(Players:GetPlayers()) do
@@ -232,110 +239,85 @@ MakeButton(tab_team,"Force Inmate",function()
             Workspace.Remote.TeamEvent:FireServer("Prisoner",p)
         end
     end
-    Notification("Tüm oyuncular mahkum yapıldı!")
+    Notification("Tüm oyuncular mahkum oluyor!")
 end)
 
 local tab_weap = TabFrames[2]
 MakeSection(tab_weap,"Silah Modifikasyonları")
 MakeButton(tab_weap,"Give All Weapons",function()
-    for _,w in pairs({"M9","Remington 870","AK-47"}) do
-        Workspace.Remote.ItemHandler:InvokeServer(w)
-    end
-    Notification("Tüm silahlar verildi!")
+    for _,w in pairs({"M9","Remington 870","AK-47"}) do Workspace.Remote.ItemHandler:InvokeServer(w) end
+    Notification("Tüm silahlar verildi.")
 end)
 MakeButton(tab_weap,"Infinite Ammo",function()
-    if getgenv().Q_AMOUNT then return end
-    getgenv().Q_AMOUNT = RunService.RenderStepped:Connect(function()
+    if getgenv().Q_AMMO then return end
+    getgenv().Q_AMMO = RunService.RenderStepped:Connect(function()
         if LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Tool") then
             for _,tbl in pairs(getgc(true)) do
-                if type(tbl)=="table" and rawget(tbl,"Ammo") then
-                    tbl.Ammo=9999
-                    tbl.MaxAmmo=9999
-                end
+                if type(tbl)=="table" and rawget(tbl,"Ammo") then tbl.Ammo=9999 tbl.MaxAmmo=9999 end
             end
         end
     end)
-    Notification("Sonsuz mermi aktif!")
+    Notification("Sonsuz mermi açıldı.")
 end)
 MakeButton(tab_weap,"No Recoil",function()
     for _,tbl in pairs(getgc(true)) do
-        if type(tbl)=="table" and rawget(tbl,"Recoil") then
-            tbl.Recoil=0
-        end
+        if type(tbl)=="table" and rawget(tbl,"Recoil") then tbl.Recoil=0 end
     end
-    Notification("Tüm silahlarda sekme sıfırlandı!")
+    Notification("Sekme sıfırlandı.")
 end)
 MakeButton(tab_weap,"No Reload",function()
     for _,tbl in pairs(getgc(true)) do
-        if type(tbl)=="table" and rawget(tbl,"Reloading") then
-            tbl.Reloading=false
-        end
+        if type(tbl)=="table" and rawget(tbl,"Reloading") then tbl.Reloading=false end
     end
-    Notification("Şarjör değiştirme devre dışı!")
+    Notification("Şarjör değiştirme animasyonları kapalı.")
 end)
 MakeButton(tab_weap,"Rapid Fire",function()
     for _,tbl in pairs(getgc(true)) do
-        if type(tbl)=="table" and rawget(tbl,"FireRate") then
-            tbl.FireRate=0.04
-        end
+        if type(tbl)=="table" and rawget(tbl,"FireRate") then tbl.FireRate=0.032 end
     end
-    Notification("Hızlı ateş aktif!")
+    Notification("Ateş hızı maksimum!")
 end)
 MakeButton(tab_weap,"One Shot Kill",function()
     for _,tbl in pairs(getgc(true)) do
-        if type(tbl)=="table" and rawget(tbl,"Damage") then
-            tbl.Damage=9500
-        end
+        if type(tbl)=="table" and rawget(tbl,"Damage") then tbl.Damage=9999 end
     end
-    Notification("Tek atışla öldürme aktif edildi!")
+    Notification("Tek atışla öldürme aktif.")
 end)
 MakeButton(tab_weap,"Wall Bang",function()
     for _,tbl in pairs(getgc(true)) do
-        if type(tbl)=="table" and rawget(tbl,"WallPenetration") then
-            tbl.WallPenetration=true
-        end
+        if type(tbl)=="table" and rawget(tbl,"WallPenetration") then tbl.WallPenetration=true end
     end
-    Notification("Duvarlardan ateş edebilirsin!")
+    Notification("Duvar arkası ateş aktif.")
 end)
 MakeButton(tab_weap,"Infinite Range",function()
     for _,tbl in pairs(getgc(true)) do
-        if type(tbl)=="table" and rawget(tbl,"Range") then
-            tbl.Range=99999
-        end
+        if type(tbl)=="table" and rawget(tbl,"Range") then tbl.Range=2e5 end
     end
-    Notification("Menzil tamamen kaldırıldı!")
+    Notification("Menzil sınırsız.")
 end)
 MakeButton(tab_weap,"Tazer Bypass",function()
     for _,tbl in pairs(getgc(true)) do
-        if type(tbl)=="table" and rawget(tbl,"IsTased") then
-            tbl.IsTased=false
-        end
+        if type(tbl)=="table" and rawget(tbl,"IsTased") then tbl.IsTased=false end
     end
-    Notification("Tazer yemiyorsun!")
+    Notification("Tazer etkisiz.")
 end)
 MakeButton(tab_weap,"No Tazer Cooldown",function()
     for _,tbl in pairs(getgc(true)) do
-        if type(tbl)=="table" and rawget(tbl,"TazerCooldown") then
-            tbl.TazerCooldown=0
-        end
+        if type(tbl)=="table" and rawget(tbl,"TazerCooldown") then tbl.TazerCooldown=0 end
     end
-    Notification("Tazer bekleme sıfırlandı!")
+    Notification("Tazer süresi yok.")
 end)
 MakeButton(tab_weap,"Melee Reach",function()
     for _,tbl in pairs(getgc(true)) do
-        if type(tbl)=="table" and rawget(tbl,"MeleeRange") then
-            tbl.MeleeRange=150
-        end
+        if type(tbl)=="table" and rawget(tbl,"MeleeRange") then tbl.MeleeRange=150 end
     end
-    Notification("Yakın dövüş menzili çok yükseltildi!")
+    Notification("Yakın dövüş aralığı çok uzun!")
 end)
 MakeButton(tab_weap,"Fast Melee",function()
     for _,tbl in pairs(getgc(true)) do
-        if type(tbl)=="table" and rawget(tbl,"MeleeCooldown") then
-            tbl.MeleeCooldown=0.02
-        end
+        if type(tbl)=="table" and rawget(tbl,"MeleeCooldown") then tbl.MeleeCooldown=0.019 end
     end
-    Notification("Yakın dövüş hızın maxlandı!")
+    Notification("Yakın dövüş hızı maksimum.")
 end)
 
 local tab_move = TabFrames[3]
@@ -354,12 +336,12 @@ MakeButton(tab_move,"Fly",function()
     getgenv().Q_FLYCONN = RunService.RenderStepped:Connect(function()
         local cf = Camera.CFrame
         local vel = Vector3.new()
-        if UIS:IsKeyDown(Enum.KeyCode.W) then vel = vel + cf.LookVector * 60 end
-        if UIS:IsKeyDown(Enum.KeyCode.S) then vel = vel - cf.LookVector * 60 end
-        if UIS:IsKeyDown(Enum.KeyCode.D) then vel = vel + cf.RightVector * 60 end
-        if UIS:IsKeyDown(Enum.KeyCode.A) then vel = vel - cf.RightVector * 60 end
-        if UIS:IsKeyDown(Enum.KeyCode.Space) then vel = vel + cf.UpVector * 60 end
-        if UIS:IsKeyDown(Enum.KeyCode.LeftShift) then vel = vel - cf.UpVector * 60 end
+        if UIS:IsKeyDown(Enum.KeyCode.W) then vel = vel + cf.LookVector * 65 end
+        if UIS:IsKeyDown(Enum.KeyCode.S) then vel = vel - cf.LookVector * 65 end
+        if UIS:IsKeyDown(Enum.KeyCode.D) then vel = vel + cf.RightVector * 65 end
+        if UIS:IsKeyDown(Enum.KeyCode.A) then vel = vel - cf.RightVector * 65 end
+        if UIS:IsKeyDown(Enum.KeyCode.Space) then vel = vel + cf.UpVector * 65 end
+        if UIS:IsKeyDown(Enum.KeyCode.LeftShift) then vel = vel - cf.UpVector * 65 end
         BV.Velocity = vel
         BG.CFrame = cf
     end)
@@ -371,15 +353,15 @@ MakeButton(tab_move,"Fly",function()
             BV:Destroy()
         end
     end)
-    Notification("[Çıkış: LCtrl] ile Fly kapatılır!")
+    Notification("[Çıkış: LCtrl] ile kapatılır!")
 end)
-MakeSlider(tab_move,"WalkSpeed",16,300,16,function(v)
+MakeSlider(tab_move,"WalkSpeed",16,300,22,function(v)
     if Character:FindFirstChild("Humanoid") then
         Character.Humanoid.WalkSpeed = v
         Character.Humanoid:GetPropertyChangedSignal("WalkSpeed"):Connect(function() Character.Humanoid.WalkSpeed = v end)
     end
 end)
-MakeSlider(tab_move,"JumpPower",50,400,50,function(v)
+MakeSlider(tab_move,"JumpPower",50,400,70,function(v)
     if Character:FindFirstChild("Humanoid") then
         Character.Humanoid.JumpPower = v
         Character.Humanoid:GetPropertyChangedSignal("JumpPower"):Connect(function() Character.Humanoid.JumpPower = v end)
@@ -392,7 +374,7 @@ MakeButton(tab_move,"Infinite Jump",function()
             Character:FindFirstChildOfClass("Humanoid"):ChangeState("Jumping")
         end
     end)
-    Notification("Sonsuz zıplama devrede!")
+    Notification("Sonsuz zıplama açıldı!")
 end)
 MakeButton(tab_move,"Noclip",function()
     if getgenv().Q_NOCLIP then return end
@@ -401,7 +383,7 @@ MakeButton(tab_move,"Noclip",function()
             if v:IsA("BasePart") then v.CanCollide=false end
         end
     end)
-    Notification("Noclip aktif!")
+    Notification("Noclip aktif.")
 end)
 MakeButton(tab_move,"Click Teleport",function()
     if getgenv().Q_CLICKTP then getgenv().Q_CLICKTP:Disconnect() end
@@ -413,7 +395,7 @@ MakeButton(tab_move,"Click Teleport",function()
             end
         end
     end)
-    Notification("LAlt bas + tıkla: TP")
+    Notification("LAlt basılı + tık: Işınlan!")
 end)
 MakeSlider(tab_move,"Vehicle Speed",50,900,95,function(v)
     for _,car in pairs(Workspace:FindFirstChild("Vehicles") and Workspace.Vehicles:GetChildren() or {}) do
@@ -426,7 +408,7 @@ MakeButton(tab_move,"No Car Clip",function()
             if part:IsA("BasePart") then part.CanCollide=false end
         end
     end
-    Notification("Arabalar engel tanımıyor!")
+    Notification("Araçlar clip kapalı.")
 end)
 MakeButton(tab_move,"Infinite Stamina",function()
     if Character and Character:FindFirstChild("Humanoid") then
@@ -434,7 +416,7 @@ MakeButton(tab_move,"Infinite Stamina",function()
             Character.Humanoid.WalkSpeed=150
         end)
     end
-    Notification("Koş/atla stamina tükenmez!")
+    Notification("Stamina sonsuz.")
 end)
 MakeButton(tab_move,"Anti-Ragdoll",function()
     LocalPlayer.Character.Humanoid.StateChanged:Connect(function(_,state)
@@ -442,7 +424,7 @@ MakeButton(tab_move,"Anti-Ragdoll",function()
             Character.Humanoid:ChangeState(Enum.HumanoidStateType.GettingUp)
         end
     end)
-    Notification("Anti-ragdoll devrede!")
+    Notification("Anti-Ragdoll aktif.")
 end)
 
 local tab_esp = TabFrames[4]
@@ -464,11 +446,11 @@ MakeButton(tab_esp,"Aimbot",function()
             Camera.CFrame = CFrame.new(Camera.CFrame.Position,nearest.Position)
         end
     end)
-    Notification("Aimbot aktif!")
+    Notification("Aimbot açıldı!")
 end)
 MakeButton(tab_esp,"Silent Aim",function()
     getgenv().Q_SAIM = true
-    Notification("Silent aim aktif!")
+    Notification("Silent aim açık.")
 end)
 MakeButton(tab_esp,"Player ESP",function()
     if getgenv().Q_PESP then return end
@@ -485,7 +467,7 @@ MakeButton(tab_esp,"Player ESP",function()
                         tx.Size = UDim2.new(1,0,1,0)
                         tx.BackgroundTransparency = 1
                         tx.Text = plr.Name.." ["..math.floor((plr.Character.Head.Position-Character.Head.Position).magnitude).."]"
-                        tx.TextColor3 = Color3.fromRGB(56,235,235)
+                        tx.TextColor3 = Color3.fromRGB(78,230,235)
                         tx.TextScaled = true
                         tx.Font=Enum.Font.GothamBold
                     end
@@ -493,7 +475,7 @@ MakeButton(tab_esp,"Player ESP",function()
             end
         end)
     end)
-    Notification("Oyuncular görünüyor!")
+    Notification("Oyuncu ESP açık!")
 end)
 MakeButton(tab_esp,"Line ESP (Tracers)",function()
     if getgenv().Q_TRACER then return end
@@ -512,13 +494,13 @@ MakeButton(tab_esp,"Line ESP (Tracers)",function()
                         beam.Width1 = 0.08
                         beam.FaceCamera = true
                         beam.Name = "QTRACER"
-                        beam.Transparency = NumberSequence.new(0.25)
+                        beam.Transparency = NumberSequence.new(0.18)
                     end
                 end
             end
         end)
     end)
-    Notification("Tracers aktif!")
+    Notification("Tracers açık!")
 end)
 MakeButton(tab_esp,"Box ESP",function()
     if getgenv().Q_BOXESP then return end
@@ -530,16 +512,16 @@ MakeButton(tab_esp,"Box ESP",function()
                         local bxa = Instance.new("BoxHandleAdornment",p.Character.HumanoidRootPart)
                         bxa.Adornee = p.Character.HumanoidRootPart
                         bxa.Size = Vector3.new(4,7.5,2)
-                        bxa.Color3 = Color3.fromRGB(24,218,65)
+                        bxa.Color3 = Color3.fromRGB(38,218,75)
                         bxa.AlwaysOnTop = true
                         bxa.Name = "Q_BESP"
-                        bxa.Transparency = 0.38
+                        bxa.Transparency = 0.36
                     end
                 end
             end
         end)
     end)
-    Notification("Box ESP aktif!")
+    Notification("Box ESP aktif.")
 end)
 MakeButton(tab_esp,"Item ESP",function()
     if getgenv().Q_ITEMESP then return end
@@ -549,20 +531,20 @@ MakeButton(tab_esp,"Item ESP",function()
                 if it:IsA("Part") and not it:FindFirstChild("Q_ITEMESP") then
                     local bc = Instance.new("BillboardGui",it)
                     bc.Name="Q_ITEMESP"
-                    bc.Size = UDim2.new(0,70,0,15)
+                    bc.Size = UDim2.new(0,75,0,12)
                     bc.AlwaysOnTop=true
                     local tx = Instance.new("TextLabel",bc)
                     tx.Size = UDim2.new(1,0,1,0)
                     tx.BackgroundTransparency=1
                     tx.Text=it.Name
-                    tx.TextColor3=Color3.fromRGB(80,255,240)
+                    tx.TextColor3=Color3.fromRGB(100,245,223)
                     tx.Font=Enum.Font.GothamSemibold
                     tx.TextSize=12
                 end
             end
         end
     end)
-    Notification("Item ESP aktif!")
+    Notification("Item ESP açık.")
 end)
 MakeButton(tab_esp,"Kill All",function()
     for _,p in pairs(Players:GetPlayers()) do
@@ -570,20 +552,18 @@ MakeButton(tab_esp,"Kill All",function()
             p.Character.Humanoid.Health=0
         end
     end
-    Notification("Tüm düşmanlar öldürüldü!")
+    Notification("Tüm düşmanlar öldürüldü.")
 end)
 MakeButton(tab_esp,"Kill Aura",function()
     if getgenv().Q_AURA then return end
     getgenv().Q_AURA = RunService.RenderStepped:Connect(function()
         for _,p in pairs(Players:GetPlayers()) do
-            if p~=LocalPlayer and p.Team~=LocalPlayer.Team and p.Character and (p.Character.HumanoidRootPart.Position-Character.HumanoidRootPart.Position).Magnitude<(17) then
-                if p.Character:FindFirstChild("Humanoid") then
-                    p.Character.Humanoid.Health = 0
-                end
+            if p~=LocalPlayer and p.Team~=LocalPlayer.Team and p.Character and (p.Character.HumanoidRootPart.Position-Character.HumanoidRootPart.Position).Magnitude<17 then
+                if p.Character:FindFirstChild("Humanoid") then p.Character.Humanoid.Health = 0 end
             end
         end
     end)
-    Notification("KillAura aktif!")
+    Notification("KillAura açık!")
 end)
 MakeButton(tab_esp,"Auto Arrest All",function()
     for _,p in pairs(Players:GetPlayers()) do
@@ -591,15 +571,13 @@ MakeButton(tab_esp,"Auto Arrest All",function()
             Workspace.Remote.arrest:InvokeServer(p.Character.Head)
         end
     end
-    Notification("Tüm Criminal kelepçelendi!")
+    Notification("Tüm suçlular kelepçelendi.")
 end)
 MakeButton(tab_esp,"Arrest Range Multiplier",function()
     for _,tbl in pairs(getgc(true)) do
-        if type(tbl)=="table" and rawget(tbl,"ArrestRange") then
-            tbl.ArrestRange=99999
-        end
+        if type(tbl)=="table" and rawget(tbl,"ArrestRange") then tbl.ArrestRange=99999 end
     end
-    Notification("Kelepçe menzilin maxlandı!")
+    Notification("Kelepçe menzili max!")
 end)
 
 local tab_def = TabFrames[5]
@@ -609,21 +587,21 @@ MakeButton(tab_def,"God Mode",function()
     getgenv().Q_GOD = RunService.RenderStepped:Connect(function()
         pcall(function() Character.Humanoid.Health = math.huge end)
     end)
-    Notification("GodMode aktif!")
+    Notification("GodMode aktif.")
 end)
 MakeButton(tab_def,"Semi-God Mode",function()
     if getgenv().Q_SGOD then return end
     getgenv().Q_SGOD = Character.Humanoid.HealthChanged:Connect(function()
         Character.Humanoid.Health = Character.Humanoid.MaxHealth
     end)
-    Notification("Semi-God aktif!")
+    Notification("Hızlı iyileşme açıldı.")
 end)
 MakeButton(tab_def,"Anti-Arrest",function()
     if getgenv().Q_AARREST then return end
     getgenv().Q_AARREST = LocalPlayer.PlayerGui.ChildAdded:Connect(function(c)
         if c.Name == "ArrestGui" then c:Destroy() end
     end)
-    Notification("Anti-Arrest aktif!")
+    Notification("Anti-Arrest açık.")
 end)
 MakeButton(tab_def,"Give Keycard",function()
     Workspace.Remote.ItemHandler:InvokeServer("Key card")
@@ -632,7 +610,7 @@ end)
 MakeButton(tab_def,"Auto Escape",function()
     if Workspace:FindFirstChild("Criminals") and Workspace.Criminals:FindFirstChild("SpawnLocation") then
         Character:MoveTo(Workspace.Criminals.SpawnLocation.Position)
-        Notification("Mahkum olarak kaçtınız!")
+        Notification("Başarıyla kaçtın!")
     end
 end)
 
@@ -642,11 +620,9 @@ MakeButton(tab_srv,"Spinbot",function()
     if getgenv().Q_SPINBOT then return end
     getgenv().Q_SPINBOT = RunService.RenderStepped:Connect(function()
         local root = Character:FindFirstChild("HumanoidRootPart")
-        if root then
-            root.CFrame = root.CFrame * CFrame.Angles(0,math.rad(42),0)
-        end
+        if root then root.CFrame = root.CFrame * CFrame.Angles(0,math.rad(38),0) end
     end)
-    Notification("Spinbot aktif!")
+    Notification("Spinbot aktif.")
 end)
 MakeButton(tab_srv,"Invisible",function()
     for _,part in pairs(Character:GetChildren()) do
@@ -655,7 +631,7 @@ MakeButton(tab_srv,"Invisible",function()
         end
     end
     Character.HumanoidRootPart.Transparency = 1
-    Notification("Görünmez oldunuz!")
+    Notification("Görünmezsiniz!")
 end)
 MakeButton(tab_srv,"Loop Kill Target",function()
     local pname = game:GetService("StarterGui"):PromptInput("Oyuncu adı:")
@@ -692,7 +668,7 @@ MakeButton(tab_srv,"Teleport To Locations",function()
     local pos = locs[pick]
     if pos then
         Character:SetPrimaryPartCFrame(CFrame.new(pos + Vector3.new(0,2,0)))
-        Notification(pick.." konumuna ışınlandınız!")
+        Notification(pick.." konumuna ışınlandın!")
     else
         Notification("Konum bulunamadı!")
     end
@@ -704,26 +680,23 @@ MakeButton(tab_srv,"Chat Spammer",function()
     spawn(function()
         while getgenv().Q_CHATSPAM do
             Workspace.Remote.SendMessage:FireServer(msg)
-            wait(0.07)
+            wait(0.075)
         end
     end)
-    Notification("Chat spam başladı! Yeniden tıkla: Kapatır.")
+    Notification("Chat spam başladı! Durdur için tekrar tıkla.")
 end)
 MakeButton(tab_srv,"Crash Server (Lag Switch)",function()
-    for i=1,800 do
-        Workspace.Remote.TeamEvent:FireServer("Neutral")
-        wait()
-    end
+    for i=1,800 do Workspace.Remote.TeamEvent:FireServer("Neutral") wait() end
     Notification("Lag/crash denemesi başlatıldı!")
 end)
 MakeButton(tab_srv,"Server View (Spectate)",function()
     for _,p in pairs(Players:GetPlayers()) do
         if p ~= LocalPlayer and p.Character and p.Character:FindFirstChild("Humanoid") then
             Camera.CameraSubject = p.Character.Humanoid
-            Notification(p.Name.." izlendi!")
+            Notification(p.Name.." izleniyor.")
             break
         end
     end
 end)
 
-Notification("QUARTZ.LUA yüklendi! Menü: [RIGHT SHIFT] veya üstteki aç/kapat ile aç/kapat.")
+Notification("QUARTZ.LUA yüklendi! Menü: [RIGHTSHIFT] veya üstteki Aç/Kapat ile kontrol edilir.")
