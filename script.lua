@@ -254,8 +254,32 @@ function createOption(idx, name, typ)
                 end)
             elseif name=="Yanına Çek" then
                 playerDropdown(function(plr)
-                    if plr and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") and LP.Character and LP.Character:FindFirstChild("HumanoidRootPart") then
-                        plr.Character:SetPrimaryPartCFrame(LP.Character.HumanoidRootPart.CFrame + Vector3.new(0,3,0))
+                    if plr and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") and LP.Character and LP.Character:FindFirstChild("HumanoidRootPart") and plr.Character.PrimaryPart then
+                        -- Remove any velocity from the target
+                        for _,v in pairs(plr.Character:GetDescendants()) do
+                            if v:IsA("BasePart") then pcall(function() v.Velocity = Vector3.new() end) end
+                        end
+                        -- Set position locally *and* via CFrame with SetPrimaryPartCFrame, for best chance of server sync
+                        local gotoCFrame = LP.Character.HumanoidRootPart.CFrame + Vector3.new(0,3,0)
+                        plr.Character:SetPrimaryPartCFrame(gotoCFrame)
+                        for _,v in pairs(plr.Character:GetDescendants()) do
+                            if v:IsA("BasePart") then
+                                v.CFrame = gotoCFrame
+                                v.Anchored = false
+                            end
+                        end
+                        -- Touch grass: FireTouchInterest for possible server sync (melee solution, not always but sometimes)
+                        local hrp = plr.Character:FindFirstChild("HumanoidRootPart")
+                        local myhrp = LP.Character:FindFirstChild("HumanoidRootPart")
+                        if hrp and myhrp then
+                            pcall(function()
+                                firetouchinterest = firetouchinterest or debug.getupvalue(require(game:GetService("Players").LocalPlayer.PlayerScripts.ModuleScript),1)
+                                if firetouchinterest then
+                                    firetouchinterest(hrp, myhrp, 1)
+                                    firetouchinterest(hrp, myhrp, 0)
+                                end
+                            end)
+                        end
                         notify(plr.Name.." sana çekildi!")
                     end
                 end)
@@ -311,7 +335,7 @@ renderSection("aim")
 
 local currentESP = {}
 local DrawValid = pcall(function() return Drawing and Drawing.new and Drawing.new("Line") and true end)
-local ESP_DISTANCE = 175 -- optimize için 175 metre
+local ESP_DISTANCE = 175
 
 function get2DFrom3D(p)
     local pos, onscreen = Cam:WorldToViewportPoint(p)
@@ -404,7 +428,7 @@ function startESP()
             return
         end
         espOptimTick = espOptimTick + dt
-        if espOptimTick < 0.033 then return end -- Her 2 frame'de bir çiz
+        if espOptimTick < 0.033 then return end
         espOptimTick = 0
         clearDeadESP()
         local list = {}
@@ -472,7 +496,6 @@ end
 local flyBV
 function startFly()
     local flying = false
-    local flyDir = Vector3.new()
     RS.RenderStepped:Connect(function()
         if optStates["Fly"] and LP.Character and LP.Character:FindFirstChild("HumanoidRootPart") then
             if not flyBV then
@@ -498,64 +521,69 @@ function startFly()
     end)
 end
 
-function startNoclip()
-    local isNoclipping = false
-    local function setNoclip(state)
+do
+    local ncConn
+    local function realNoclip(on)
         if LP.Character then
             for _,v in pairs(LP.Character:GetDescendants()) do
-                if v:IsA("BasePart") then v.CanCollide = not state end
+                if v:IsA("BasePart") and v.CanCollide ~= (not on) then
+                    v.CanCollide = not on
+                end
             end
         end
     end
-    RS.Stepped:Connect(function()
+    if ncConn then pcall(function() ncConn:Disconnect() end) end
+    ncConn = RS.Stepped:Connect(function()
         if optStates["Noclip"] then
-            setNoclip(true)
-            isNoclipping = true
-        elseif isNoclipping then
-            setNoclip(false)
-            isNoclipping = false
+            realNoclip(true)
+        else
+            realNoclip(false)
+        end
+    end)
+    Players.LocalPlayer.CharacterAdded:Connect(function(c)
+        task.wait(0.2)
+        if optStates["Noclip"] then
+            realNoclip(true)
         end
     end)
 end
 
 function startGorunmezlik()
-    local invisRemote, con, humdescBackups
-    con = RS.RenderStepped:Connect(function()
+    RS.RenderStepped:Connect(function()
         if optStates["Görünmezlik"] and LP.Character and LP.Character:FindFirstChildOfClass("Humanoid") then
             local char = LP.Character
             for _,v in ipairs(char:GetDescendants()) do
-                if v:IsA("BasePart") or v:IsA("MeshPart") then
-                    v.Transparency = 1
-                end
-                if v.ClassName=="Decal" or v.ClassName=="Texture" then
-                    v.Transparency = 1
-                end
+                if v:IsA("BasePart") or v:IsA("MeshPart") then v.Transparency = 1 end
+                if v.ClassName=="Decal" or v.ClassName=="Texture" then v.Transparency = 1 end
             end
             local hum = char:FindFirstChildOfClass("Humanoid")
-            if hum then
-                if not humdescBackups then
-                    humdescBackups = {}
-                    for _,child in ipairs(char:GetChildren()) do
-                        if child:IsA("CharacterMesh") or child:IsA("Accessory") then
-                            humdescBackups[child] = child.Parent
-                            child.Parent = nil
+            if hum and hum.Health > 0 then
+                if hum.BodyTypeScale then hum.BodyTypeScale.Value = 0 end
+                if hum.HeadScale then hum.HeadScale.Value = 0 end
+            end
+            if char:FindFirstChild("Head") then char.Head.face.Transparency = 1 end
+            task.spawn(function()
+                for _,a in ipairs(char:GetChildren()) do
+                    if a:IsA("Accessory") then
+                        for _,h in ipairs(a:GetDescendants()) do
+                            if h:IsA("BasePart") or h:IsA("MeshPart") then h.Transparency = 1 end
                         end
                     end
-                end
-            end
+                end 
+            end)
         else
             if LP.Character then
                 for _,v in ipairs(LP.Character:GetDescendants()) do
                     if v:IsA("BasePart") or v:IsA("MeshPart") then v.Transparency=0 end
                     if v.ClassName=="Decal" or v.ClassName=="Texture" then v.Transparency=0 end
                 end
-                local hum = LP.Character and LP.Character:FindFirstChildOfClass("Humanoid")
-                if hum and humdescBackups then
-                    for acc,parent in pairs(humdescBackups) do
-                        pcall(function() acc.Parent = parent end)
-                    end
-                    humdescBackups = nil
+                local char = LP.Character
+                local hum = char and char:FindFirstChildOfClass("Humanoid")
+                if hum then
+                    if hum.BodyTypeScale then hum.BodyTypeScale.Value = 1 end
+                    if hum.HeadScale then hum.HeadScale.Value = 1 end
                 end
+                if char and char:FindFirstChild("Head") and char.Head:FindFirstChild("face") then char.Head.face.Transparency = 0 end
             end
         end
     end)
@@ -585,5 +613,4 @@ startESP()
 startAimbot()
 startSilentAim()
 startFly()
-startNoclip()
 startGorunmezlik()
