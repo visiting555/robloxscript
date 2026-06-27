@@ -1,4 +1,4 @@
--- Hile Menü V3 (Noclip fixlenmiş! Diğerleri değişmedi)
+-- EN STABİL NOCLIP (Başka hiçbir şeyi bozma)
 
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
@@ -164,28 +164,29 @@ TpBtn.MouseButton1Click:Connect(function()
     end
 end)
 
--- NOCLIP DÜZELT: Her parça + Motor6D bağlı baş kısmı Collide=false  
-local nocliping = false
-RunService.Stepped:Connect(function()
-    if hackEnabled.Noclip and LocalPlayer.Character then
-        for _,v in ipairs(LocalPlayer.Character:GetDescendants()) do
-            if v:IsA("BasePart") then
-                v.CanCollide = false
-                if v.Name:lower() == "head" then
-                    v.CanCollide = false
-                end
-            end
-            -- Motor6D ile bağlanan emulate
-            if v:IsA("Motor6D") and v.Part1 and v.Part1:IsA("BasePart") then
-                v.Part1.CanCollide = false
-            end
+-- EN SAĞLIKLI NOCLIP (Tüm Parçalarda ve YANILTICI STEMLERDE)
+local NoclipConn, NoclipLastEn = nil, false
+local function SetNoClipOnChar(state)
+    local char = LocalPlayer.Character
+    if not char then return end
+    for _,v in ipairs(char:GetDescendants()) do
+        if v:IsA("BasePart") then
+            v.CanCollide = not state
+            v.Anchored = false
         end
-        nocliping = true
-    elseif nocliping and LocalPlayer.Character then
-        for _,v in ipairs(LocalPlayer.Character:GetDescendants()) do
-            if v:IsA("BasePart") then v.CanCollide = true end
-        end
-        nocliping = false
+    end
+end
+
+if NoclipConn then NoclipConn:Disconnect() end
+NoclipConn = RunService.Stepped:Connect(function()
+    if hackEnabled.Noclip and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
+        -- Noclip: Bütün BasePart'ler disable collide, humanoidplatformstand kapalı
+        SetNoClipOnChar(true)
+        pcall(function() LocalPlayer.Character.Humanoid:ChangeState(11) end)
+        NoclipLastEn = true
+    elseif NoclipLastEn then
+        SetNoClipOnChar(false)
+        NoclipLastEn = false
     end
 end)
 
