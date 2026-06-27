@@ -1,370 +1,330 @@
-local Players = game:GetService("Players")
-local UserInputService = game:GetService("UserInputService")
-local RunService = game:GetService("RunService")
-local LocalPlayer = Players.LocalPlayer
-local Camera = workspace.CurrentCamera
+local players = game:GetService("Players")
+local plr = players.LocalPlayer
+local uis = game:GetService("UserInputService")
+local runS = game:GetService("RunService")
+local camera = workspace.CurrentCamera
 
-local states = {
-    aimbot = false,
-    noclip = false,
-    fly = false,
-    esp = false,
-    spinbot = false
+local screenGui = Instance.new("ScreenGui")
+screenGui.Parent = plr.PlayerGui
+local mainFrame = Instance.new("Frame")
+mainFrame.Size = UDim2.new(0,300,0,370)
+mainFrame.Position = UDim2.new(0,50,0,120)
+mainFrame.BackgroundColor3 = Color3.new(0.1,0.1,0.1)
+mainFrame.BorderSizePixel = 0
+mainFrame.Visible = true
+mainFrame.Active = true
+mainFrame.Draggable = true
+mainFrame.Parent = screenGui
+
+local title = Instance.new("TextLabel")
+title.Text = "Hile Menü"
+title.Font = Enum.Font.GothamBold
+title.TextScaled = true
+title.TextColor3 = Color3.new(1,1,1)
+title.Size = UDim2.new(1,0,0,40)
+title.BackgroundTransparency = 1
+title.Parent = mainFrame
+
+local enabledHacks = {
+    Aimbot = false,
+    ESP = false,
+    Noclip = false,
+    Fly = false,
+    Spinbot = false,
+    Teleport = false
 }
-local connections = {}
-local flyParts = {gyro = nil, vel = nil}
-local flySpeed = 70
-local selectedTPIndex = 1
-local teleportGui = nil
 
-function getOtherPlayers()
-    local t = {}
-    for _,p in ipairs(Players:GetPlayers()) do
-        if p ~= LocalPlayer and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
-            table.insert(t, p)
+local yOffset = 55
+
+function createButton(text,callback)
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(1,-20,0,36)
+    btn.Position = UDim2.new(0,10,0,yOffset)
+    btn.BackgroundColor3 = Color3.new(.2,.2,.2)
+    btn.TextColor3 = Color3.new(1,1,1)
+    btn.Font = Enum.Font.Gotham
+    btn.TextSize = 18
+    btn.Text = text
+    btn.Parent = mainFrame
+    yOffset = yOffset + 41
+    btn.MouseButton1Click:Connect(callback)
+    return btn
+end
+
+local function updateButton(btn,hack)
+    btn.Text = hack.." ["..(enabledHacks[hack] and "Açık" or "Kapalı").."]"
+end
+
+local aimbotBtn = createButton("Aimbot [Kapalı]",function()
+    enabledHacks.Aimbot = not enabledHacks.Aimbot
+    updateButton(aimbotBtn,"Aimbot")
+end)
+local espBtn = createButton("ESP [Kapalı]",function()
+    enabledHacks.ESP = not enabledHacks.ESP
+    updateButton(espBtn,"ESP")
+    if not enabledHacks.ESP then
+        for _,v in pairs(workspace:GetChildren()) do
+            if v:IsA("Model") and players:GetPlayerFromCharacter(v) and v:FindFirstChild("ESPBox") then
+                v.ESPBox:Destroy()
+            end
         end
     end
-    return t
+end)
+local noclipBtn = createButton("Noclip [Kapalı]",function()
+    enabledHacks.Noclip = not enabledHacks.Noclip
+    updateButton(noclipBtn,"Noclip")
+end)
+local flyBtn = createButton("Fly [Kapalı]",function()
+    enabledHacks.Fly = not enabledHacks.Fly
+    updateButton(flyBtn,"Fly")
+end)
+local spinbotBtn = createButton("Spinbot [Kapalı]",function()
+    enabledHacks.Spinbot = not enabledHacks.Spinbot
+    updateButton(spinbotBtn,"Spinbot")
+end)
+
+local tpPlayers = {}
+for _,p in ipairs(players:GetPlayers()) do
+    if p~=plr then
+        table.insert(tpPlayers,p)
+    end
 end
 
-function aimbotFunc()
-    if connections.aimbot then connections.aimbot:Disconnect() end
-    connections.aimbot = RunService.RenderStepped:Connect(function()
-        if not states.aimbot then return end
-        local closest, dist = nil, math.huge
-        for _, player in ipairs(Players:GetPlayers()) do
-            if player ~= LocalPlayer and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-                local hrp = player.Character.HumanoidRootPart
-                local pos, onscreen = Camera:WorldToViewportPoint(hrp.Position)
-                if onscreen then
-                    local d = (Vector2.new(pos.X, pos.Y) - UserInputService:GetMouseLocation()).Magnitude
-                    if d < dist then
-                        dist = d
-                        closest = hrp
-                    end
-                end
-            end
-        end
-        if closest then
-            Camera.CFrame = CFrame.new(Camera.CFrame.Position, closest.Position)
-        end
-    end)
-end
+local teleportLabel = Instance.new("TextLabel")
+teleportLabel.Text = "Teleport Player:"
+teleportLabel.Font = Enum.Font.GothamBold
+teleportLabel.TextScaled = true
+teleportLabel.TextColor3 = Color3.new(1,1,1)
+teleportLabel.Size = UDim2.new(1,-20,0,24)
+teleportLabel.Position = UDim2.new(0,10,0,yOffset)
+teleportLabel.BackgroundTransparency = 1
+teleportLabel.TextXAlignment = Enum.TextXAlignment.Left
+teleportLabel.Parent = mainFrame
+yOffset = yOffset + 28
 
-function espFunc()
-    if connections.esp then connections.esp:Disconnect() end
-    connections.esp = RunService.RenderStepped:Connect(function()
-        if not states.esp then
-            for _, p in ipairs(Players:GetPlayers()) do
-                if p.Character and p.Character:FindFirstChild("Head") then
-                    local bb = p.Character.Head:FindFirstChild("ESPBOX")
-                    if bb then bb:Destroy() end
-                end
-            end
+local tpDropDown = Instance.new("TextButton")
+tpDropDown.Size = UDim2.new(1,-20,0,32)
+tpDropDown.Position = UDim2.new(0,10,0,yOffset)
+tpDropDown.BackgroundColor3 = Color3.new(.18,.18,.18)
+tpDropDown.TextColor3 = Color3.new(1,1,1)
+tpDropDown.Font = Enum.Font.Gotham
+tpDropDown.TextSize = 16
+tpDropDown.Text = (#tpPlayers>0 and tpPlayers[1].Name) or "Kimse Yok"
+tpDropDown.Parent = mainFrame
+yOffset = yOffset + 36
+
+local tpSelectedIdx = 1
+
+tpDropDown.MouseButton1Click:Connect(function()
+    tpPlayers = {}
+    for _,p in ipairs(players:GetPlayers()) do
+        if p~=plr then
+            table.insert(tpPlayers,p)
+        end
+    end
+    if #tpPlayers==0 then
+        tpDropDown.Text = "Kimse Yok"
+        tpSelectedIdx = 1
+        return
+    end
+    tpSelectedIdx = tpSelectedIdx%#tpPlayers+1
+    tpDropDown.Text = tpPlayers[tpSelectedIdx].Name
+end)
+
+local tpBtn = createButton("Teleport",function()
+    tpPlayers = {}
+    for _,p in ipairs(players:GetPlayers()) do
+        if p~=plr then
+            table.insert(tpPlayers,p)
+        end
+    end
+    if #tpPlayers>0 then
+        local selected = tpPlayers[tpSelectedIdx] or tpPlayers[1]
+        if selected.Character and selected.Character:FindFirstChild("HumanoidRootPart") and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
+            plr.Character.HumanoidRootPart.CFrame = selected.Character.HumanoidRootPart.CFrame + Vector3.new(2,0,0)
+        end
+    end
+end)
+updateButton(aimbotBtn,"Aimbot")
+updateButton(espBtn,"ESP")
+updateButton(noclipBtn,"Noclip")
+updateButton(flyBtn,"Fly")
+updateButton(spinbotBtn,"Spinbot")
+
+local flyActive = false
+local flyVelocity = Vector3.new()
+local flySpeed = 80
+local flyConn
+
+local function flyFunc()
+    if not plr.Character or not plr.Character:FindFirstChild("HumanoidRootPart") then return end
+    local hrp = plr.Character.HumanoidRootPart
+    local bv = hrp:FindFirstChild("FLYBV") or Instance.new("BodyVelocity")
+    bv.Name = "FLYBV"
+    bv.MaxForce = Vector3.new(1,1,1)*1e9
+    bv.Parent = hrp
+    flyActive = true
+    if flyConn then flyConn:Disconnect() end
+    flyConn = runS.RenderStepped:Connect(function()
+        if not enabledHacks.Fly then
+            flyActive = false
+            bv:Destroy()
+            if flyConn then flyConn:Disconnect() end
             return
         end
-        for _, p in ipairs(Players:GetPlayers()) do
-            if p ~= LocalPlayer and p.Character and p.Character:FindFirstChild("Head") then
-                if not p.Character.Head:FindFirstChild("ESPBOX") then
-                    local bb = Instance.new("BillboardGui", p.Character.Head)
-                    bb.Name = "ESPBOX"
-                    bb.Size = UDim2.new(4,0,4,0)
-                    bb.Adornee = p.Character.Head
-                    bb.AlwaysOnTop = true
-                    local f = Instance.new("Frame", bb)
-                    f.Size = UDim2.new(1,0,1,0)
-                    f.BackgroundColor3 = Color3.fromRGB(10,255,60)
-                    f.BackgroundTransparency = 0.4
-                    f.BorderSizePixel = 0
-                end
-            end
-        end
+        local move = Vector3.new()
+        if uis:IsKeyDown(Enum.KeyCode.W) then move = move + camera.CFrame.LookVector end
+        if uis:IsKeyDown(Enum.KeyCode.S) then move = move - camera.CFrame.LookVector end
+        if uis:IsKeyDown(Enum.KeyCode.A) then move = move - camera.CFrame.RightVector end
+        if uis:IsKeyDown(Enum.KeyCode.D) then move = move + camera.CFrame.RightVector end
+        if uis:IsKeyDown(Enum.KeyCode.Space) then move = move + Vector3.new(0,1,0) end
+        if uis:IsKeyDown(Enum.KeyCode.LeftControl) then move = move - Vector3.new(0,1,0) end
+        bv.Velocity = move.Unit * flySpeed
+        if move.Magnitude == 0 then bv.Velocity = Vector3.new() end
     end)
 end
 
-function noclipFunc()
-    if connections.noclip then connections.noclip:Disconnect() end
-    connections.noclip = RunService.Stepped:Connect(function()
-        if not states.noclip then return end
-        if LocalPlayer.Character then
-            for _,v in pairs(LocalPlayer.Character:GetDescendants()) do
-                if v:IsA("BasePart") then
-                    v.CanCollide = false
-                end
-            end
-        end
-    end)
-end
-
-function flyFunc()
-    if not LocalPlayer.Character or not LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then return end
-    local hrp = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-    flyParts.gyro = Instance.new("BodyGyro", hrp)
-    flyParts.gyro.P = 9e4
-    flyParts.gyro.MaxTorque = Vector3.new(9e9,9e9,9e9)
-    flyParts.gyro.CFrame = hrp.CFrame
-    flyParts.vel = Instance.new("BodyVelocity", hrp)
-    flyParts.vel.Velocity = Vector3.new(0,0,0)
-    flyParts.vel.MaxForce = Vector3.new(9e9,9e9,9e9)
-    local control = {F=0, B=0, L=0, R=0, U=0, D=0}
-    local speed = flySpeed
-    connections.fly_input1 = UserInputService.InputBegan:Connect(function(key, p)
-        if p then return end
-        if key.KeyCode == Enum.KeyCode.W then control.F = 1 end
-        if key.KeyCode == Enum.KeyCode.S then control.B = 1 end
-        if key.KeyCode == Enum.KeyCode.A then control.L = 1 end
-        if key.KeyCode == Enum.KeyCode.D then control.R = 1 end
-        if key.KeyCode == Enum.KeyCode.Space then control.U = 1 end
-        if key.KeyCode == Enum.KeyCode.LeftControl then control.D = 1 end
-    end)
-    connections.fly_input2 = UserInputService.InputEnded:Connect(function(key, p)
-        if p then return end
-        if key.KeyCode == Enum.KeyCode.W then control.F = 0 end
-        if key.KeyCode == Enum.KeyCode.S then control.B = 0 end
-        if key.KeyCode == Enum.KeyCode.A then control.L = 0 end
-        if key.KeyCode == Enum.KeyCode.D then control.R = 0 end
-        if key.KeyCode == Enum.KeyCode.Space then control.U = 0 end
-        if key.KeyCode == Enum.KeyCode.LeftControl then control.D = 0 end
-    end)
-    connections.flymove = RunService.RenderStepped:Connect(function()
-        if not states.fly then return end
-        local camCF = workspace.CurrentCamera.CFrame
-        local mv = Vector3.new()
-        if control.F == 1 then mv = mv + camCF.LookVector end
-        if control.B == 1 then mv = mv - camCF.LookVector end
-        if control.L == 1 then mv = mv - camCF.RightVector end
-        if control.R == 1 then mv = mv + camCF.RightVector end
-        if control.U == 1 then mv = mv + camCF.UpVector end
-        if control.D == 1 then mv = mv - camCF.UpVector end
-        if mv.Magnitude > 0 then
-            flyParts.vel.Velocity = mv.Unit * speed
-        else
-            flyParts.vel.Velocity = Vector3.new(0,0,0)
-        end
-        flyParts.gyro.CFrame = camCF
-    end)
-end
-
-function stopFlyFunc()
-    if flyParts.gyro then pcall(function() flyParts.gyro:Destroy() end) flyParts.gyro = nil end
-    if flyParts.vel then pcall(function() flyParts.vel:Destroy() end) flyParts.vel = nil end
-    if connections.fly_input1 then connections.fly_input1:Disconnect() end
-    if connections.fly_input2 then connections.fly_input2:Disconnect() end
-    if connections.flymove then connections.flymove:Disconnect() end
-end
-
-function spinbotFunc()
-    if connections.spinbot then connections.spinbot:Disconnect() end
-    connections.spinbot = RunService.RenderStepped:Connect(function()
-        if not states.spinbot then return end
-        if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
-            local hrp = LocalPlayer.Character.HumanoidRootPart
-            hrp.CFrame = hrp.CFrame * CFrame.Angles(0, math.rad(10), 0)
-        end
-    end)
-end
-
-function showTeleportMenu()
-    if teleportGui then teleportGui:Destroy() end
-    teleportGui = Instance.new("ScreenGui")
-    teleportGui.Name = "TeleportGUI"
-    teleportGui.ResetOnSpawn = false
-    teleportGui.Parent = game:GetService("CoreGui")
-    local frame = Instance.new("Frame", teleportGui)
-    frame.Size = UDim2.new(0, 300, 0, 40+30*#getOtherPlayers())
-    frame.Position = UDim2.new(0.5, -150, 0.4, 0)
-    frame.BackgroundColor3 = Color3.fromRGB(30,30,50)
-    frame.BorderSizePixel = 0
-    local uilist = Instance.new("UIListLayout", frame)
-    uilist.HorizontalAlignment = Enum.HorizontalAlignment.Center
-    uilist.SortOrder = Enum.SortOrder.LayoutOrder
-    local lab = Instance.new("TextLabel", frame)
-    lab.Text = "TELEPORT PLAYER - Yukarı/Aşağı: Seç, [A]: Teleport, [ESC]: Çık"
-    lab.Size = UDim2.new(1,0,0,30)
-    lab.BackgroundTransparency = 1
-    lab.TextColor3 = Color3.new(1,1,1)
-    local tPlayers = getOtherPlayers()
-    selectedTPIndex = 1
-    local btns = {}
-    for i, p in ipairs(tPlayers) do
-        btns[i] = Instance.new("TextButton", frame)
-        btns[i].Size = UDim2.new(1,-10,0,28)
-        btns[i].Text = p.DisplayName.." ("..p.Name..")"
-        btns[i].BackgroundColor3 = (i==selectedTPIndex) and Color3.fromRGB(24,177,140) or Color3.fromRGB(60,68,100)
-        btns[i].TextColor3 = Color3.new(1,1,1)
-        btns[i].AutoButtonColor = false
-        btns[i].MouseButton1Click:Connect(function()
-            if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
-                LocalPlayer.Character.HumanoidRootPart.CFrame = p.Character.HumanoidRootPart.CFrame + Vector3.new(0,3,0)
-                teleportGui:Destroy()
-                if connections.tpInput then connections.tpInput:Disconnect() end
-            end
-        end)
+local function unFly()
+    if plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") and plr.Character.HumanoidRootPart:FindFirstChild("FLYBV") then
+        plr.Character.HumanoidRootPart.FLYBV:Destroy()
     end
-    local function updateSelBtn()
-        for i, b in ipairs(btns) do
-            b.BackgroundColor3 = (i==selectedTPIndex) and Color3.fromRGB(24,177,140) or Color3.fromRGB(60,68,100)
-        end
-    end
-    connections.tpInput = UserInputService.InputBegan:Connect(function(input, gamep)
-        if not teleportGui or not teleportGui.Parent then return end
-        if input.KeyCode == Enum.KeyCode.Up then
-            selectedTPIndex = math.clamp(selectedTPIndex-1, 1, #tPlayers)
-            updateSelBtn()
-        elseif input.KeyCode == Enum.KeyCode.Down then
-            selectedTPIndex = math.clamp(selectedTPIndex+1, 1, #tPlayers)
-            updateSelBtn()
-        elseif input.KeyCode == Enum.KeyCode.A then
-            local tgt = tPlayers[selectedTPIndex]
-            if tgt and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") and tgt.Character and tgt.Character:FindFirstChild("HumanoidRootPart") then
-                LocalPlayer.Character.HumanoidRootPart.CFrame = tgt.Character.HumanoidRootPart.CFrame + Vector3.new(0,3,0)
-            end
-            teleportGui:Destroy()
-            if connections.tpInput then connections.tpInput:Disconnect() end
-        elseif input.KeyCode == Enum.KeyCode.Escape then
-            teleportGui:Destroy()
-            if connections.tpInput then connections.tpInput:Disconnect() end
-        end
-    end)
+    if flyConn then flyConn:Disconnect() end
+    flyActive = false
 end
 
-function toggleFeature(feat)
-    states[feat] = not states[feat]
-    if feat == "aimbot" then
-        if states.aimbot then
-            aimbotFunc()
-        else
-            if connections.aimbot then connections.aimbot:Disconnect() end
-        end
-    elseif feat == "noclip" then
-        if states.noclip then
-            noclipFunc()
-        else
-            if connections.noclip then connections.noclip:Disconnect() end
-        end
-    elseif feat == "fly" then
-        if states.fly then
-            flyFunc()
-        else
-            stopFlyFunc()
-        end
-    elseif feat == "esp" then
-        if states.esp then
-            espFunc()
-        else
-            if connections.esp then connections.esp:Disconnect() end
-            for _,p in ipairs(Players:GetPlayers()) do
-                if p.Character and p.Character:FindFirstChild("Head") then
-                    local bb = p.Character.Head:FindFirstChild("ESPBOX")
-                    if bb then bb:Destroy() end
-                end
+local noclipActive = false
+runS.Stepped:Connect(function()
+    if enabledHacks.Noclip and plr.Character and plr.Character:FindFirstChild("Humanoid") then
+        for _,part in pairs(plr.Character:GetChildren()) do
+            if part:IsA("BasePart") then
+                part.CanCollide = false
             end
         end
-    elseif feat == "spinbot" then
-        if states.spinbot then
-            spinbotFunc()
-        else
-            if connections.spinbot then connections.spinbot:Disconnect() end
-        end
-    end
-end
-
-function showMenu()
-    if connections.menuInput then connections.menuInput:Disconnect() end
-    if _G.HileMenu then pcall(function() _G.HileMenu:Destroy() end) end
-    local menu = Instance.new("ScreenGui")
-    menu.Name = "HileMenu"
-    menu.ResetOnSpawn = false
-    menu.Parent = game:GetService("CoreGui")
-    _G.HileMenu = menu
-    local frame = Instance.new("Frame",menu)
-    frame.Size = UDim2.new(0,340,0,295)
-    frame.Position = UDim2.new(0.02,0,0.3,0)
-    frame.BackgroundColor3 = Color3.fromRGB(40,50,60)
-    frame.BorderSizePixel = 0
-    local uil = Instance.new("UIListLayout",frame)
-    uil.HorizontalAlignment = Enum.HorizontalAlignment.Center
-    uil.SortOrder = Enum.SortOrder.LayoutOrder
-    local items = {
-        {"Aimbot", "aimbot"},
-        {"Noclip", "noclip"},
-        {"Fly", "fly"},
-        {"ESP", "esp"},
-        {"Spinbot", "spinbot"},
-        {"Teleport Player", "teleport"}
-    }
-    local sel = 1
-    local btns = {}
-    for i, v in ipairs(items) do
-        btns[i] = Instance.new("TextButton",frame)
-        btns[i].Size = UDim2.new(1,-12,0,40)
-        btns[i].Text = (v[1]) .. ((v[2]~="teleport") and " : [ "..(states[v[2]] and "Açık" or "Kapalı").." ]" or "")
-        btns[i].BackgroundColor3 = (i==sel) and Color3.fromRGB(30,160,120) or Color3.fromRGB(73,80,129)
-        btns[i].TextColor3 = Color3.new(1,1,1)
-        btns[i].Font = Enum.Font.SourceSansBold
-        btns[i].TextSize = 22
-        btns[i].AutoButtonColor = false
-        btns[i].MouseButton1Click:Connect(function()
-            if v[2] ~= "teleport" then
-                toggleFeature(v[2])
-                btns[i].Text = (v[1]) .. " : [ "..(states[v[2]] and "Açık" or "Kapalı").." ]"
-            elseif v[2] == "teleport" then
-                showTeleportMenu()
-            end
-        end)
-    end
-    local lab = Instance.new("TextLabel",frame)
-    lab.Size = UDim2.new(1,-12,0,30)
-    lab.Text = "YUKARI/AŞAĞI: Seç; Enter: Aç/Kapat; [T]: TP Menüsünü Aç; ESC: Menüyü Kapat"
-    lab.TextColor3 = Color3.fromRGB(210,210,230)
-    lab.BackgroundTransparency = 1
-    lab.Font = Enum.Font.SourceSans
-    lab.TextSize = 16
-    local function updateBtns()
-        for i, v in ipairs(items) do
-            btns[i].BackgroundColor3 = (i==sel) and Color3.fromRGB(30,160,120) or Color3.fromRGB(73,80,129)
-            if v[2] ~= "teleport" then
-                btns[i].Text = (v[1]).." : [ "..(states[v[2]] and "Açık" or "Kapalı").." ]"
+    elseif plr.Character and plr.Character:FindFirstChild("Humanoid") then
+        for _,part in pairs(plr.Character:GetChildren()) do
+            if part:IsA("BasePart") then
+                part.CanCollide = true
             end
         end
-    end
-    connections.menuInput = UserInputService.InputBegan:Connect(function(input, p)
-        if not menu.Parent then return end
-        if input.KeyCode == Enum.KeyCode.Up then
-            sel = (sel>1) and (sel-1) or #items
-            updateBtns()
-        elseif input.KeyCode == Enum.KeyCode.Down then
-            sel = (sel<#items) and (sel+1) or 1
-            updateBtns()
-        elseif input.KeyCode == Enum.KeyCode.Return or input.KeyCode==Enum.KeyCode.KeypadEnter then
-            local entry = items[sel]
-            if entry[2]~="teleport" then
-                toggleFeature(entry[2])
-                updateBtns()
-            else
-                showTeleportMenu()
-            end
-        elseif input.KeyCode == Enum.KeyCode.T then
-            showTeleportMenu()
-        elseif input.KeyCode == Enum.KeyCode.Escape then
-            menu:Destroy()
-            if connections.menuInput then connections.menuInput:Disconnect() end
-        end
-    end)
-end
-
-UserInputService.InputBegan:Connect(function(input,gp)
-    if gp then return end
-    if input.KeyCode == Enum.KeyCode.F6 then
-        showMenu()
     end
 end)
 
-RunService.RenderStepped:Connect(function()
-    if states.spinbot and (states.fly or not states.fly) then
-        if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
-            local hrp = LocalPlayer.Character.HumanoidRootPart
-            hrp.CFrame = hrp.CFrame * CFrame.Angles(0, math.rad(10), 0)
+runS.RenderStepped:Connect(function()
+    if enabledHacks.Fly then
+        if not flyActive then flyFunc() end
+    else
+        if flyActive then unFly() end
+    end
+end)
+
+local espColor = Color3.fromRGB(0,255,100)
+function espOn()
+    for _,play in pairs(players:GetPlayers()) do
+        if play~=plr and play.Character and play.Character:FindFirstChild("HumanoidRootPart") then
+            if not play.Character:FindFirstChild("ESPBox") then
+                local box = Instance.new("BoxHandleAdornment")
+                box.Name = "ESPBox"
+                box.Size = Vector3.new(3,6,2)
+                box.Color3 = espColor
+                box.Adornee = play.Character.HumanoidRootPart
+                box.AlwaysOnTop = true
+                box.ZIndex = 1
+                box.Transparency = 0.4
+                box.Parent = play.Character
+            end
+        end
+    end
+end
+
+function removeESP()
+    for _,play in pairs(players:GetPlayers()) do
+        if play.Character and play.Character:FindFirstChild("ESPBox") then
+            play.Character.ESPBox:Destroy()
+        end
+    end
+end
+
+runS.RenderStepped:Connect(function()
+    if enabledHacks.ESP then
+        espOn()
+    else
+        removeESP()
+    end
+end)
+
+function getClosestPlayer()
+    local closest,dist = nil,math.huge
+    for _,p in pairs(players:GetPlayers()) do
+        if p~=plr and p.Character and p.Character:FindFirstChild("HumanoidRootPart") and p.Character:FindFirstChild("Humanoid") and p.Character.Humanoid.Health>0 then
+            local pRoot = p.Character.HumanoidRootPart.Position
+            local screenPos,visible = camera:WorldToViewportPoint(pRoot)
+            if visible then
+                local mousePos = uis:GetMouseLocation()
+                local d = (Vector2.new(screenPos.X,screenPos.Y)-Vector2.new(mousePos.X,mousePos.Y)).Magnitude
+                if d < dist then
+                    dist = d
+                    closest = p
+                end
+            end
+        end
+    end
+    return closest
+end
+
+local aimEnabled = false
+local aimConn
+uis.InputBegan:Connect(function(input,proc)
+    if enabledHacks.Aimbot and input.UserInputType == Enum.UserInputType.MouseButton2 then
+        aimEnabled = true
+        if aimConn then aimConn:Disconnect() end
+        aimConn = runS.RenderStepped:Connect(function()
+            if aimEnabled and enabledHacks.Aimbot then
+                local cp = getClosestPlayer()
+                if cp and cp.Character and cp.Character:FindFirstChild("Head") then
+                    local head = cp.Character.Head
+                    local dir = (head.Position - camera.CFrame.Position).Unit
+                    local newCFrame = CFrame.new(camera.CFrame.Position, head.Position)
+                    camera.CFrame = CFrame.new(camera.CFrame.Position, camera.CFrame.Position + dir)
+                end
+            end
+        end)
+    end
+end)
+uis.InputEnded:Connect(function(input,proc)
+    if input.UserInputType == Enum.UserInputType.MouseButton2 then
+        aimEnabled = false
+        if aimConn then aimConn:Disconnect() end
+    end
+end)
+
+runS.RenderStepped:Connect(function()
+    if enabledHacks.Spinbot and (enabledHacks.Fly or (plr.Character and plr.Character:FindFirstChild("HumanoidRootPart"))) then
+        local hrp = plr.Character and plr.Character:FindFirstChild("HumanoidRootPart")
+        if hrp then
+            hrp.CFrame = hrp.CFrame * CFrame.Angles(0,math.rad(30),0)
+        end
+    end
+end)
+
+players.PlayerAdded:Connect(function(p)
+    p.CharacterAdded:Connect(function()
+        wait(1)
+        if enabledHacks.ESP then
+            espOn()
+        end
+        tpPlayers = {}
+        for _,p2 in ipairs(players:GetPlayers()) do
+            if p2~=plr then
+                table.insert(tpPlayers,p2)
+            end
+        end
+    end)
+end)
+players.PlayerRemoving:Connect(function()
+    tpPlayers = {}
+    for _,p2 in ipairs(players:GetPlayers()) do
+        if p2~=plr then
+            table.insert(tpPlayers,p2)
         end
     end
 end)
