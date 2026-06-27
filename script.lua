@@ -255,31 +255,7 @@ function createOption(idx, name, typ)
             elseif name=="Yanına Çek" then
                 playerDropdown(function(plr)
                     if plr and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") and LP.Character and LP.Character:FindFirstChild("HumanoidRootPart") and plr.Character.PrimaryPart then
-                        -- Remove any velocity from the target
-                        for _,v in pairs(plr.Character:GetDescendants()) do
-                            if v:IsA("BasePart") then pcall(function() v.Velocity = Vector3.new() end) end
-                        end
-                        -- Set position locally *and* via CFrame with SetPrimaryPartCFrame, for best chance of server sync
-                        local gotoCFrame = LP.Character.HumanoidRootPart.CFrame + Vector3.new(0,3,0)
-                        plr.Character:SetPrimaryPartCFrame(gotoCFrame)
-                        for _,v in pairs(plr.Character:GetDescendants()) do
-                            if v:IsA("BasePart") then
-                                v.CFrame = gotoCFrame
-                                v.Anchored = false
-                            end
-                        end
-                        -- Touch grass: FireTouchInterest for possible server sync (melee solution, not always but sometimes)
-                        local hrp = plr.Character:FindFirstChild("HumanoidRootPart")
-                        local myhrp = LP.Character:FindFirstChild("HumanoidRootPart")
-                        if hrp and myhrp then
-                            pcall(function()
-                                firetouchinterest = firetouchinterest or debug.getupvalue(require(game:GetService("Players").LocalPlayer.PlayerScripts.ModuleScript),1)
-                                if firetouchinterest then
-                                    firetouchinterest(hrp, myhrp, 1)
-                                    firetouchinterest(hrp, myhrp, 0)
-                                end
-                            end)
-                        end
+                        plr.Character:SetPrimaryPartCFrame(LP.Character.HumanoidRootPart.CFrame + Vector3.new(0,3,0))
                         notify(plr.Name.." sana çekildi!")
                     end
                 end)
@@ -521,50 +497,51 @@ function startFly()
     end)
 end
 
--- Noclip TAM FONKSİYONEL (Tüm BasePartlar ve Fallback ChildAdded)
-local function fullNoclip(on)
-    local char = LP.Character
-    if char then
-        for _,v in pairs(char:GetDescendants()) do
-            if v:IsA("BasePart") and v.CanCollide ~= (not on) then
-                v.CanCollide = not on
+local noclipEnabled = false
+local noclipCon = nil
+function enableNoclip()
+    noclipEnabled = true
+    if not noclipCon then
+        noclipCon = RS.Stepped:Connect(function()
+            if noclipEnabled and LP.Character then
+                for _,v in pairs(LP.Character:GetDescendants()) do
+                    if v:IsA("BasePart") then
+                        v.CanCollide = false
+                    end
+                end
             end
-        end
-        if on then
-            if not char:FindFirstChild("__NoclipFN") then
-                local marker = Instance.new("BoolValue")
-                marker.Name = "__NoclipFN"
-                marker.Parent = char
-                char.DescendantAdded:Connect(function(desc)
-                    if desc:IsA("BasePart") then desc.CanCollide = false end
-                end)
+        end)
+    end
+end
+function disableNoclip()
+    noclipEnabled = false
+    if noclipCon then pcall(function() noclipCon:Disconnect() end) noclipCon = nil end
+    if LP.Character then
+        for _,v in pairs(LP.Character:GetDescendants()) do
+            if v:IsA("BasePart") then
+                v.CanCollide = true
             end
-        else
-            local node = char:FindFirstChild("__NoclipFN")
-            if node then node:Destroy() end
         end
     end
 end
-local function noclipRunner()
-    local nclipTick = 0
-    RS.Stepped:Connect(function(_,step)
-        nclipTick = nclipTick + 1
-        if nclipTick % 3 == 0 then -- optimize: do not set every frame
-            if optStates["Noclip"] and LP.Character then
-                fullNoclip(true)
-            elseif LP.Character then
-                fullNoclip(false)
-            end
+function noclipMonitor()
+    RS.RenderStepped:Connect(function()
+        if optStates["Noclip"] then
+            enableNoclip()
+        else
+            disableNoclip()
         end
     end)
-    Players.LocalPlayer.CharacterAdded:Connect(function(c)
-        wait(.35)
+    Players.LocalPlayer.CharacterAdded:Connect(function()
+        wait(0.2)
         if optStates["Noclip"] then
-            fullNoclip(true)
+            enableNoclip()
+        else
+            disableNoclip()
         end
     end)
 end
-noclipRunner()
+noclipMonitor()
 
 function startGorunmezlik()
     RS.RenderStepped:Connect(function()
