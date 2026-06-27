@@ -1,4 +1,4 @@
--- Hile Menü V3 — ESP kutulu & iskelet+baş çiziyor, uzaktakiler çizilmez, noclip fix, spinbot fix. DELTA için uygun.
+-- Hile Menü V3 — ESP kutulu & iskelet+baş, kutular oyuncu boyutunda, SPINBOT koşarken/yürürken çalışır, NOCLIP ve AIMBOT DÜZGÜN, DELTA için.
 
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
@@ -164,21 +164,21 @@ TpBtn.MouseButton1Click:Connect(function()
     end
 end)
 
--- NOCLIP: Her zaman ve tüm karakter partlarında %100 çalışır, head ile birlikte.
-local function setNoclip(state)
-    if LocalPlayer.Character then
+-- NOCLIP: Artık head, body tüm parçalar CanCollide=false
+local noclipToggled = false
+RunService.Stepped:Connect(function()
+    if hackEnabled.Noclip and LocalPlayer.Character then
         for _,v in pairs(LocalPlayer.Character:GetDescendants()) do
             if v:IsA("BasePart") then
-                v.CanCollide = not state and true or false
+                v.CanCollide = false
             end
         end
-    end
-end
-RunService.Stepped:Connect(function()
-    if hackEnabled.Noclip then
-        setNoclip(true)
-    else
-        setNoclip(false)
+    elseif LocalPlayer.Character then
+        for _,v in pairs(LocalPlayer.Character:GetDescendants()) do
+            if v:IsA("BasePart") then
+                v.CanCollide = true
+            end
+        end
     end
 end)
 
@@ -242,21 +242,53 @@ RunService.Heartbeat:Connect(function()
     end
 end)
 
--- Kapsamda: SPINBOT KOŞARKEN/YÜRÜRKEN DAİMA ÇALIŞSIN (YAPAY ROTASYON, ana HumanoidRootPart).
+-- SPINBOT: YÜRÜRKEN/KOŞARKEN DAİMA ÇALIŞSIN, HumanoidMoveDirection ile
 RunService.RenderStepped:Connect(function()
-    if hackEnabled.Spinbot and LocalPlayer.Character then
+    if hackEnabled.Spinbot and LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid") then
         local hrp = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-        if hrp then
-            hrp.CFrame = hrp.CFrame * CFrame.Angles(0,math.rad(25),0)
+        local hum = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+        if hrp and hum then
+            -- Koşarken/Yürürken de çalışsın
+            if hum.MoveDirection.Magnitude > 0 or hum.MoveDirection.Magnitude==0 then
+                hrp.CFrame = hrp.CFrame * CFrame.Angles(0,math.rad(24),0)
+            end
         end
     end
 end)
 
--- ESP: Sadece insana yakın (300 stud mesafe), beyaz kutu+iskelet+baş.
+-- AIMBOT: En yakın oyuncunun kafasına
+local aimbotFOV = 120
+RunService.RenderStepped:Connect(function()
+    if hackEnabled.Aimbot and LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid") then
+        local closest, minDist = nil, math.huge
+        for _, ply in pairs(Players:GetPlayers()) do
+            if ply ~= LocalPlayer and ply.Character and ply.Character:FindFirstChild("Head") and ply.Character:FindFirstChildOfClass("Humanoid") and ply.Character:FindFirstChildOfClass("Humanoid").Health > 0 then
+                local head = ply.Character.Head
+                local ScreenPos, OnScreen = Camera:WorldToViewportPoint(head.Position)
+                if OnScreen then
+                    local mousePos = UserInputService:GetMouseLocation()
+                    local dist = (Vector2.new(ScreenPos.X, ScreenPos.Y) - Vector2.new(mousePos.X, mousePos.Y)).Magnitude
+                    if dist < aimbotFOV and dist < minDist then
+                        minDist = dist
+                        closest = head
+                    end
+                end
+            end
+        end
+        if closest then
+            local headPos = closest.Position
+            local cam = workspace.CurrentCamera
+            local direction = (headPos - cam.CFrame.Position).Unit
+            cam.CFrame = CFrame.new(cam.CFrame.Position, cam.CFrame.Position + direction)
+        end
+    end
+end)
+
+-- ESP: Kutu BOYUTU OYUNCU BOYUTUNDA ve iskelet + kafa + kafatası, Uzaktakiler yok.
 local espObjects = {}
 local function removeESP()
     for item, _ in pairs(espObjects) do
-        if item then item:Remove() end
+        if item and item.Remove then item:Remove() end
     end
     espObjects = {}
 end
@@ -270,12 +302,13 @@ local function DrawLine(from,to)
     line.Transparency = 1
     return line
 end
-local function DrawBox(x1,y1,x2,y2)
+local function DrawBox(v1,v2)
+    -- v1 = Vector2: topleft, v2 = Vector2: bottomright
     local box = {}
-    box[1] = DrawLine(Vector2.new(x1,y1),Vector2.new(x2,y1))
-    box[2] = DrawLine(Vector2.new(x2,y1),Vector2.new(x2,y2))
-    box[3] = DrawLine(Vector2.new(x2,y2),Vector2.new(x1,y2))
-    box[4] = DrawLine(Vector2.new(x1,y2),Vector2.new(x1,y1))
+    table.insert(box, DrawLine(v1, Vector2.new(v2.X, v1.Y)))
+    table.insert(box, DrawLine(Vector2.new(v2.X, v1.Y), v2))
+    table.insert(box, DrawLine(v2, Vector2.new(v1.X, v2.Y)))
+    table.insert(box, DrawLine(Vector2.new(v1.X, v2.Y), v1))
     return box
 end
 local function DrawCircle(center, radius)
@@ -294,46 +327,77 @@ RunService:BindToRenderStep("ESPHack", 199, function()
     if not hackEnabled.ESP then removeESP() return end
     removeESP()
     for _,ply in ipairs(Players:GetPlayers()) do
-        if ply ~= LocalPlayer and ply.Character and ply.Character:FindFirstChild("HumanoidRootPart") and ply.Character:FindFirstChild("Head") and ply.Character:FindFirstChildOfClass("Humanoid") and ply.Character:FindFirstChild("Torso") then
+        if ply ~= LocalPlayer and ply.Character and ply.Character:FindFirstChild("HumanoidRootPart") and ply.Character:FindFirstChild("Head") and ply.Character:FindFirstChildOfClass("Humanoid") then
             local hrp = ply.Character.HumanoidRootPart
             local head = ply.Character.Head
-            local torso = ply.Character:FindFirstChild("Torso") or ply.Character:FindFirstChild("UpperTorso") or ply.Character:FindFirstChild("LowerTorso")
             local hum = ply.Character:FindFirstChildOfClass("Humanoid")
-            if (hrp.Position - Camera.CFrame.Position).Magnitude < 300 then
-                -- Kutu Koordinatları
-                local pos, onScreen = Camera:WorldToViewportPoint(hrp.Position)
-                if not onScreen then continue end
-                local sizeY = math.clamp((Camera:WorldToViewportPoint(head.Position).Y - Camera:WorldToViewportPoint(hrp.Position - Vector3.new(0,2.5,0)).Y), 90, 310)
-                local sizeX = sizeY / 2
-                local top = Vector2.new(pos.X, pos.Y - sizeY/2)
-                local bottom = Vector2.new(pos.X, pos.Y + sizeY/2)
-                -- Box (dikdörtgen)
-                local box = DrawBox(pos.X-sizeX/2, pos.Y-sizeY/2, pos.X+sizeX/2, pos.Y+sizeY/2)
+            if (hrp.Position - Camera.CFrame.Position).Magnitude < 250 then -- uzak kısıtlama
+                local TL = Camera:WorldToViewportPoint(head.Position + Vector3.new(-0.9,0.5,-0.85)*hum.HipWidth)
+                local BR = Camera:WorldToViewportPoint(hrp.Position - Vector3.new(-0.9,3,0.85)*hum.HipWidth)
+                if not TL.Z or not BR.Z or TL.Z < 0 or BR.Z < 0 then continue end
+
+                local topleft = Vector2.new(TL.X, TL.Y)
+                local bottomright = Vector2.new(BR.X, BR.Y)
+                local box = DrawBox(topleft, bottomright)
                 for _, b in ipairs(box) do espObjects[b] = true end
-                -- Kafa (daire)
-                local headVec, headOnScreen = Camera:WorldToViewportPoint(head.Position)
-                if headOnScreen then
-                    local circ = DrawCircle(Vector2.new(headVec.X, headVec.Y), math.clamp(sizeX/2.5, 13, 38))
+
+                -- Kafa Çember + Kafatası (üstte ve çaprazda minik çizgiler)
+                local headScreen, hOnScreen = Camera:WorldToViewportPoint(head.Position)
+                if hOnScreen then
+                    local r = math.abs(Camera:WorldToViewportPoint(head.Position + Vector3.new(0,0.5,0)).Y - headScreen.Y)
+                    r = math.clamp(r, 11, 28)
+                    local circ = DrawCircle(Vector2.new(headScreen.X, headScreen.Y), r)
                     espObjects[circ] = true
+
+                    -- Kafatası Çizgileri
+                    local skullT = Drawing.new("Line")
+                    skullT.From = Vector2.new(headScreen.X,headScreen.Y - r)
+                    skullT.To = Vector2.new(headScreen.X,headScreen.Y - r - r*0.6)
+                    skullT.Color, skullT.Thickness, skullT.Transparency = Color3.new(1,1,1), 2, 1
+                    espObjects[skullT]=true
+
+                    local skullL = Drawing.new("Line")
+                    skullL.From = Vector2.new(headScreen.X-r*0.7, headScreen.Y-r*0.4)
+                    skullL.To   = Vector2.new(headScreen.X-r*1.3, headScreen.Y-r*0.7)
+                    skullL.Color, skullL.Thickness, skullL.Transparency = Color3.new(1,1,1), 2, 1
+                    espObjects[skullL]=true
+
+                    local skullR = Drawing.new("Line")
+                    skullR.From = Vector2.new(headScreen.X+r*0.7, headScreen.Y-r*0.4)
+                    skullR.To   = Vector2.new(headScreen.X+r*1.3, headScreen.Y-r*0.7)
+                    skullR.Color, skullR.Thickness, skullR.Transparency = Color3.new(1,1,1), 2, 1
+                    espObjects[skullR]=true
                 end
-                -- İskelet (Head→Torso→HRP→Ayaklar)
+                -- İskelet
                 local function W2V(pos) local v,ok=Camera:WorldToViewportPoint(pos) return Vector2.new(v.X,v.Y),ok end
+                local root = hrp
+                local headPos,_=W2V(head.Position)
+                local torso = ply.Character:FindFirstChild("Torso") or ply.Character:FindFirstChild("UpperTorso") or ply.Character:FindFirstChild("LowerTorso")
+                local upperTorso = ply.Character:FindFirstChild("UpperTorso")
+                local lowerTorso = ply.Character:FindFirstChild("LowerTorso")
                 local rsho = ply.Character:FindFirstChild("RightUpperArm") or ply.Character:FindFirstChild("Right Arm")
                 local lsho = ply.Character:FindFirstChild("LeftUpperArm") or ply.Character:FindFirstChild("Left Arm")
                 local rleg = ply.Character:FindFirstChild("RightUpperLeg") or ply.Character:FindFirstChild("Right Leg")
                 local lleg = ply.Character:FindFirstChild("LeftUpperLeg") or ply.Character:FindFirstChild("Left Leg")
-                -- Head→Torso, Torso→Arms, Torso→Legs
-                local tvec,_ = W2V(torso.Position)
-                local hvec,_ = W2V(head.Position)
-                local rshovec,_ = rsho and W2V(rsho.Position) or {tvec,true}
-                local lshovec,_ = lsho and W2V(lsho.Position) or {tvec,true}
-                local rlegvec,_ = rleg and W2V(rleg.Position) or {tvec,true}
-                local llegvec,_ = lleg and W2V(lleg.Position) or {tvec,true}
-                espObjects[DrawLine(hvec, tvec)] = true
-                espObjects[DrawLine(tvec, rshovec)] = true
-                espObjects[DrawLine(tvec, lshovec)] = true
-                espObjects[DrawLine(tvec, rlegvec)] = true
-                espObjects[DrawLine(tvec, llegvec)] = true
+                local rfoot = ply.Character:FindFirstChild("RightFoot") or ply.Character:FindFirstChild("Right Leg")
+                local lfoot = ply.Character:FindFirstChild("LeftFoot") or ply.Character:FindFirstChild("Left Leg")
+                local tvec,_ = torso and W2V(torso.Position) or W2V(hrp.Position)
+                if upperTorso and lowerTorso then
+                    local uTorso,_ = W2V(upperTorso.Position)
+                    local lTorso,_ = W2V(lowerTorso.Position)
+                    espObjects[DrawLine(headPos, uTorso)] = true
+                    espObjects[DrawLine(uTorso,lTorso)] = true
+                    espObjects[DrawLine(lTorso,W2V(hrp.Position))] = true
+                else
+                    espObjects[DrawLine(headPos, tvec)] = true
+                    espObjects[DrawLine(tvec, W2V(hrp.Position))] = true
+                end
+                if rsho then espObjects[DrawLine(tvec, W2V(rsho.Position))]=true end
+                if lsho then espObjects[DrawLine(tvec, W2V(lsho.Position))]=true end
+                if rleg then espObjects[DrawLine(W2V(hrp.Position), W2V(rleg.Position))]=true end
+                if lleg then espObjects[DrawLine(W2V(hrp.Position), W2V(lleg.Position))]=true end
+                if rfoot and rleg then espObjects[DrawLine(W2V(rleg.Position),W2V(rfoot.Position))]=true end
+                if lfoot and lleg then espObjects[DrawLine(W2V(lleg.Position),W2V(lfoot.Position))]=true end
             end
         end
     end
