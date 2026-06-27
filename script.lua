@@ -1,687 +1,453 @@
-
--- [ ROBLOX UNIVERSAL SCRIPT - COMPLETE, ANTI-ANTICHEAT, 1000+ LINES, ALL FEATURES WORKING ]
--- == Main State Tracking == --
-
 local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
-local Camera = workspace.CurrentCamera
-local LocalPlayer = Players.LocalPlayer
-local Mouse = LocalPlayer:GetMouse()
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
-local HttpService = game:GetService("HttpService")
+local Workspace = game:GetService("Workspace")
+local Camera = Workspace.CurrentCamera
 local CoreGui = game:GetService("CoreGui")
+local HttpService = game:GetService("HttpService")
+local Mouse = LocalPlayer:GetMouse()
 local StarterGui = game:GetService("StarterGui")
-
-local menuOpened = true
-local menuDraggable = false
-local menuOffset = Vector2.new(0,0)
-local lastMenuPos
-local menuPos = Vector2.new(300,200)
-local menuSize = Vector2.new(420,520)
-local dragStart
-
-local selectedEspColor = Color3.fromRGB(255,0,0)
-local selectedFov = 120
-local selectedPlayerForSpectate = nil
-local selectedPlayerForTeleport = nil
-local selectedPlayerForBring = nil
-local selectedPlayerForExplode = nil
-
-local features = {
-    Aimbot = false,
-    SilentAim = false,
-    ESP = false,
-    Fly = false,
-    Teleport = false,
-    Bring = false,
-    Noclip = false,
-    Spectate = false,
-    FOV = false,
-    NoReload = false,
-    Godmode = false,
-    Rejoin = false,
-    Reset = false,
-    Explode = false,
-    Spinbot = false,
-}
-
-local fovValue = 120
-local flySpeed = 4
-local espObjects = {}
-local flyToggled = false
-local cheatDisabled = false
-local flyConn = nil
-
-local function isEnemy(plr)
-    if not plr or plr == LocalPlayer then return false end
-    local myTeam = LocalPlayer.Team
-    if myTeam and plr.Team and myTeam == plr.Team then
-        return false
-    end
-    return true
-end
-
-local function round(v, d)
-    return math.floor(v * (10^d) + 0.5) / (10^d)
-end
-
-local function getPlayers()
-    local tbl = {}
-    for _,plr in ipairs(Players:GetPlayers()) do
-        if plr ~= LocalPlayer then table.insert(tbl, plr) end
-    end
-    return tbl
-end
 
 local function getPlayerGui()
     return LocalPlayer:FindFirstChildOfClass("PlayerGui") or CoreGui
 end
 
-local function getCharacter(plr)
-    if not plr then return nil end
-    return plr.Character
-end
+local features = {
+    Aimbot = false, SilentAim = false, ESP = false, Fly = false, Teleport = false, Bring=false, Noclip = false,
+    Spectate = false, FOV = false, NoReload = false, Godmode = false, Rejoin = false, Reset = false, Explode = false, Spinbot = false
+}
 
-local function getHumanoidRootPart(plr)
-    local char = getCharacter(plr)
-    if char then
-        return char:FindFirstChild("HumanoidRootPart") or char:FindFirstChildWhichIsA("BasePart")
-    end
-    return nil
-end
+local fovValue = 120
+local flySpeed = 5
+local cheatDisabled = false
 
-local function getClosestEnemyToCursor(fov)
-    local minDist = fov or fovValue
-    local closest = nil
-    for _,plr in ipairs(Players:GetPlayers()) do
-        if isEnemy(plr) and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") and plr.Character:FindFirstChildOfClass("Humanoid") and plr.Character:FindFirstChildOfClass("Humanoid").Health > 0 then
-            local screenPos, visible = Camera:WorldToViewportPoint(plr.Character.HumanoidRootPart.Position)
-            if visible then
-                local dist = (Vector2.new(screenPos.X, screenPos.Y) - Vector2.new(Mouse.X, Mouse.Y)).Magnitude
-                if dist < minDist then
-                    minDist = dist
-                    closest = plr
+local espObjects = {}
+local menuSize = Vector2.new(500, 560)
+local menuPos = Vector2.new((Camera.ViewportSize.X-500)/2,(Camera.ViewportSize.Y-560)/2)
+local dragStart,dragging = nil,false
+local selectedPlayerForTeleport,selectedPlayerForBring,selectedPlayerForSpectate,selectedPlayerForExplode=nil,nil,nil,nil
+local menuOpened = true
+
+if getPlayerGui():FindFirstChild("CheatPROMenu") then getPlayerGui().CheatPROMenu:Destroy() end
+local gui = {}
+gui.Main = Instance.new("ScreenGui")
+gui.Main.Name = "CheatPROMenu"
+gui.Main.ResetOnSpawn = false
+gui.Main.Parent = getPlayerGui()
+
+gui.Frame = Instance.new("Frame")
+gui.Frame.Name = "MainFrame"
+gui.Frame.Size = UDim2.new(0,menuSize.X,0,menuSize.Y)
+gui.Frame.Position = UDim2.new(0,menuPos.X,0,menuPos.Y)
+gui.Frame.BackgroundColor3 = Color3.new(0,0,0)
+gui.Frame.BorderSizePixel = 0
+gui.Frame.Active = true
+gui.Frame.Visible = true
+gui.Frame.Parent = gui.Main
+
+gui.TopBar = Instance.new("TextLabel", gui.Frame)
+gui.TopBar.Text = "ROBLOX MODERN CHEAT MENU"
+gui.TopBar.Size = UDim2.new(1,0,0,42)
+gui.TopBar.BackgroundColor3 = Color3.new(0,0,0)
+gui.TopBar.TextColor3 = Color3.fromRGB(255,0,0)
+gui.TopBar.Font = Enum.Font.GothamBold
+gui.TopBar.TextSize = 28
+
+local categories = {
+    ["Aim Hileleri"] = {
+        {Key="Aimbot", Name="Aimbot"},
+        {Key="SilentAim",Name="Silent Aim"},
+        {Key="FOV",Name="FOV Changer"},
+        {Key="Spinbot",Name="Spinbot"},
+    },
+    ["Görüş Hileleri"] = {
+        {Key="ESP", Name="ESP"},
+        {Key="Spectate", Name="Oyuncuyu İzle"},
+    },
+    ["Troll Hileleri"] = {
+        {Key="Explode", Name="Patlat"},
+        {Key="Bring", Name="Yanına Çek"},
+        {Key="Teleport", Name="Oyuncuya Işınlan"},
+        {Key="Fly", Name="Fly"},
+        {Key="Noclip", Name="Noclip"},
+    },
+    ["Bireysel Hileler"] = {
+        {Key="Godmode", Name="Godmode"},
+        {Key="NoReload", Name="Sınırsız Mermi"},
+        {Key="Reset", Name="Karakterini Sıfırla"},
+        {Key="Rejoin", Name="Rejoin"},
+    },
+}
+
+local categoryOrder = {"Aim Hileleri", "Görüş Hileleri", "Troll Hileleri", "Bireysel Hileler"}
+local buttonRefs = {}
+
+local xPos = 18
+for _,cat in ipairs(categoryOrder) do
+    local btnFrame = Instance.new("Frame",gui.Frame)
+    btnFrame.Position = UDim2.new(0, xPos, 0, 70)
+    btnFrame.Size = UDim2.new(0, 116, 0, #categories[cat]*40+27)
+    btnFrame.BackgroundColor3 = Color3.new(0,0,0)
+    local catTitle = Instance.new("TextLabel", btnFrame)
+    catTitle.Text = cat
+    catTitle.Font = Enum.Font.GothamBold
+    catTitle.TextSize = 15
+    catTitle.TextColor3 = Color3.fromRGB(255,0,0)
+    catTitle.Size = UDim2.new(1,0,0,20)
+    catTitle.BackgroundTransparency = 1
+
+    for i,item in ipairs(categories[cat]) do
+        local btn = Instance.new("TextButton", btnFrame)
+        btn.Name = item.Key .. "Btn"
+        btn.Position = UDim2.new(0, 0, 0, 22+(i-1)*40)
+        btn.Size = UDim2.new(1, 0, 0, 35)
+        btn.Text = item.Name..(features[item.Key] and " [AÇIK]" or " [KAPALI]")
+        btn.Font = Enum.Font.GothamBold
+        btn.TextColor3 = Color3.fromRGB(255,0,0)
+        btn.BackgroundColor3 = Color3.fromRGB(15,15,15)
+        btn.BorderSizePixel = 0
+        btn.TextSize = 16
+        buttonRefs[item.Key] = btn
+        btn.MouseButton1Click:Connect(function()
+            if item.Key == "Teleport" or item.Key == "Bring" or item.Key=="Spectate" or item.Key=="Explode" then
+                local options = {}
+                for _,p in ipairs(Players:GetPlayers()) do
+                    if p~=LocalPlayer then table.insert(options,p) end
                 end
+                local selector = Instance.new("Frame",gui.Frame)
+                selector.Size = UDim2.new(0,283,0,35+#options*35)
+                selector.Position = UDim2.new(0,menuSize.X-10,0,60)
+                selector.BackgroundColor3 = Color3.fromRGB(18,4,7)
+                local title=Instance.new("TextLabel",selector)
+                title.Text = (item.Key=="Teleport" and "Işınlanacağın Oyuncuyu Seç") or (item.Key=="Bring" and "Yanına Çekeceğin Oyuncuyu Seç") or (item.Key=="Spectate" and "İzleyeceğin Oyuncuyu Seç") or (item.Key=="Explode" and "Patlatacağın Oyuncuyu Seç")
+                title.Size=UDim2.new(1,0,0,24)
+                title.TextColor3=Color3.fromRGB(255,0,0)
+                title.BackgroundTransparency=1
+                title.Font=Enum.Font.GothamBold
+                title.TextSize=15
+                for idx,p in ipairs(options) do
+                    local pbtn = Instance.new("TextButton",selector)
+                    pbtn.Size=UDim2.new(1,-8,0,26)
+                    pbtn.Position = UDim2.new(0,4,0,28+(idx-1)*30)
+                    pbtn.Text = p.DisplayName.." ("..p.Name..")"
+                    pbtn.TextColor3 = Color3.fromRGB(255,0,0)
+                    pbtn.BackgroundColor3 = Color3.fromRGB(20,0,0)
+                    pbtn.Font = Enum.Font.GothamBold
+                    pbtn.TextSize = 14
+                    pbtn.MouseButton1Click:Connect(function()
+                        selector:Destroy()
+                        if item.Key == "Teleport" then selectedPlayerForTeleport=p features.Teleport=true
+                        elseif item.Key == "Bring" then selectedPlayerForBring=p features.Bring=true
+                        elseif item.Key=="Spectate" then selectedPlayerForSpectate=p features.Spectate=true
+                        elseif item.Key=="Explode" then selectedPlayerForExplode=p features.Explode=true end
+                    end)
+                end
+                delay(8,function() if selector and selector.Parent then selector:Destroy() end end)
+            elseif item.Key=="FOV" then
+                local fovWin=Instance.new("Frame",gui.Frame)
+                fovWin.Size=UDim2.new(0,130,0,45)
+                fovWin.Position=UDim2.new(0,menuSize.X-110,0,menuSize.Y-145)
+                fovWin.BackgroundColor3=Color3.fromRGB(18,8,8)
+                local valueLabel=Instance.new("TextLabel",fovWin)
+                valueLabel.Text="FOV: "..tostring(fovValue)
+                valueLabel.Size=UDim2.new(1,0,0,19)
+                valueLabel.Font=Enum.Font.GothamBold
+                valueLabel.TextColor3=Color3.fromRGB(255,0,0)
+                valueLabel.TextSize=15
+                valueLabel.BackgroundTransparency=1
+                local minus=Instance.new("TextButton",fovWin)
+                minus.Text="-"
+                minus.Position = UDim2.new(0,10,0,22)
+                minus.Size = UDim2.new(0,40,0,20)
+                minus.BackgroundColor3 = Color3.fromRGB(30,0,0)
+                minus.Font=Enum.Font.GothamBold
+                minus.TextColor3=Color3.fromRGB(255,0,0)
+                minus.TextSize=17
+                minus.MouseButton1Click:Connect(function() fovValue=math.max(20,fovValue-10) valueLabel.Text="FOV: "..tostring(fovValue) end)
+                local plus=Instance.new("TextButton",fovWin)
+                plus.Text="+"
+                plus.Position = UDim2.new(0,80,0,22)
+                plus.Size = UDim2.new(0,40,0,20)
+                plus.BackgroundColor3 = Color3.fromRGB(30,0,0)
+                plus.Font=Enum.Font.GothamBold
+                plus.TextColor3=Color3.fromRGB(255,0,0)
+                plus.TextSize=17
+                plus.MouseButton1Click:Connect(function() fovValue=math.min(320,fovValue+10) valueLabel.Text="FOV: "..tostring(fovValue) end)
+                delay(6,function() if fovWin and fovWin.Parent then fovWin:Destroy() end end)
+            else
+                features[item.Key]=not features[item.Key]
+                btn.Text = item.Name..(features[item.Key] and " [AÇIK]" or " [KAPALI]")
+            end
+        end)
+    end
+    xPos = xPos + 126
+end
+
+-- Dragging (Modern style)
+gui.TopBar.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging=true
+        dragStart=Vector2.new(input.Position.X, input.Position.Y) - Vector2.new(gui.Frame.Position.X.Offset,gui.Frame.Position.Y.Offset)
+    end
+end)
+gui.TopBar.InputEnded:Connect(function(input) if input.UserInputType == Enum.UserInputType.MouseButton1 then dragging=false end end)
+UserInputService.InputChanged:Connect(function(input)
+    if dragging and input.UserInputType==Enum.UserInputType.MouseMovement then
+        local newPos = Vector2.new(input.Position.X, input.Position.Y)-dragStart
+        gui.Frame.Position = UDim2.new(0,math.clamp(newPos.X,10,Camera.ViewportSize.X-menuSize.X-10),0,math.clamp(newPos.Y,10,Camera.ViewportSize.Y-menuSize.Y-10))
+    end
+end)
+
+UserInputService.InputBegan:Connect(function(input,gpe)
+    if input.KeyCode==Enum.KeyCode.Insert and not gpe then
+        menuOpened=not menuOpened
+        gui.Frame.Visible=menuOpened
+        if not menuOpened then gui.Frame.Visible=false end
+    end
+end)
+
+local fadeStart
+RunService.RenderStepped:Connect(function()
+    if not gui.Frame.Visible then
+        if not fadeStart then fadeStart=tick() end
+        if tick()-fadeStart>2 then
+            gui.Frame.Visible=true
+            menuOpened=true
+            fadeStart=nil
+        end
+    else
+        fadeStart=nil
+    end
+end)
+
+-- ESP
+function getRoot(plr)
+    if not plr.Character then return nil end
+    return plr.Character:FindFirstChild("HumanoidRootPart") or plr.Character:FindFirstChildWhichIsA("BasePart")
+end
+function isEnemy(plr)
+    if not plr or plr == LocalPlayer then return false end
+    if LocalPlayer.Team and plr.Team and LocalPlayer.Team==plr.Team then return false end
+    return true
+end
+function updateESP()
+    for _,plr in ipairs(Players:GetPlayers()) do
+        if plr~=LocalPlayer and features.ESP and plr.Character and isEnemy(plr) and getRoot(plr) then
+            if not espObjects[plr] then
+                local guiObj = Instance.new("BillboardGui",gui.Main)
+                guiObj.AlwaysOnTop=true guiObj.Adornee=getRoot(plr)
+                guiObj.Size=UDim2.new(0,110,0,22)
+                local lab=Instance.new("TextLabel",guiObj)
+                lab.Size=UDim2.new(1,0,1,0)
+                lab.BackgroundTransparency=1
+                lab.TextColor3=Color3.fromRGB(255,0,0)
+                lab.Font=Enum.Font.GothamBold
+                lab.Text=plr.DisplayName
+                lab.TextSize=14
+                espObjects[plr]=guiObj
+            else
+                espObjects[plr].Adornee=getRoot(plr)
+            end
+        else
+            if espObjects[plr] then espObjects[plr]:Destroy() espObjects[plr]=nil end
+        end
+    end
+end
+Players.PlayerAdded:Connect(function(p) p.CharacterAdded:Connect(function() delay(0.2,updateESP) end) end)
+Players.PlayerRemoving:Connect(function(p) if espObjects[p] then espObjects[p]:Destroy() espObjects[p]=nil end end)
+RunService.RenderStepped:Connect(function() if features.ESP then updateESP() else for p,obj in pairs(espObjects) do obj:Destroy() espObjects[p]=nil end end end)
+
+-- Fly / Noclip
+local flyBV,flyBG,flyActive=false,nil,nil
+function flyStart()
+    if flyBV then return end
+    local c=LocalPlayer.Character
+    if not c or not getRoot(LocalPlayer) then return end
+    flyBV=Instance.new("BodyVelocity",getRoot(LocalPlayer))
+    flyBV.MaxForce=Vector3.new(1e5,1e5,1e5)*9
+    flyBV.Velocity=Vector3.new()
+    flyBG=Instance.new("BodyGyro",getRoot(LocalPlayer))
+    flyBG.MaxTorque=Vector3.new(1e8,1e8,1e8)
+    flyBG.CFrame=Camera.CFrame
+end
+function flyStep()
+    if not flyBV or not flyBG then return end
+    local cf=Camera.CFrame
+    local v=Vector3.new()
+    if UserInputService:IsKeyDown(Enum.KeyCode.W) then v=v+cf.LookVector end
+    if UserInputService:IsKeyDown(Enum.KeyCode.S) then v=v-cf.LookVector end
+    if UserInputService:IsKeyDown(Enum.KeyCode.A) then v=v-cf.RightVector end
+    if UserInputService:IsKeyDown(Enum.KeyCode.D) then v=v+cf.RightVector end
+    if UserInputService:IsKeyDown(Enum.KeyCode.Space) then v=v+Vector3.new(0,1,0) end
+    if UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) then v=v-Vector3.new(0,1,0) end
+    flyBV.Velocity = (v.Magnitude>0 and v.Unit or v)*flySpeed*15
+    flyBG.CFrame = Camera.CFrame
+end
+function flyStop()
+    if flyBV then pcall(function() flyBV:Destroy() end) flyBV=nil end
+    if flyBG then pcall(function() flyBG:Destroy() end) flyBG=nil end
+end
+RunService.RenderStepped:Connect(function() if features.Fly then if not flyBV then flyStart() end flyStep() else flyStop() end end)
+RunService.Stepped:Connect(function()
+    if features.Noclip then
+        local c=LocalPlayer.Character
+        if c then for _,prt in ipairs(c:GetDescendants()) do if prt:IsA("BasePart") then prt.CanCollide=false end end end
+    end
+end)
+
+-- Teleport/Bring/Explode/Spectate
+function teleportTo(plr)
+    if not plr or not plr.Character then return end
+    local myroot=getRoot(LocalPlayer)
+    local root=getRoot(plr)
+    if myroot and root then myroot.CFrame = root.CFrame + Vector3.new(0,3,0) end
+end
+function bringToMe(plr)
+    if not plr or not plr.Character then return end
+    local troot=getRoot(plr)
+    local myroot=getRoot(LocalPlayer)
+    if troot and myroot then troot.CFrame=myroot.CFrame+Vector3.new(0,1,0) end
+end
+function explodePlayer(plr)
+    if not plr or not plr.Character then return end
+    local root=getRoot(plr)
+    if root then
+        local boom=Instance.new("Explosion",workspace)
+        boom.Position=root.Position
+        boom.BlastRadius=7
+        plr.Character:BreakJoints()
+    end
+end
+function spectatePlayer(plr)
+    if plr and plr.Character and getRoot(plr) then
+        Camera.CameraSubject=plr.Character:FindFirstChildOfClass("Humanoid")
+    else
+        Camera.CameraSubject=LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
+    end
+end
+RunService.RenderStepped:Connect(function()
+    if features.Teleport and selectedPlayerForTeleport then teleportTo(selectedPlayerForTeleport) selectedPlayerForTeleport=nil features.Teleport=false end
+    if features.Bring and selectedPlayerForBring then bringToMe(selectedPlayerForBring) selectedPlayerForBring=nil features.Bring=false end
+    if features.Explode and selectedPlayerForExplode then explodePlayer(selectedPlayerForExplode) selectedPlayerForExplode=nil features.Explode=false end
+    if features.Spectate then
+        if selectedPlayerForSpectate then
+            spectatePlayer(selectedPlayerForSpectate)
+        end
+    else
+        Camera.CameraSubject=LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid") or Camera.CameraSubject
+    end
+end)
+
+-- Aimbot/SilentAim
+function getClosestEnemy()
+    local bestDist=fovValue
+    local closest=nil
+    for _,p in ipairs(Players:GetPlayers()) do
+        if isEnemy(p) and p.Character and getRoot(p) and (p.Character:FindFirstChildOfClass("Humanoid") and p.Character:FindFirstChildOfClass("Humanoid").Health>0) then
+            local s=Camera:WorldToViewportPoint(getRoot(p).Position)
+            if s.Z>=0 then
+                local d=(Vector2.new(s.X,s.Y)-Vector2.new(Mouse.X,Mouse.Y)).Magnitude
+                if d<bestDist then bestDist=d closest=p end
             end
         end
     end
     return closest
 end
-
--- == Custom GUI Library (Not relying on 3rd Party, avoids detection) == --
-
--- Reference for GUI objects, to avoid duplication/accumulation
-local gui = {}
-if getPlayerGui():FindFirstChild("SuperCheatMenu") then
-    getPlayerGui().SuperCheatMenu:Destroy()
+function getPreferredPart(plr)
+    if plr.Character:FindFirstChild("Head") then return "Head" elseif plr.Character:FindFirstChild("UpperTorso") then return "UpperTorso" end return nil
 end
-gui.Main = Instance.new("ScreenGui")
-gui.Main.Name = "SuperCheatMenu"
-gui.Main.ResetOnSpawn = false
-gui.Main.Parent = getPlayerGui()
-
-gui.Frame = Instance.new("Frame")
-gui.Frame.Position = UDim2.new(0,menuPos.X,0,menuPos.Y)
-gui.Frame.Size = UDim2.new(0,menuSize.X,0,menuSize.Y)
-gui.Frame.BackgroundColor3 = Color3.new(0,0,0)
-gui.Frame.BorderSizePixel = 0
-gui.Frame.Active = true
-gui.Frame.Draggable = false
-gui.Frame.Parent = gui.Main
-
-gui.Title = Instance.new("TextLabel")
-gui.Title.Text = "ROBLOX FULL INTERNAL CHEAT MENU"
-gui.Title.Size = UDim2.new(1,0,0,38)
-gui.Title.BackgroundTransparency = 1
-gui.Title.TextColor3 = Color3.fromRGB(255,0,0)
-gui.Title.Font = Enum.Font.SourceSansBold
-gui.Title.TextSize = 29
-gui.Title.Parent = gui.Frame
-
-local categories = {
-    ["Aim Hileleri"] = {
-        {"Aimbot","Aimbot"},
-        {"SilentAim","Silent Aim"},
-        {"FOV","Fov Changer"},
-        {"Spinbot","Spinbot"}
-    },
-    ["Görüş Hileleri"] = {
-        {"ESP","ESP"},
-        {"Spectate","Spectate Player"}
-    },
-    ["Troll Hileleri"] = {
-        {"Explode","Exploda"},
-        {"Bring","Yanına Teleport"},
-        {"Teleport","Teleport"},
-        {"Fly","Fly"},
-        {"Noclip","Noclip"}
-    },
-    ["Bireysel Hileler"] = {
-        {"Godmode","Godmode"},
-        {"NoReload","No Reload"},
-        {"Reset","Reset Character"},
-        {"Rejoin","Rejoin"}
-    },
-}
-
-gui.CategoryFrames = {}
-
-local xOffset,yOffset = 8,50
-local buttonHeight = 36
-local spacing = 2
-
-local buttonRefs = {}
-
-local categoryOrder = {"Aim Hileleri","Görüş Hileleri","Troll Hileleri","Bireysel Hileler"}
-
-for i,cat in ipairs(categoryOrder) do
-    local catFrame = Instance.new("Frame")
-    catFrame.Position = UDim2.new(0,xOffset,0,yOffset)
-    catFrame.Size = UDim2.new(0,135,0,#categories[cat]*(buttonHeight+spacing)+22)
-    catFrame.BackgroundTransparency = 0.25
-    catFrame.BackgroundColor3 = Color3.new(0,0,0)
-    catFrame.BorderColor3 = Color3.new(0.13,0.13,0.13)
-    catFrame.Parent = gui.Frame
-
-    local catLabel = Instance.new("TextLabel")
-    catLabel.Text = string.upper(cat)
-    catLabel.Size = UDim2.new(1,0,0,20)
-    catLabel.Font = Enum.Font.GothamBlack
-    catLabel.TextSize = 17
-    catLabel.TextColor3 = Color3.fromRGB(255,0,0)
-    catLabel.BackgroundTransparency = 1
-    catLabel.Parent = catFrame
-
-    for j,item in ipairs(categories[cat]) do
-        local key, display = item[1], item[2]
-        local btn = Instance.new("TextButton")
-        btn.Name = display
-        btn.Text = display .. (features[key] and " [AÇIK]" or " [KAPALI]")
-        btn.Font = Enum.Font.GothamBlack
-        btn.TextColor3 = Color3.fromRGB(255,0,0)
-        btn.BackgroundColor3 = Color3.new(0.05,0.05,0.05)
-        btn.BorderColor3 = Color3.fromRGB(0,0,0)
-        btn.Size = UDim2.new(1,-8,0,buttonHeight)
-        btn.Position = UDim2.new(0,4,0,20+(j-1)*(buttonHeight+spacing))
-        btn.TextSize = 17
-        btn.Parent = catFrame
-        buttonRefs[key] = btn
-        btn.MouseButton1Click:Connect(function()
-            if key == "Teleport" or key=="Bring" or key=="Spectate" or key=="Explode" then
-                -- Will show selection window
-                local opts = getPlayers()
-                local pickFrame = Instance.new("Frame")
-                pickFrame.Size = UDim2.new(0,285,0,32+#opts*32)
-                pickFrame.Position = UDim2.new(0,menuSize.X+24,0,menuSize.Y*(0.2+0.08*math.random()))
-                pickFrame.BackgroundColor3 = Color3.new(0.15,0,0)
-                pickFrame.BorderSizePixel = 1
-                pickFrame.Parent = gui.Frame
-
-                local title = Instance.new("TextLabel")
-                title.Size = UDim2.new(1,0,0,28)
-                title.Position = UDim2.new(0,0,0,0)
-                title.Text = (key=="Teleport" and "Kime Işınlanmak?") or (key=="Bring" and "Kimi Yanına Işınlamak?") or 
-                    (key=="Spectate" and "Kimi İzleyeceksin?") or (key=="Explode" and "Kimi Patlatacaksın?")
-                title.Font = Enum.Font.SourceSansBold
-                title.TextColor3 = Color3.fromRGB(255,0,0)
-                title.TextSize = 15
-                title.BackgroundTransparency = 1
-                title.Parent = pickFrame
-
-                for idx,ppl in ipairs(opts) do
-                    local pbtn = Instance.new("TextButton")
-                    pbtn.Size = UDim2.new(1,-12,0,26)
-                    pbtn.Position = UDim2.new(0,6,0,30+28*(idx-1))
-                    pbtn.Text = ppl.DisplayName.." ("..ppl.Name..")"
-                    pbtn.Font = Enum.Font.GothamBold
-                    pbtn.TextSize = 15
-                    pbtn.TextColor3 = Color3.fromRGB(255,0,0)
-                    pbtn.BackgroundColor3 = Color3.fromRGB(24,7,7)
-                    pbtn.BorderSizePixel = 1
-                    pbtn.Parent = pickFrame  
-                    pbtn.MouseButton1Click:Connect(function()
-                        pickFrame:Destroy()
-                        if key=="Teleport" then
-                            selectedPlayerForTeleport = ppl
-                            features.Teleport = true
-                        elseif key=="Bring" then
-                            selectedPlayerForBring = ppl
-                            features.Bring = true
-                        elseif key=="Spectate" then
-                            selectedPlayerForSpectate = ppl
-                            features.Spectate = true
-                        elseif key=="Explode" then
-                            selectedPlayerForExplode = ppl
-                            features.Explode = true
-                        end
-                    end)
-                end
-                delay(8, function() if pickFrame and pickFrame.Parent then pickFrame:Destroy() end end)
-            elseif key == "FOV" then
-                local fovFrame = Instance.new("Frame")
-                fovFrame.Size = UDim2.new(0,150,0,60)
-                fovFrame.Position = UDim2.new(0,menuSize.X+34,0,100+60*math.random())
-                fovFrame.BackgroundColor3 = Color3.fromRGB(20,10,10)
-                fovFrame.BorderSizePixel = 0
-                fovFrame.Parent = gui.Frame
-
-                local track = Instance.new("TextLabel")
-                track.Text = "FOV: "..tostring(fovValue)
-                track.Font = Enum.Font.SourceSansBold
-                track.TextColor3 = Color3.fromRGB(255,0,0)
-                track.TextSize = 16
-                track.Size = UDim2.new(1,0,0,28)
-                track.Parent = fovFrame
-                track.BackgroundTransparency = 1
-
-                local minus = Instance.new("TextButton")
-                minus.Size = UDim2.new(0,40,0,28)
-                minus.Position = UDim2.new(0,0,0,28)
-                minus.Text = "-"
-                minus.TextColor3 = Color3.fromRGB(255,0,0)
-                minus.Font = Enum.Font.GothamBold
-                minus.TextSize = 22
-                minus.Parent = fovFrame
-                minus.BackgroundColor3 = Color3.fromRGB(30,0,0)
-                minus.BorderSizePixel = 1
-                minus.MouseButton1Click:Connect(function()
-                    fovValue = math.max(20,fovValue-10)
-                    track.Text = "FOV: "..tostring(fovValue)
-                end)
-
-                local plus = Instance.new("TextButton")
-                plus.Size = UDim2.new(0,40,0,28)
-                plus.Position = UDim2.new(0,110,0,28)
-                plus.Text = "+"
-                plus.TextColor3 = Color3.fromRGB(255,0,0)
-                plus.Font = Enum.Font.GothamBold
-                plus.TextSize = 22
-                plus.Parent = fovFrame
-                plus.BackgroundColor3 = Color3.fromRGB(30,0,0)
-                plus.BorderSizePixel = 1
-                plus.MouseButton1Click:Connect(function()
-                    fovValue = math.min(320,fovValue+10)
-                    track.Text = "FOV: "..tostring(fovValue)
-                end)
-
-                delay(6,function() if fovFrame and fovFrame.Parent then fovFrame:Destroy() end end)
-            else
-                features[key] = not features[key]
-                btn.Text = display.." ["..(features[key] and "AÇIK" or "KAPALI").."]"
-            end
-        end)
-    end
-
-    gui.CategoryFrames[cat] = catFrame
-    xOffset = xOffset + 142
-end
-
--- [ Draggable GUI ] --
-gui.Frame.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 then
-        menuDraggable = true
-        dragStart = Vector2.new(input.Position.X, input.Position.Y) - menuPos
-    end
-end)
-
-gui.Frame.InputEnded:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 then
-        menuDraggable = false
-    end
-end)
-
-UserInputService.InputChanged:Connect(function(input)
-    if menuDraggable and input.UserInputType == Enum.UserInputType.MouseMovement then
-        local newPos = Vector2.new(input.Position.X, input.Position.Y) - dragStart
-        menuPos = newPos
-        gui.Frame.Position = UDim2.new(0,menuPos.X,0,menuPos.Y)
-    end
-end)
-
--- [ Menu show/hide (Hold "Insert")] --
-local lastTimeClosed = 0
-UserInputService.InputBegan:Connect(function(input,gpe)
-    if input.KeyCode == Enum.KeyCode.Insert and not gpe then
-        menuOpened = not menuOpened
-        gui.Frame.Visible = menuOpened
-        if not menuOpened then lastTimeClosed = tick() end
-    end
-end)
-
-RunService.RenderStepped:Connect(function()
-    if not cheatDisabled and not gui.Frame.Visible then
-        if (tick()-lastTimeClosed)>2.1 then
-            gui.Frame.Visible = true
-            menuOpened = true
-        end
-    end
-end)
-
--- == ESP Implementation == --
-function createESP(plr)
-    if espObjects[plr] then return end
-    local Billboard = Instance.new("BillboardGui")
-    Billboard.AlwaysOnTop = true
-    Billboard.Size = UDim2.new(0,200,0,40)
-    Billboard.Adornee = getHumanoidRootPart(plr)
-    Billboard.Parent = gui.Main
-    local label = Instance.new("TextLabel")
-    label.BackgroundTransparency = 1
-    label.TextColor3 = Color3.fromRGB(255,0,0) 
-    label.TextStrokeTransparency = 0.5
-    label.Text = plr.DisplayName
-    label.Font = Enum.Font.GothamBlack
-    label.TextSize = 20
-    label.Size = UDim2.new(1,0,1,0)
-    label.Parent = Billboard
-    espObjects[plr] = Billboard
-end
-
-function removeESP(plr)
-    if espObjects[plr] then
-        espObjects[plr]:Destroy()
-        espObjects[plr] = nil
-    end
-end
-
-function updateESP()
-    for _,plr in ipairs(Players:GetPlayers()) do
-        if plr ~= LocalPlayer and features.ESP and isEnemy(plr) and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
-            createESP(plr)
-            espObjects[plr].Adornee = getHumanoidRootPart(plr)
-        else
-            removeESP(plr)
-        end
-    end
-end
-
-Players.PlayerAdded:Connect(function(plr)
-    plr.CharacterAdded:Connect(function() wait(1) updateESP() end)
-end)
-Players.PlayerRemoving:Connect(function(plr) removeESP(plr) end)
-RunService.RenderStepped:Connect(function()
-    if features.ESP then
-        updateESP()
-    else
-        for plr,esp in pairs(espObjects) do
-            esp:Destroy()
-            espObjects[plr] = nil
-        end
-    end
-end)
-
--- == FLY == --
-local flyBV, flyBG = nil, nil
-function flyStart()
-    if flyBV or flyBG then return end
-    local char = LocalPlayer.Character
-    if not char or not char:FindFirstChild("HumanoidRootPart") then return end
-    flyBV = Instance.new("BodyVelocity",char.HumanoidRootPart)
-    flyBV.MaxForce = Vector3.new(1e9,1e9,1e9)
-    flyBV.Velocity = Vector3.new(0,0,0)
-    flyBG = Instance.new("BodyGyro",char.HumanoidRootPart)
-    flyBG.MaxTorque = Vector3.new(1e9,1e9,1e9)
-    flyToggled = true
-end
-
-function flyStep()
-    local char = LocalPlayer.Character
-    if not flyToggled or not features.Fly or not char or not flyBV or not flyBG then return end
-    local cf = Camera.CFrame
-    local vec = Vector3.new()
-    if UserInputService:IsKeyDown(Enum.KeyCode.W) then vec = vec + (cf.LookVector) end
-    if UserInputService:IsKeyDown(Enum.KeyCode.S) then vec = vec - (cf.LookVector) end
-    if UserInputService:IsKeyDown(Enum.KeyCode.A) then vec = vec - (cf.RightVector) end
-    if UserInputService:IsKeyDown(Enum.KeyCode.D) then vec = vec + (cf.RightVector) end
-    if UserInputService:IsKeyDown(Enum.KeyCode.Space) then vec = vec + Vector3.new(0,1,0) end
-    if UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) then vec = vec - Vector3.new(0,1,0) end
-    flyBV.Velocity = vec.Unit*flySpeed*30
-    flyBG.CFrame = Camera.CFrame
-end
-
-function flyStop()
-    if flyBV then pcall(function() flyBV:Destroy() end) flyBV = nil end
-    if flyBG then pcall(function() flyBG:Destroy() end) flyBG = nil end
-    flyToggled = false
-end
-
-RunService.RenderStepped:Connect(function()
-    if features.Fly then if not flyToggled then flyStart() end flyStep() else flyStop() end
-end)
-
--- == Noclip (Internal) == --
-local stickyNoclip = false 
-RunService.Stepped:Connect(function()
-    if features.Noclip then
-        local char = LocalPlayer.Character
-        if char then
-            for _,part in ipairs(char:GetDescendants()) do
-                if part:IsA("BasePart") then
-                    part.CanCollide = false
-                end
-            end
-        end
-    end
-end)
-
--- == Teleport == --
-function teleportToPlayer(plr)
-    local char = LocalPlayer.Character
-    local hrp = getHumanoidRootPart(LocalPlayer)
-    local targetHRP = getHumanoidRootPart(plr)
-    if char and hrp and targetHRP then
-        hrp.CFrame = targetHRP.CFrame + Vector3.new(0,3,0)
-    end
-end
-RunService.RenderStepped:Connect(function()
-    if features.Teleport and selectedPlayerForTeleport then
-        teleportToPlayer(selectedPlayerForTeleport)
-        features.Teleport = false selectedPlayerForTeleport = nil
-    end
-end)
-
-function bringPlayerToMe(plr)
-    local targetHRP = getHumanoidRootPart(plr)
-    local myHRP = getHumanoidRootPart(LocalPlayer)
-    if targetHRP and myHRP then
-        targetHRP.CFrame = myHRP.CFrame + Vector3.new(0,2,0)
-    end
-end
-RunService.RenderStepped:Connect(function()
-    if features.Bring and selectedPlayerForBring then
-        bringPlayerToMe(selectedPlayerForBring)
-        features.Bring = false selectedPlayerForBring = nil
-    end
-end)
-
--- == SilentAim & Aimbot == --
-local silentTarget,lastLockedPart = nil,nil
-function getAimPart(plr)
-    if not plr.Character then return nil end
-    if plr.Character:FindFirstChild("Head") then return "Head" end
-    if plr.Character:FindFirstChild("UpperTorso") then return "UpperTorso" end
-    return nil
-end
-
+local silentAimTarget = nil
 function performAimbot()
     if not features.Aimbot then return end
-    local target = getClosestEnemyToCursor(fovValue)
-    if not target or not target.Character then return end
-    local hp = getHumanoidRootPart(target)
-    if not hp then return end
-    local mouseDown = UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton2)
-    if mouseDown then
-        local cam = workspace.CurrentCamera
-        local dir = (hp.Position-cam.CFrame.p).unit
-        cam.CFrame = CFrame.lookAt(cam.CFrame.p, hp.Position)
+    local tgt=getClosestEnemy()
+    if tgt and tgt.Character and getRoot(tgt) then
+        if UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton2) then
+            Camera.CFrame=CFrame.lookAt(Camera.CFrame.Position,getRoot(tgt).Position)
+        end
     end
 end
-
 function performSilentAim()
-    if not features.SilentAim then return end
-    local target = getClosestEnemyToCursor(fovValue)
-    if not target or not target.Character then return end
-    local partName = getAimPart(target)
-    if not partName then return end
-    silentTarget = target.Character[partName]
+    if not features.SilentAim then silentAimTarget=nil return end
+    local tgt=getClosestEnemy()
+    if tgt and tgt.Character then
+        local pn=getPreferredPart(tgt)
+        if pn and tgt.Character:FindFirstChild(pn) then
+            silentAimTarget = tgt.Character[pn]
+        end
+    end
 end
-
-hookmetamethod = hookmetamethod or (function(obj, mtd, fn)
-    local mt = getrawmetatable(obj)
-    local old = mt["__namecall"]
-    setreadonly(mt,false)
-    mt["__namecall"] = function(self,...)
-        local method = getnamecallmethod()
-        if features.SilentAim and tostring(method):lower()=="fire" and typeof(self)=="Instance" and self:IsA("RemoteEvent") then
-            if silentTarget and target then
-                local args = {...}
-                for i,v in ipairs(args) do
-                    if typeof(v)=="Vector3" then args[i]=silentTarget.Position end
-                end
-                return old(self,unpack(args))
+RunService.RenderStepped:Connect(function()
+    performAimbot()
+    performSilentAim()
+end)
+if not getgenv().__PRO__MT_HOOKED then
+    getgenv().__PRO__MT_HOOKED=true
+    local raw = getrawmetatable(game)
+    setreadonly(raw,false)
+    local old=raw.__namecall
+    raw.__namecall = function(self, ...)
+        local m = getnamecallmethod()
+        if features.SilentAim and tostring(m):lower()=="fire" and typeof(self)=="Instance" and self:IsA("RemoteEvent") then
+            if silentAimTarget then
+                local args={...}
+                for i,v in pairs(args) do if typeof(v)=="Vector3" then args[i]=silentAimTarget.Position end end
+                return old(self, unpack(args))
             end
         end
-        return old(self,...)
+        if tostring(m):lower()=="kick" and self==LocalPlayer then return end
+        return old(self, ...)
     end
-    setreadonly(mt,true)
-end)
-hookmetamethod(game,"__namecall",function() end)
-
-RunService.RenderStepped:Connect(function()
-    if features.Aimbot then performAimbot() end
-    if features.SilentAim then performSilentAim() end
-end)
-
--- == Spectate == --
-local spectateCamCon = nil
-function spectatePlayer(plr)
-    if not plr or not plr.Character or not Camera then return end
-    if spectateCamCon then spectateCamCon:Disconnect() spectateCamCon=nil end
-    spectateCamCon = RunService.RenderStepped:Connect(function()
-        if features.Spectate and plr and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
-            Camera.CFrame = CFrame.new(Camera.CFrame.Position, plr.Character.HumanoidRootPart.Position)
-            Camera.CameraSubject = plr.Character:FindFirstChildOfClass("Humanoid")
-        end
-    end)
+    setreadonly(raw,true)
 end
-RunService.RenderStepped:Connect(function()
-    if features.Spectate and selectedPlayerForSpectate then
-        spectatePlayer(selectedPlayerForSpectate)
-    elseif spectateCamCon then
-        spectateCamCon:Disconnect() spectateCamCon=nil Camera.CameraSubject = getCharacter(LocalPlayer):FindFirstChildOfClass("Humanoid")
-    end
-end)
 
--- == No Reload == --
+-- Ammo/Godmode/Spinbot/NoReload
 function patchAmmo()
-    for i,v in pairs(getgc(true)) do
+    for _,v in pairs(getgc(true)) do
         if typeof(v)=="function" and islclosure(v) and debug.getinfo(v).name then
-            if string.find(debug.getinfo(v).name:lower(), "ammo") or string.find(debug.getinfo(v).name:lower(),"reload") then
+            if tostring(debug.getinfo(v).name):lower():find("ammo") or tostring(debug.getinfo(v).name):lower():find("reload") then
                 setupvalue(v,2, math.huge)
             end
         end
     end
 end
-
-RunService.RenderStepped:Connect(function()
-    if features.NoReload then
-        patchAmmo()
-    end
-end)
-
--- == Godmode == --
 function godmode()
-    local char = LocalPlayer.Character
-    if not char then return end
-    for _,obj in pairs(char:GetDescendants()) do
-        if obj:IsA("Humanoid") then
-            obj.MaxHealth = math.huge
-            obj.Health = math.huge
-            obj:SetStateEnabled(Enum.HumanoidStateType.Dead,false)
-            obj.BreakJointsOnDeath = false
+    local c=LocalPlayer.Character
+    if not c then return end
+    for _,h in ipairs(c:GetDescendants()) do
+        if h:IsA("Humanoid") then
+            h.MaxHealth=math.huge
+            h.Health=math.huge
+            h:SetStateEnabled(Enum.HumanoidStateType.Dead,false)
+            h.BreakJointsOnDeath=false
         end
     end
 end
-
-RunService.RenderStepped:Connect(function()
-    if features.Godmode then godmode() end
-end)
-
--- == Explode Player == --
-function explodePlayer(plr)
-    local hrp = getHumanoidRootPart(plr)
-    if hrp then
-        local boom = Instance.new("Explosion")
-        boom.BlastRadius = 8
-        boom.Position = hrp.Position
-        boom.Parent = workspace
-        plr.Character:BreakJoints()
-    end
-end
-
-RunService.RenderStepped:Connect(function()
-    if features.Explode and selectedPlayerForExplode then
-        explodePlayer(selectedPlayerForExplode)
-        features.Explode = false selectedPlayerForExplode = nil
-    end
-end)
-
--- == Reset Character and Rejoin == --
-buttonRefs.Reset.MouseButton1Click:Connect(function()
-    local char = LocalPlayer.Character
-    if char then
-        char:BreakJoints()
-    end
-end)
-
+RunService.RenderStepped:Connect(function() if features.NoReload then patchAmmo() end if features.Godmode then godmode() end end)
+buttonRefs.Reset.MouseButton1Click:Connect(function() local c=LocalPlayer.Character if c then c:BreakJoints() end end)
 buttonRefs.Rejoin.MouseButton1Click:Connect(function()
-    local tpservice = game:GetService("TeleportService")
-    tpservice:TeleportToPlaceInstance(game.PlaceId, game.JobId, LocalPlayer)
+    local ts=game:GetService("TeleportService")
+    ts:TeleportToPlaceInstance(game.PlaceId,game.JobId,LocalPlayer)
 end)
 
--- == Spinbot (works with fly AND not blocking aim) == --
-local spinPhase = 0
+-- Spinbot (works during fly, no aimbot interference)
 RunService.RenderStepped:Connect(function(dt)
     if features.Spinbot then
-        local char = LocalPlayer.Character
+        local char=LocalPlayer.Character
         if char and char:FindFirstChild("HumanoidRootPart") then
-            spinPhase = (spinPhase + dt*8)%360
-            char.HumanoidRootPart.CFrame = char.HumanoidRootPart.CFrame * CFrame.Angles(0,math.rad(12),0)
+            char.HumanoidRootPart.CFrame = char.HumanoidRootPart.CFrame * CFrame.Angles(0,math.rad(15),0)
         end
     end
 end)
-
--- == Anti-AntiCheat (deep hooks, restores states, anti-kick) == --
-if hookmetamethod then
-    local mt = getrawmetatable(game)
-    setreadonly(mt,false)
-    local oldNamecall = mt.__namecall
-    mt.__namecall = function(self,...)
-        local method = getnamecallmethod()
-        if tostring(method):lower()=="kick" and self==LocalPlayer then
-            return
-        end
-        return oldNamecall(self,...)
-    end
-    setreadonly(mt,true)
-end
 
 LocalPlayer.Idled:Connect(function()
-    VirtualUser=game:GetService("VirtualUser")
-    VirtualUser:Button2Down(Vector2.new(0,0),workspace.CurrentCamera.CFrame)
-    VirtualUser:Button2Up(Vector2.new(0,0),workspace.CurrentCamera.CFrame)
+    local vu = game:GetService("VirtualUser")
+    vu:Button2Down(Vector2.new(0,0),Camera.CFrame)
+    vu:Button2Up(Vector2.new(0,0),Camera.CFrame)
+end)
+Players.LocalPlayer.OnTeleport:Connect(function(State)
+    if State==Enum.TeleportState.Started then if gui.Main then gui.Main:Destroy() end end
 end)
 
--- == Cleanup on leave == --
-game:GetService("Players").LocalPlayer.OnTeleport:Connect(function(State) 
-    if State == Enum.TeleportState.Started then
-        if gui.Main then gui.Main:Destroy() end
-    end
-end)
-
-print("[CHEAT MENU ACTIVATED]")
-
--- End of Script, all features work, menu can be closed/opened+dragged, nothing left empty!
 
