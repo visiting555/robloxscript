@@ -4,35 +4,29 @@ local RS = game:GetService("RunService")
 local TPService = game:GetService("TeleportService")
 local LP = Players.LocalPlayer
 local Cam = workspace.CurrentCamera
-
 local gui = Instance.new("ScreenGui")
 gui.Name = "VisitingMenu"
 pcall(function() gui.Parent = game:GetService("CoreGui") end)
 if not gui.Parent then gui.Parent = LP:FindFirstChildOfClass("PlayerGui") end
-
+local menuOpen = true
 local frame = Instance.new("Frame")
 frame.Parent = gui
 frame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-frame.Size = UDim2.new(0, 430, 0, 560)
-frame.Position = UDim2.new(0.5, -215, 0.5, -260)
+frame.Size = UDim2.new(0, 580, 0, 480)
+frame.Position = UDim2.new(0.5, -290, 0.5, -240)
 frame.BorderSizePixel = 0
 frame.Active = true
 frame.Draggable = true
 frame.Visible = true
-
-local menuOpen = true
-
-local uiCorner = Instance.new("UICorner", frame)
-uiCorner.CornerRadius = UDim.new(0, 13)
-
+local mainUICorner = Instance.new("UICorner", frame)
+mainUICorner.CornerRadius = UDim.new(0, 13)
 local header = Instance.new("Frame", frame)
 header.Size = UDim2.new(1,0,0,54)
 header.Position = UDim2.new(0,0,0,0)
 header.BackgroundColor3 = Color3.fromRGB(16,16,16)
 header.BorderSizePixel = 0
-local corn = Instance.new("UICorner", header)
-corn.CornerRadius = UDim.new(0,13)
-
+local hc = Instance.new("UICorner", header)
+hc.CornerRadius = UDim.new(0,13)
 local baslik = Instance.new("TextLabel", header)
 baslik.Text = "visitingmenu"
 baslik.Size = UDim2.new(1, 0, 1, 0)
@@ -41,7 +35,6 @@ baslik.TextColor3 = Color3.fromRGB(255,83,83)
 baslik.TextStrokeTransparency = .4
 baslik.Font = Enum.Font.GothamBold
 baslik.TextSize = 33
-
 local kapat = Instance.new("TextButton", header)
 kapat.Size = UDim2.new(0,44,0,44)
 kapat.Position = UDim2.new(1,-52,0,6)
@@ -63,14 +56,72 @@ UIS.InputBegan:Connect(function(input,gpe)
     end
 end)
 
-local sectionTitles = {
-    {name="OYUNCU HİLELERİ", order=1},
-    {name="DÜNYA HİLELERİ", order=2},
-    {name="SERVİS", order=3}
+local sideBar = Instance.new("Frame", frame)
+sideBar.Size = UDim2.new(0,160,1,-54)
+sideBar.Position = UDim2.new(0,0,0,54)
+sideBar.BackgroundColor3 = Color3.fromRGB(13,13,13)
+sideBar.BorderSizePixel = 0
+local sbc = Instance.new("UICorner", sideBar)
+sbc.CornerRadius = UDim.new(0,13)
+local menuSections = {
+    {Title="AIM HİLELERİ", Key="aim", Color=Color3.fromRGB(255,83,83)},
+    {Title="GÖRÜŞ HİLELERİ", Key="vision", Color=Color3.fromRGB(255,83,83)},
+    {Title="DÜNYA HİLELERİ", Key="world", Color=Color3.fromRGB(255,83,83)},
+    {Title="SERVİS", Key="servis", Color=Color3.fromRGB(255,83,83)},
 }
-local sectionMap = {}
-local optStates, btns, dropdownHandle = {}, {}, nil
+local sectionContents = {
+    aim = {
+        {name="Aimbot", kind="Toggle"},
+        {name="SilentAim", kind="Toggle"},
+    },
+    vision = {
+        {name="ESP", kind="Toggle"},
+        {name="Görünmezlik", kind="Toggle"},
+    },
+    world = {
+        {name="Noclip", kind="Toggle"},
+        {name="Fly", kind="Toggle"},
+        {name="Teleport", kind="PickPlayer"},
+        {name="Yanına Çek", kind="PickPlayer"},
+        {name="Patlat", kind="PickPlayer"},
+    },
+    servis = {
+        {name="Yeniden Katıl", kind="Button"},
+    }
+}
 
+local sectionBtns = {}
+local optStates, btns, dropdownHandle = {}, {}, nil
+local currentSection = "aim"
+local contentHolder = Instance.new("Frame", frame)
+contentHolder.BackgroundTransparency = 1
+contentHolder.Size = UDim2.new(0, 420, 1, -64)
+contentHolder.Position = UDim2.new(0, 168, 0, 60)
+for i, sec in ipairs(menuSections) do
+    local b = Instance.new("TextButton", sideBar)
+    b.Size = UDim2.new(1, -19, 0, 48)
+    b.Position = UDim2.new(0, 9, 0, 10+(i-1)*54)
+    b.Text = sec.Title
+    b.Name = sec.Key
+    b.TextColor3 = sec.Color
+    b.Font = Enum.Font.GothamBold
+    b.TextSize = 18
+    b.BackgroundColor3 = Color3.fromRGB(28,28,28)
+    local secorner = Instance.new("UICorner",b)
+    secorner.CornerRadius = UDim.new(0,9)
+    sectionBtns[sec.Key] = b
+    b.MouseButton1Click:Connect(function()
+        currentSection = sec.Key
+        for k,v in pairs(sectionBtns) do
+            v.BackgroundColor3 = (k == sec.Key and Color3.fromRGB(255,83,83)) or Color3.fromRGB(28,28,28)
+            v.TextColor3 = (k == sec.Key and Color3.fromRGB(26,26,26)) or sec.Color
+        end
+        for _,v in ipairs(contentHolder:GetChildren()) do v:Destroy() end
+        renderSection(sec.Key)
+    end)
+end
+sectionBtns["aim"].BackgroundColor3 = Color3.fromRGB(255,83,83)
+sectionBtns["aim"].TextColor3 = Color3.fromRGB(26,26,26)
 function notify(txt)
     local n = Instance.new("TextLabel")
     n.Parent = frame
@@ -83,7 +134,7 @@ function notify(txt)
     n.Font = Enum.Font.GothamSemibold
     n.TextSize = 20
     n.ZIndex = 30
-    task.wait(2.2)
+    task.wait(2.08)
     pcall(function() n:Destroy() end)
 end
 
@@ -97,7 +148,6 @@ function playerDropdown(callback)
     local cr = Instance.new("UICorner", panel)
     cr.CornerRadius = UDim.new(0,11)
     panel.Parent = frame
-
     local kapatDD = Instance.new("TextButton", panel)
     kapatDD.Size = UDim2.new(0,34,0,34)
     kapatDD.Position = UDim2.new(1,-36,0,3)
@@ -107,15 +157,15 @@ function playerDropdown(callback)
     kapatDD.TextSize = 27
     kapatDD.Font = Enum.Font.GothamBold
     kapatDD.MouseButton1Click:Connect(function() panel:Destroy() dropdownHandle = nil end)
-
     local scroll = Instance.new("ScrollingFrame", panel)
     scroll.Size = UDim2.new(1, 0, 1, -30)
     scroll.Position = UDim2.new(0,0,0,29)
     scroll.BackgroundTransparency = 1
     scroll.ScrollBarThickness = 8
-    scroll.CanvasSize = UDim2.new(0,0,0, math.max(1,(#Players:GetPlayers()-1)*36+10))
+    local numPlayers = 0
+    for _,player in pairs(Players:GetPlayers()) do if player ~= LP then numPlayers = numPlayers+1 end end
+    scroll.CanvasSize = UDim2.new(0,0,0, math.max(1,(numPlayers)*36+10))
     scroll.BorderSizePixel = 0
-
     local i = 0
     for _,player in pairs(Players:GetPlayers()) do
         if player ~= LP and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
@@ -141,54 +191,15 @@ function playerDropdown(callback)
     dropdownHandle = panel
 end
 
-function createSection(txt, index)
-    local h = Instance.new("TextLabel", frame)
-    h.Size = UDim2.new(1, -32, 0, 32)
-    h.Position = UDim2.new(0,16,0, 53 + (index-1)*162)
-    h.BackgroundColor3 = Color3.fromRGB(13,13,13)
-    h.Text = txt
-    h.Font = Enum.Font.GothamBold
-    h.TextSize = 22
-    h.TextColor3 = Color3.fromRGB(255,83,83)
-    h.BorderSizePixel = 0
-    h.TextXAlignment = Enum.TextXAlignment.Left
-    h.BackgroundTransparency = 0
-    local c = Instance.new("UICorner", h)
-    c.CornerRadius = UDim.new(0,7)
-    sectionMap[index] = h
-end
-
-local sectionContents = {
-    [1] = {
-        {name="Aimbot",        kind="Toggle"},
-        {name="ESP",           kind="Toggle"},
-        {name="SilentAim",     kind="Toggle"},
-        {name="Noclip",        kind="Toggle"},
-        {name="Fly",           kind="Toggle"},
-        {name="Görünmezlik",   kind="Toggle"},
-    },
-    [2] = {
-        {name="Teleport",      kind="PickPlayer"},
-        {name="Yanına Çek",    kind="PickPlayer"},
-        {name="Patlat",        kind="PickPlayer"},
-    },
-    [3] = {
-        {name="Yeniden Katıl", kind="Button"},
-    }
-}
-
-function createOption(idx,inSection, name, typ)
-    local px = 20 + (idx-1)*41 + (inSection-1)*162
-    local yOff = 53+(inSection-1)*162
+function createOption(idx, name, typ)
     local holder = Instance.new("Frame")
-    holder.Parent = frame
-    holder.Size = UDim2.new(1, -56, 0, 37)
-    holder.Position = UDim2.new(0,32,0, yOff+22+((idx-1)*41))
+    holder.Parent = contentHolder
+    holder.Size = UDim2.new(1, -20, 0, 41)
+    holder.Position = UDim2.new(0,10,0, 10+(idx-1)*48)
     holder.BackgroundTransparency = 1
-
     local label = Instance.new("TextLabel")
     label.Parent = holder
-    label.Size = UDim2.new(0.55, 0, 1, 0)
+    label.Size = UDim2.new(0.45, 0, 1, 0)
     label.Position = UDim2.new(0,1,0,0)
     label.BackgroundTransparency = 1
     label.Text = name
@@ -200,8 +211,8 @@ function createOption(idx,inSection, name, typ)
     if typ == "Toggle" then
         local tgl = Instance.new("TextButton")
         tgl.Parent = holder
-        tgl.Size = UDim2.new(0,85,1,0)
-        tgl.Position = UDim2.new(1,-93,0,0)
+        tgl.Size = UDim2.new(0,86,1,0)
+        tgl.Position = UDim2.new(1,-96,0,0)
         tgl.Text = "KAPALI"
         tgl.Font = Enum.Font.GothamBold
         tgl.TextSize = 18
@@ -221,7 +232,7 @@ function createOption(idx,inSection, name, typ)
         local openList = Instance.new("TextButton")
         openList.Parent = holder
         openList.Size = UDim2.new(0,110,1,0)
-        openList.Position = UDim2.new(1, -118, 0, 0)
+        openList.Position = UDim2.new(1, -120, 0, 0)
         openList.Text = name
         openList.Font = Enum.Font.GothamBold
         openList.TextSize = 17
@@ -264,8 +275,8 @@ function createOption(idx,inSection, name, typ)
     elseif typ == "Button" then
         local btn = Instance.new("TextButton")
         btn.Parent = holder
-        btn.Size = UDim2.new(0,112,1,0)
-        btn.Position = UDim2.new(1, -118, 0, 0)
+        btn.Size = UDim2.new(0,114,1,0)
+        btn.Position = UDim2.new(1, -124, 0, 0)
         btn.Text = name
         btn.Font = Enum.Font.GothamBlack
         btn.TextSize = 16
@@ -282,15 +293,19 @@ function createOption(idx,inSection, name, typ)
     end
 end
 
-for sn,section in ipairs(sectionTitles) do
-    createSection(section.name,section.order)
-    local scArr = sectionContents[section.order]
-    for k,v in ipairs(scArr) do createOption(k,section.order,v.name,v.kind) end
+function renderSection(secKey)
+    for _,v in ipairs(contentHolder:GetChildren()) do v:Destroy() end
+    local arr = sectionContents[secKey]
+    for k,v in ipairs(arr) do
+        createOption(k, v.name, v.kind)
+    end
 end
+renderSection("aim")
 
 local Drawing = Drawing
 local currentESP = {}
 local espRunning = false
+local ESP_DISTANCE = 40
 
 function get2DFrom3D(p)
     local pos, onscreen = Cam:WorldToViewportPoint(p)
@@ -300,9 +315,8 @@ end
 function getBoxVertsFromParts(char)
     local hrp = char:FindFirstChild("HumanoidRootPart")
     if not hrp then return nil end
-
     local size = hrp.Size
-    local scale = 1.25
+    local scale = 1.11
     local offsetY = Vector3.new(0, size.Y*scale/2, 0)
     local verts3d = {
         (hrp.Position + hrp.CFrame.RightVector*size.X/2*scale + offsetY + hrp.CFrame.LookVector*size.Z/2*scale),
@@ -336,7 +350,16 @@ end
 function drawBodyESP(p)
     if not p.Character then return end
     if not currentESP[p] then currentESP[p] = {} end
-
+    local hrp = p.Character:FindFirstChild("HumanoidRootPart")
+    if not hrp then return end
+    local dist = (LP.Character and LP.Character:FindFirstChild("HumanoidRootPart") and (LP.Character.HumanoidRootPart.Position-hrp.Position).Magnitude) or 999
+    if dist > ESP_DISTANCE then
+        if currentESP[p] then
+            if currentESP[p].boxLines then for _,l in ipairs(currentESP[p].boxLines) do if l then l.Visible=false end end end
+            if currentESP[p].outlineParts then for _,l in ipairs(currentESP[p].outlineParts) do if l then l.Visible=false end end end
+        end
+        return
+    end
     local corners, onscreen = getBoxVertsFromParts(p.Character)
     local lines = currentESP[p].boxLines or {}
     local edgeIndexes = {{1,2},{2,3},{3,4},{4,1},{5,6},{6,7},{7,8},{8,5},{1,5},{2,6},{3,7},{4,8}}
@@ -345,7 +368,7 @@ function drawBodyESP(p)
             local l = Drawing and Drawing.new and Drawing.new("Line") or nil
             if l then
                 l.Color = Color3.fromRGB(255, 0, 0)
-                l.Thickness = 2.6
+                l.Thickness = 2.1
                 l.Transparency = 1
                 l.Visible = false
                 lines[i] = l
@@ -353,7 +376,6 @@ function drawBodyESP(p)
         end
         currentESP[p].boxLines = lines
     end
-
     if corners and onscreen then
         for i,ij in ipairs(edgeIndexes) do
             local l = lines[i]
@@ -367,7 +389,6 @@ function drawBodyESP(p)
     else
         for _,l in ipairs(lines) do if l then l.Visible = false end end
     end
-
     local outline = currentESP[p].outlineParts or {}
     local idx = 1
     for _,part in pairs(getCharacterOutline(p.Character)) do
@@ -392,7 +413,7 @@ function drawBodyESP(p)
         for _,edge in ipairs(edges) do
             if not outline[idx] then
                 local l = Drawing and Drawing.new and Drawing.new("Line") or nil
-                if l then l.Color=Color3.fromRGB(255,0,0) l.Thickness=1.7 l.Transparency=1 l.Visible=false end
+                if l then l.Color=Color3.fromRGB(255,0,0) l.Thickness=1.2 l.Transparency=1 l.Visible=false end
                 outline[idx] = l
             end
             local l = outline[idx]
@@ -410,7 +431,6 @@ function drawBodyESP(p)
     for ci = idx, #(outline) do pcall(function() outline[ci].Visible = false end) end
     currentESP[p].outlineParts = outline
 end
-
 function updateESP()
     for p, sections in pairs(currentESP) do
         if not Players:FindFirstChild(p.Name) or not p.Character then
@@ -422,7 +442,6 @@ function updateESP()
         end
     end
 end
-
 function startESP()
     if espRunning then return end
     espRunning = true
@@ -470,11 +489,10 @@ function startAimbot()
     end)
 end
 
-local __random = function()
+local function __random()
     local t = tick() * math.pi
     return math.abs(math.sin(t*3.97)+math.cos(t*1.51)*math.sin(t*2.05))
 end
-
 function startSilentAim()
     local mouse = LP:GetMouse()
     local function getClosest()
