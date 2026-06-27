@@ -157,7 +157,6 @@ function spinbotFunc()
     if connections.spinbot then connections.spinbot:Disconnect() end
     connections.spinbot = RunService.RenderStepped:Connect(function()
         if not states.spinbot then return end
-        if not states.fly then return end
         if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
             local hrp = LocalPlayer.Character.HumanoidRootPart
             hrp.CFrame = hrp.CFrame * CFrame.Angles(0, math.rad(10), 0)
@@ -198,6 +197,7 @@ function showTeleportMenu()
             if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
                 LocalPlayer.Character.HumanoidRootPart.CFrame = p.Character.HumanoidRootPart.CFrame + Vector3.new(0,3,0)
                 teleportGui:Destroy()
+                if connections.tpInput then connections.tpInput:Disconnect() end
             end
         end)
     end
@@ -330,8 +330,12 @@ function showMenu()
     end
     connections.menuInput = UserInputService.InputBegan:Connect(function(input, p)
         if not menu.Parent then return end
-        if input.KeyCode == Enum.KeyCode.Up then sel = sel>1 and sel-1 or #items updateBtns()
-        elseif input.KeyCode == Enum.KeyCode.Down then sel = sel<#items and sel+1 or 1 updateBtns()
+        if input.KeyCode == Enum.KeyCode.Up then
+            sel = (sel>1) and (sel-1) or #items
+            updateBtns()
+        elseif input.KeyCode == Enum.KeyCode.Down then
+            sel = (sel<#items) and (sel+1) or 1
+            updateBtns()
         elseif input.KeyCode == Enum.KeyCode.Return or input.KeyCode==Enum.KeyCode.KeypadEnter then
             local entry = items[sel]
             if entry[2]~="teleport" then
@@ -340,7 +344,8 @@ function showMenu()
             else
                 showTeleportMenu()
             end
-        elseif input.KeyCode == Enum.KeyCode.T then showTeleportMenu()
+        elseif input.KeyCode == Enum.KeyCode.T then
+            showTeleportMenu()
         elseif input.KeyCode == Enum.KeyCode.Escape then
             menu:Destroy()
             if connections.menuInput then connections.menuInput:Disconnect() end
@@ -352,5 +357,14 @@ UserInputService.InputBegan:Connect(function(input,gp)
     if gp then return end
     if input.KeyCode == Enum.KeyCode.F6 then
         showMenu()
+    end
+end)
+
+RunService.RenderStepped:Connect(function()
+    if states.spinbot and (states.fly or not states.fly) then
+        if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+            local hrp = LocalPlayer.Character.HumanoidRootPart
+            hrp.CFrame = hrp.CFrame * CFrame.Angles(0, math.rad(10), 0)
+        end
     end
 end)
