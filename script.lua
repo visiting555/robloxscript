@@ -1,42 +1,63 @@
-local sg=Instance.new("ScreenGui")sg.Parent=game.CoreGui
+local sg=Instance.new("ScreenGui")sg.Parent=game:GetService("Players").LocalPlayer.PlayerGui
 local mf=Instance.new("Frame")mf.Size=UDim2.new(0,480,0,440)mf.Position=UDim2.new(0.35,0,0.22,0)mf.BackgroundColor3=Color3.fromRGB(17,23,37)mf.Parent=sg mf.BorderSizePixel=0 local mc=Instance.new("UICorner",mf)mc.CornerRadius=UDim.new(0,17)
-mf.Active=true mf.Draggable=true -- Menü hareket ettirilebilir
+mf.Active=true;mf.Draggable=true
+
 local header=Instance.new("Frame",mf)header.Size=UDim2.new(1,0,0,55)header.Position=UDim2.new(0,0,0,0)header.BackgroundColor3=Color3.fromRGB(20,30,45)header.BorderSizePixel=0 local hcr=Instance.new("UICorner",header)hcr.CornerRadius=UDim.new(0,17)
+header.Active=true;header.Selectable=true
+
 local t=Instance.new("TextLabel",header)t.Size=UDim2.new(1,0,1,0)t.BackgroundTransparency=1 t.Text="EĞİTİM HİLE MENÜ"t.TextColor3=Color3.fromRGB(86,190,255)t.Font=Enum.Font.GothamBlack t.TextScaled=true
+t.Active=false
+
 local cbtn=Instance.new("TextButton",header)cbtn.Size=UDim2.new(0,40,0,40)cbtn.Position=UDim2.new(1,-48,0,8)cbtn.BackgroundColor3=Color3.fromRGB(255,75,75)cbtn.Text="X"cbtn.Font=Enum.Font.GothamBold cbtn.TextColor3=Color3.new(1,1,1)cbtn.TextScaled=true local cbcr=Instance.new("UICorner",cbtn)cbcr.CornerRadius=UDim.new(0,14)
 cbtn.ZIndex=5
+cbtn.Active=true;cbtn.Selectable=true
 cbtn.MouseButton1Click:Connect(function()sg:Destroy()end)
+
 local left=Instance.new("Frame",mf)left.Size=UDim2.new(0,170,1,-55)left.Position=UDim2.new(0,0,0,55)left.BackgroundColor3=Color3.fromRGB(23,29,44)left.BorderSizePixel=0 left.Active=true left.Selectable=true local lcr=Instance.new("UICorner",left)lcr.CornerRadius=UDim.new(0,13)
 left.ZIndex=2
+
 local right=Instance.new("Frame",mf)right.Size=UDim2.new(1,-170,1,-55)right.Position=UDim2.new(0,170,0,55)right.BackgroundTransparency=1 right.Active=true right.Selectable=true
 right.ZIndex=2
+
 local layout=Instance.new("UIListLayout",left)layout.SortOrder=Enum.SortOrder.LayoutOrder layout.Padding=UDim.new(0,12)layout.HorizontalAlignment=Enum.HorizontalAlignment.Center layout.VerticalAlignment=Enum.VerticalAlignment.Top
+
 local sp=Instance.new("Frame",left)sp.Size=UDim2.new(1,0,0,14)sp.BackgroundTransparency=1
-local function mkbtn(txt,icol,ht)
+sp.LayoutOrder=0
+
+local function mkbtn(txt,icol,ht,lorder)
     local b=Instance.new("TextButton")b.Parent=left
-    b.Size=UDim2.new(0.86,0,0,ht or 38)b.BackgroundColor3=icol or Color3.fromRGB(37,40,54)
+    b.Size=UDim2.new(0.86,0,0,ht or 38)
+    b.BackgroundColor3=icol or Color3.fromRGB(37,40,54)
     b.Text=txt b.TextColor3=Color3.fromRGB(243,243,243)
     b.Font=Enum.Font.GothamBold b.TextScaled=true
     local c=Instance.new("UICorner",b)c.CornerRadius=UDim.new(0,14)
     b.AutoButtonColor=true
     b.Active=true b.Selectable=true
+    if lorder then b.LayoutOrder=lorder end
     return b
 end
-local aimb=mkbtn("AIMBOT",Color3.fromRGB(30,135,255))
-local spinb=mkbtn("SPINBOT",Color3.fromRGB(60,77,183))
-local flyb=mkbtn("FLY",Color3.fromRGB(185,140,29))
-local noclipb=mkbtn("NOCLIP",Color3.fromRGB(127,57,175))
-local gmb=mkbtn("GODMODE",Color3.fromRGB(70,185,86))
+
+local aimb=mkbtn("AIMBOT",Color3.fromRGB(30,135,255),38,1)
+local spinb=mkbtn("SPINBOT",Color3.fromRGB(60,77,183),38,2)
+local flyb=mkbtn("FLY",Color3.fromRGB(185,140,29),38,3)
+local noclipb=mkbtn("NOCLIP",Color3.fromRGB(127,57,175),38,4)
+local gmb=mkbtn("GODMODE",Color3.fromRGB(70,185,86),38,5)
+
 local tpheader=Instance.new("TextLabel",right)tpheader.Size=UDim2.new(1,0,0,26)tpheader.Position=UDim2.new(0,0,0,0)tpheader.Text="Oyuncu Listesi"tpheader.Font=Enum.Font.GothamBold tpheader.TextColor3=Color3.fromRGB(156,148,250)tpheader.TextScaled=true tpheader.BackgroundTransparency=1 tpheader.Active=false
+
 local dlist=Instance.new("Frame",right)dlist.Size=UDim2.new(1,0,0,238)dlist.Position=UDim2.new(0,0,0,30)dlist.BackgroundColor3=Color3.fromRGB(37,43,68)dlist.Active=true dlist.Selectable=true
 local dcr=Instance.new("UICorner",dlist)dcr.CornerRadius=UDim.new(0,11)
+
 local lst=Instance.new("ScrollingFrame",dlist)lst.Size=UDim2.new(1,-3,1,0)lst.Position=UDim2.new(0,0,0,0)lst.CanvasSize=UDim2.new(0,0,0,0)lst.ScrollBarThickness=6 lst.BackgroundTransparency=1 lst.AutomaticCanvasSize=Enum.AutomaticSize.Y lst.BorderSizePixel=0
 lst.Active=true lst.Selectable=true
 local layout2=Instance.new("UIListLayout",lst)layout2.SortOrder=Enum.SortOrder.LayoutOrder layout2.Padding=UDim.new(0,8)
+
 local tplbl=Instance.new("TextLabel",right)tplbl.Size=UDim2.new(1,0,0,24)tplbl.Position=UDim2.new(0,0,0,280)tplbl.BackgroundTransparency=1 tplbl.Font=Enum.Font.Gotham tplbl.TextScaled=true tplbl.TextColor3=Color3.fromRGB(255,223,57)tplbl.Text="Seçili: Yok"tplbl.Active=false
+
 local tpb=Instance.new("TextButton",right)tpb.Size=UDim2.new(0.7,0,0,38)tpb.Position=UDim2.new(0.15,0,0,314)tpb.BackgroundColor3=Color3.fromRGB(49,82,255)
 tpb.Text="SEÇİLENİ TP AT" tpb.TextColor3=Color3.fromRGB(255,255,255)tpb.Font=Enum.Font.GothamBold tpb.TextScaled=true local tpcr=Instance.new("UICorner",tpb)tpcr.CornerRadius=UDim.new(0,11)
 tpb.Active=true tpb.Selectable=true
+
 local pl=game.Players.LocalPlayer
 local tplsel=nil
 
@@ -154,7 +175,7 @@ function enableNoclip()
     ncOn=true
     if ncConn then ncConn:Disconnect()end
     ncConn=game:GetService("RunService").Stepped:Connect(function()
-        if ncOn and pl.Character then
+        if ncOn and pl.Character and pl.Character:FindFirstChild("HumanoidRootPart") then
             for _,p in pairs(pl.Character:GetDescendants())do
                 if p:IsA("BasePart")then p.CanCollide=false end
             end
