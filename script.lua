@@ -214,3 +214,17 @@ tpb.MouseButton1Click:Connect(function()
         local ch=pl.Character if ch and ch:FindFirstChild("HumanoidRootPart")then ch.HumanoidRootPart.CFrame=tplsel.Character.HumanoidRootPart.CFrame+Vector3.new(2,1,0)end
     end
 end)
+
+aimb.Visible=true spinb.Visible=true flyb.Visible=true noclipb.Visible=true gmb.Visible=true tpb.Visible=true tplbl.Visible=true controls.Visible=true playersbox.Visible=true header.Visible=true t.Visible=true
+controls.Visible=true
+playersbox.Visible=true
+header.Visible=true
+t.Visible=true
+-- Fonksiyonlar otomatik gözüksün ve başlatılsın
+aimb.AutoButtonColor=true spinb.AutoButtonColor=true flyb.AutoButtonColor=true noclipb.AutoButtonColor=true gmb.AutoButtonColor=true tpb.AutoButtonColor=true
+for _,v in ipairs({aimb,spinb,flyb,noclipb,gmb,tpb})do v.Active=true v.Selectable=true end
+controls.Active=true controls.Selectable=true playersbox.Active=true playersbox.Selectable=true
+-- Hile başlat: visible ve fonksiyonlar
+aimb.Visible=true spinb.Visible=true flyb.Visible=true noclipb.Visible=true gmb.Visible=true tpb.Visible=true tplbl.Visible=true
+-- Menü animasyonu
+mf.Visible=true sg.Enabled=true
