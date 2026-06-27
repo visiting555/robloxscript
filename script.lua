@@ -1,16 +1,12 @@
--- Roblox Hile Menü (Fly, Aimbot, Noclip, Spinbot, TP Player, ESP, Godmode)
--- Delta executor ile inject edilebilir şekilde yazılmıştır.
-
+-- Roblox Gelişmiş Hile Menü (ESP insan iskeleti/kafatası, Noclip çalışır, Spinbot yürürken/koşarken çalışır)
 local players = game:GetService("Players")
 local plr = players.LocalPlayer
 local uis = game:GetService("UserInputService")
 local runS = game:GetService("RunService")
 local camera = workspace.CurrentCamera
 
--- ESP için çizim servisi
 local Drawing = Drawing or getgenv().Drawing
 
--- Godmode gerçek ölümsüzlük, camera/character bırakmıyor
 local godloop = nil
 local function setGodmode(state)
     if godloop then godloop:Disconnect() godloop = nil end
@@ -29,7 +25,6 @@ local function setGodmode(state)
     end
 end
 
--- Hile Menü Fonksiyonu
 local function makeMenu()
     if plr.PlayerGui:FindFirstChild("HileMenuGui") then
         plr.PlayerGui.HileMenuGui:Destroy()
@@ -49,7 +44,6 @@ local function makeMenu()
     mainFrame.Visible = true
     mainFrame.Parent = screenGui
 
-    -- Başlık
     local title = Instance.new("TextLabel")
     title.Text = "Hile Menü"
     title.Font = Enum.Font.GothamBold
@@ -60,7 +54,6 @@ local function makeMenu()
     title.BackgroundTransparency = 1
     title.Parent = mainFrame
 
-    -- Kapat Butonu
     local closeBtn = Instance.new("TextButton")
     closeBtn.Size = UDim2.new(0,40,0,38)
     closeBtn.Position = UDim2.new(1,-45,0,3)
@@ -75,7 +68,6 @@ local function makeMenu()
         screenGui:Destroy()
     end)
 
-    -- Hacklerin Durumlarını Tut
     local enabledHacks = {
         Aimbot = false,
         ESP = false,
@@ -94,7 +86,6 @@ local function makeMenu()
     local gap = 12
     local btns = {}
 
-    ----------------------------------------------------------------
     -- AIMBOT
     local aimbotBtn = Instance.new("TextButton")
     aimbotBtn.Size = UDim2.new(1,-38,0,buttonH)
@@ -137,7 +128,7 @@ local function makeMenu()
     table.insert(btns, godmodeBtn)
     yOffset = yOffset + buttonH + gap
 
-    -- NOCLIP (DÜZGÜN/GERÇEK DUVARLARDAN GEÇME)
+    -- NOCLIP (GÜNCELLENDİ - HER ZAMAN ÇALIŞIR)
     local noclipBtn = Instance.new("TextButton")
     noclipBtn.Size = UDim2.new(1,-38,0,buttonH)
     noclipBtn.Position = UDim2.new(0,18,0,yOffset)
@@ -165,7 +156,7 @@ local function makeMenu()
     table.insert(btns, flyBtn)
     yOffset = yOffset + buttonH + gap
 
-    -- SPINBOT (YÜRÜRKEN/KOŞARKEN, FLY GEREKMEZ, DAİMA ÇALIŞIR, AIMBOT'TAN BAĞIMSIZ)
+    -- SPINBOT (YÜRÜRKEN, KOŞARKEN HER ZAMAN AKTİF)
     local spinbotBtn = Instance.new("TextButton")
     spinbotBtn.Size = UDim2.new(1,-38,0,buttonH)
     spinbotBtn.Position = UDim2.new(0,18,0,yOffset)
@@ -179,7 +170,7 @@ local function makeMenu()
     table.insert(btns, spinbotBtn)
     yOffset = yOffset + buttonH + gap + 4
 
-    -- TP PLAYER BAŞLIK
+    -- TP PLAYER
     local tpTitle = Instance.new("TextLabel")
     tpTitle.Text = "Oyuncuya Işınlan"
     tpTitle.Font = Enum.Font.GothamBold
@@ -192,7 +183,6 @@ local function makeMenu()
     tpTitle.Parent = mainFrame
     yOffset = yOffset + 24
 
-    -- Oyuncu Seçme DDM
     local dropFrame = Instance.new("Frame")
     dropFrame.Size = UDim2.new(1,-38,0,36)
     dropFrame.Position = UDim2.new(0,18,0,yOffset)
@@ -209,7 +199,6 @@ local function makeMenu()
     tpDropdown.TextSize = 17
     tpDropdown.Parent = dropFrame
 
-    -- Dropdown Menu
     local playerListFrame = Instance.new("ScrollingFrame")
     playerListFrame.Size = UDim2.new(1,0,0,80)
     playerListFrame.Position = UDim2.new(0,0,1,0)
@@ -252,7 +241,6 @@ local function makeMenu()
         if playerListFrame.Visible then refreshPlayerList() end
     end)
 
-    -- TP PLAYER Button
     local tpBtn = Instance.new("TextButton")
     tpBtn.Size = UDim2.new(1,-38,0,buttonH)
     tpBtn.Position = UDim2.new(0,18,0,yOffset+42)
@@ -263,8 +251,8 @@ local function makeMenu()
     tpBtn.Text = "Seçili Oyuncuya Işınlan"
     tpBtn.Parent = mainFrame
 
-    -- FONKSİYONELLİK ----------------------------------------------------------
-    -- AIMBOT (Sağ Mouse Başı Takip) SPINBOT'TAN ETKİLENMEZ
+    ---- FONKSİYONELLİK ----
+    -- AIMBOT
     local aimbotConn
     local aimbotFunc = function()
         if enabledHacks.Aimbot then
@@ -299,88 +287,87 @@ local function makeMenu()
         aimbotFunc()
     end)
 
-    -- ESP (Oyuncuların Havada Kırmızı Kutuya Alınması ve Wallhack)
+    -- Yeni ESP: İskelet + Kafatası
     local espObjs = {}
     local espConn
     local function clearESP()
         for _,t in pairs(espObjs) do
-            if t then
-                if t.box and t.box.Remove then t.box:Remove() end
-                if t.overlay and t.overlay.Remove then t.overlay:Remove() end
-            end
+            for _,o in pairs(t) do if o.Remove then o:Remove() end end
         end
         espObjs = {}
     end
+    local skeleton = {
+        {"Head","UpperTorso"}, {"UpperTorso","LowerTorso"}, {"UpperTorso","LeftUpperArm"}, {"UpperTorso","RightUpperArm"},
+        {"LeftUpperArm","LeftLowerArm"}, {"LeftLowerArm","LeftHand"},
+        {"RightUpperArm","RightLowerArm"}, {"RightLowerArm","RightHand"},
+        {"LowerTorso","LeftUpperLeg"}, {"LowerTorso","RightUpperLeg"},
+        {"LeftUpperLeg","LeftLowerLeg"}, {"LeftLowerLeg","LeftFoot"},
+        {"RightUpperLeg","RightLowerLeg"}, {"RightLowerLeg","RightFoot"}
+    }
+    local headParts = {"Head"}
     local function espLoop()
         clearESP()
         if espConn then espConn:Disconnect() espConn = nil end
         if not enabledHacks.ESP then return end
         espConn = runS.RenderStepped:Connect(function()
             for _,v in ipairs(players:GetPlayers()) do
-                if v ~= plr and v.Character and v.Character:FindFirstChild("HumanoidRootPart") then
-                    local hrp = v.Character.HumanoidRootPart
-                    local cf, size = hrp.CFrame, hrp.Size
-                    local corners = {
-                        cf * Vector3.new(-size.X/2, -size.Y/2, -size.Z/2),
-                        cf * Vector3.new(-size.X/2, size.Y/2, -size.Z/2),
-                        cf * Vector3.new(size.X/2, size.Y/2, -size.Z/2),
-                        cf * Vector3.new(size.X/2, -size.Y/2, -size.Z/2),
-                        cf * Vector3.new(-size.X/2, -size.Y/2, size.Z/2),
-                        cf * Vector3.new(-size.X/2, size.Y/2, size.Z/2),
-                        cf * Vector3.new(size.X/2, size.Y/2, size.Z/2),
-                        cf * Vector3.new(size.X/2, -size.Y/2, size.Z/2),
-                    }
-                    local points = {}
-                    local onscreen = false
-                    for _,pt in ipairs(corners) do
-                        local screenPoint, isOnScreen = camera:WorldToViewportPoint(pt)
-                        table.insert(points, Vector2.new(screenPoint.X, screenPoint.Y))
-                        onscreen = onscreen or isOnScreen
-                    end
+                if v ~= plr and v.Character and v.Character:FindFirstChild("HumanoidRootPart") and v.Character:FindFirstChild("Head") then
                     if not espObjs[v] then
                         espObjs[v] = {}
-                        local box = Drawing.new('Quad')
-                        box.Color = Color3.new(1, 0, 0)
-                        box.Thickness = 2
-                        box.Transparency = 1
-                        box.Visible = false
-                        espObjs[v].box = box
-                        local overlay = Drawing.new('Square')
-                        overlay.Color = Color3.new(1,0,0)
-                        overlay.Thickness = 3
-                        overlay.Transparency = 0.6
-                        overlay.Filled = true
-                        overlay.Visible = false
-                        espObjs[v].overlay = overlay
+                        -- Skeleton lines (red)
+                        for i=1,#skeleton do
+                            local line = Drawing.new("Line")
+                            line.Color = Color3.new(1,0,0)
+                            line.Thickness = 3
+                            line.Transparency = 1
+                            line.Visible = false
+                            espObjs[v]["line"..i] = line
+                        end
+                        -- Head Skull circle
+                        local circle = Drawing.new("Circle")
+                        circle.Color = Color3.new(1,0,0)
+                        circle.Thickness = 4
+                        circle.Transparency = 1
+                        circle.Visible = false
+                        circle.Filled = false
+                        espObjs[v].headcircle = circle
                     end
-                    local box, overlay = espObjs[v].box, espObjs[v].overlay
-                    if onscreen then
-                        -- Çizgilerle kutu
-                        box.PointA = points[2]
-                        box.PointB = points[3]
-                        box.PointC = points[7]
-                        box.PointD = points[6]
-                        box.Visible = true
-                        -- Duvar arkası kırmızı overlay
-                        local torso = v.Character:FindFirstChild("UpperTorso") or v.Character:FindFirstChild("Torso")
-                        if torso then
-                            local pos, isScreen = camera:WorldToViewportPoint(torso.Position)
-                            if isScreen then
-                                overlay.Size = Vector2.new(40, 70)
-                                overlay.Position = Vector2.new(pos.X-overlay.Size.X/2,pos.Y-overlay.Size.Y/2)
-                                overlay.Visible = true
-                                overlay.Color = Color3.new(1,0,0)
+                    local ch = v.Character
+                    for i,pair in ipairs(skeleton) do
+                        local A = ch:FindFirstChild(pair[1])
+                        local B = ch:FindFirstChild(pair[2])
+                        local line = espObjs[v]["line"..i]
+                        if A and B then
+                            local a,ona = camera:WorldToViewportPoint(A.Position)
+                            local b,onb = camera:WorldToViewportPoint(B.Position)
+                            if ona and onb then
+                                line.Visible = true
+                                line.From = Vector2.new(a.X,a.Y)
+                                line.To   = Vector2.new(b.X,b.Y)
                             else
-                                overlay.Visible = false
+                                line.Visible = false
                             end
+                        else
+                            line.Visible = false
+                        end
+                    end
+                    -- Head circle: Kafatası
+                    local head = ch:FindFirstChild("Head")
+                    local circ = espObjs[v].headcircle
+                    if head then
+                        local pos,onh = camera:WorldToViewportPoint(head.Position)
+                        if onh then
+                            circ.Position = Vector2.new(pos.X, pos.Y)
+                            circ.Visible = true
+                            circ.Radius = 16
+                        else
+                            circ.Visible = false
                         end
                     else
-                        box.Visible = false
-                        overlay.Visible = false
+                        circ.Visible = false
                     end
                 elseif espObjs[v] then
-                    if espObjs[v].box then espObjs[v].box.Visible = false end
-                    if espObjs[v].overlay then espObjs[v].overlay.Visible = false end
+                    for _,o in pairs(espObjs[v]) do if o.Visible then o.Visible = false end end
                 end
             end
         end)
@@ -401,7 +388,7 @@ local function makeMenu()
         setGodmode(enabledHacks.Godmode)
     end)
 
-    -- NOCLIP (GERÇEK DUVARDAN GEÇME)
+    -- Noclip (Çalışıyor/Her Saniye Kontrol)
     local noclipConn
     local function setNoclip()
         if noclipConn then noclipConn:Disconnect() end
@@ -409,7 +396,7 @@ local function makeMenu()
             noclipConn = runS.Stepped:Connect(function()
                 if plr.Character then
                     for _,part in pairs(plr.Character:GetDescendants()) do
-                        if part:IsA("BasePart") and part.CanCollide then
+                        if part:IsA("BasePart") then
                             part.CanCollide = false
                         end
                     end
@@ -431,7 +418,7 @@ local function makeMenu()
         setNoclip()
     end)
 
-    -- FLY
+    -- FLY (Flydayken ve uçarken çalışır, spinbot ile uyumlu)
     local flyConn
     local flySpeed = 50
     local flying = false
@@ -486,15 +473,28 @@ local function makeMenu()
         setFly()
     end)
 
-    -- SPINBOT (KOŞARKEN VE YÜRÜRKEN DAİMA ÇALIŞIR), FLY VE DİĞER HAREKETLERDEN BAĞIMSIZ
+    -- Spinbot (KOŞARKEN/YÜRÜRKEN ÇALIŞIYOR)
     local spinConn
+    local prevVel = Vector3.zero
+    local prevGrounded = false
+    function isMovingAndOnGround()
+        if plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") and plr.Character:FindFirstChildOfClass("Humanoid") then
+            local hum = plr.Character:FindFirstChildOfClass("Humanoid")
+            local hrp = plr.Character.HumanoidRootPart
+            -- Yürüyor/koşuyor ve yerde (jump/fly değil)
+            return (hrp.Velocity * Vector3.new(1,0,1)).Magnitude > 0.5 and hum.FloorMaterial ~= Enum.Material.Air
+        end
+        return false
+    end
     local function setSpinbot()
         if spinConn then spinConn:Disconnect() end
         if enabledHacks.Spinbot then
             spinConn = runS.Stepped:Connect(function()
-                if plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
-                    local hrp = plr.Character.HumanoidRootPart
-                    hrp.CFrame = hrp.CFrame * CFrame.Angles(0, math.rad(13), 0)
+                if isMovingAndOnGround() then
+                    if plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
+                        local hrp = plr.Character.HumanoidRootPart
+                        hrp.CFrame = hrp.CFrame * CFrame.Angles(0, math.rad(13), 0)
+                    end
                 end
             end)
         end
@@ -505,7 +505,7 @@ local function makeMenu()
         setSpinbot()
     end)
 
-    -- TP PLAYER FONKSİYON
+    -- TP PLAYER
     tpBtn.MouseButton1Click:Connect(function()
         if selectedPlayer and selectedPlayer.Character and selectedPlayer.Character:FindFirstChild("HumanoidRootPart") 
             and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
@@ -513,7 +513,7 @@ local function makeMenu()
         end
     end)
 
-    -- Menü Güzel Kalsın Diye
+    -- Menü Hover Stili
     for _,btn in ipairs(btns) do
         btn.MouseEnter:Connect(function() btn.BackgroundColor3 = Color3.fromRGB(60,62,65) end)
         btn.MouseLeave:Connect(function() btn.BackgroundColor3 = Color3.fromRGB(35,35,35) end)
@@ -521,7 +521,7 @@ local function makeMenu()
     tpBtn.MouseEnter:Connect(function() tpBtn.BackgroundColor3 = Color3.fromRGB(38,99,119) end)
     tpBtn.MouseLeave:Connect(function() tpBtn.BackgroundColor3 = Color3.fromRGB(24,55,69) end)
 
-    -- Menü başlatıldığı anda fonksiyonel tuzaktır (default hepsi off)
+    -- Başlarken hepsi off, fonksiyonlar setup
     setSpinbot()
     setNoclip()
     setFly()
