@@ -1,16 +1,12 @@
--- DELTA executor ile uyum, tam çözüm:
+-- DELTA executor ile uyumlu ve donma sorunu yaşamayan optimize sürüm:
+
 local plr = game:GetService("Players").LocalPlayer
 
--- PlayerGui'yı bul ve arayüzü ekle
-local playerGui
-repeat
-    playerGui = plr:FindFirstChildOfClass("PlayerGui")
-    if not playerGui then wait(0.2) end
-until playerGui
-
+-- PlayerGui yoksa CoreGui'ye ekle
+local parentGui = plr:FindFirstChildOfClass("PlayerGui") or game:GetService("CoreGui")
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "MultiHackMenu"
-ScreenGui.Parent = playerGui
+ScreenGui.Parent = parentGui
 ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 ScreenGui.ResetOnSpawn = false
 
@@ -22,8 +18,7 @@ MainFrame.Position = UDim2.new(0.5,0,0.45,0)
 MainFrame.Size = UDim2.new(0, 320, 0, 520)
 MainFrame.BackgroundColor3 = Color3.fromRGB(29,29,29)
 MainFrame.BorderSizePixel = 0
-local mainUICorner = Instance.new("UICorner", MainFrame)
-mainUICorner.CornerRadius = UDim.new(0,13)
+Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0,13)
 
 local Title = Instance.new("TextLabel")
 Title.Parent = MainFrame
@@ -36,15 +31,15 @@ Title.TextColor3 = Color3.fromRGB(57,200,255)
 Title.TextScaled = true
 
 local ButtonData = {
-    {Name="Aimbot",    TextOn="Aimbot Kapat",      TextOff="Aimbot Aç",    Y=56},
-    {Name="SilentAim", TextOn="SilentAim Kapat",   TextOff="SilentAim Aç", Y=110},
-    {Name="ESP",       TextOn="ESP Kapat",         TextOff="ESP Aç",       Y=164},
-    {Name="Noclip",    TextOn="Noclip Kapat",      TextOff="Noclip Aç",    Y=218},
-    {Name="Fly",       TextOn="Fly Kapat",         TextOff="Fly Aç",       Y=272},
-    {Name="Spinbot",   TextOn="Spinbot Kapat",     TextOff="Spinbot Aç",   Y=326},
+    {Name="Aimbot",    TextOn="Aimbot Kapat",    TextOff="Aimbot Aç",    Y=56},
+    {Name="SilentAim", TextOn="SilentAim Kapat", TextOff="SilentAim Aç", Y=110},
+    {Name="ESP",       TextOn="ESP Kapat",       TextOff="ESP Aç",       Y=164},
+    {Name="Noclip",    TextOn="Noclip Kapat",    TextOff="Noclip Aç",    Y=218},
+    {Name="Fly",       TextOn="Fly Kapat",       TextOff="Fly Aç",       Y=272},
+    {Name="Spinbot",   TextOn="Spinbot Kapat",   TextOff="Spinbot Aç",   Y=326},
 }
 local Buttons = {}
-for i,d in ipairs(ButtonData) do
+for i, d in ipairs(ButtonData) do
     local btn = Instance.new("TextButton")
     btn.Parent = MainFrame
     btn.Name = d.Name.."Button"
@@ -55,8 +50,7 @@ for i,d in ipairs(ButtonData) do
     btn.Font = Enum.Font.Gotham
     btn.TextScaled = true
     btn.TextColor3 = Color3.fromRGB(235,235,235)
-    local btnCorner = Instance.new("UICorner", btn)
-    btnCorner.CornerRadius = UDim.new(0,10)
+    Instance.new("UICorner", btn).CornerRadius = UDim.new(0,10)
     Buttons[d.Name] = {Button=btn, On=d.TextOn, Off=d.TextOff}
 end
 
@@ -73,14 +67,13 @@ TeleportLabel.Size = UDim2.new(0, 230, 0, 26)
 local DropdownFrame = Instance.new("ScrollingFrame")
 DropdownFrame.Parent = MainFrame
 DropdownFrame.Position = UDim2.new(0.5,-115,0,408)
-DropdownFrame.Size = UDim2.new(0,230,0,55)
+DropdownFrame.Size = UDim2.new(0,230,0,60)
 DropdownFrame.BackgroundColor3 = Color3.fromRGB(40,40,47)
 DropdownFrame.BorderSizePixel = 0
 DropdownFrame.CanvasSize = UDim2.new(0,0,0,0)
 DropdownFrame.AutomaticCanvasSize = Enum.AutomaticSize.Y
 DropdownFrame.ScrollBarThickness = 5
-local dropCorner = Instance.new("UICorner", DropdownFrame)
-dropCorner.CornerRadius = UDim.new(0,8)
+Instance.new("UICorner", DropdownFrame).CornerRadius = UDim.new(0,8)
 
 local TeleportBtn = Instance.new("TextButton")
 TeleportBtn.Parent = MainFrame
@@ -91,10 +84,10 @@ TeleportBtn.Text = "Seçeneğe TP"
 TeleportBtn.Font = Enum.Font.GothamBold
 TeleportBtn.TextScaled = true
 TeleportBtn.TextColor3 = Color3.fromRGB(255,255,255)
-local tpcorner = Instance.new("UICorner", TeleportBtn)
-tpcorner.CornerRadius = UDim.new(0,9)
+Instance.new("UICorner", TeleportBtn).CornerRadius = UDim.new(0,9)
 
 local selectedPlayer=nil
+
 local function refreshPlayers()
     for _,child in ipairs(DropdownFrame:GetChildren()) do
         if child:IsA("TextButton") then child:Destroy() end
@@ -112,7 +105,7 @@ local function refreshPlayers()
             pb.BackgroundColor3 = Color3.fromRGB(48,48,68)
             pb.TextColor3 = Color3.fromRGB(255,255,200)
             pb.TextScaled = true
-            local cc = Instance.new("UICorner", pb) cc.CornerRadius = UDim.new(0,6)
+            Instance.new("UICorner", pb).CornerRadius = UDim.new(0,6)
             pb.MouseButton1Click:Connect(function()
                 selectedPlayer = ply
                 TeleportLabel.Text = "Teleport: "..(ply.DisplayName or ply.Name)
@@ -124,9 +117,9 @@ local function refreshPlayers()
         TeleportLabel.Text = "Teleport: Oyuncu Seç"
     end
 end
-DropdownFrame.ChildAdded:Connect(function() refreshPlayers() end)
-game:GetService("Players").PlayerAdded:Connect(refreshPlayers)
-game:GetService("Players").PlayerRemoving:Connect(refreshPlayers)
+
+game:GetService("Players").PlayerAdded:Connect(function() task.defer(refreshPlayers) end)
+game:GetService("Players").PlayerRemoving:Connect(function() task.defer(refreshPlayers) end)
 refreshPlayers()
 
 TeleportBtn.MouseButton1Click:Connect(function()
@@ -145,8 +138,7 @@ Close.Text = "X"
 Close.Font = Enum.Font.GothamBold
 Close.TextScaled = true
 Close.TextColor3 = Color3.fromRGB(240,240,240)
-local closeCorner = Instance.new("UICorner", Close)
-closeCorner.CornerRadius = UDim.new(1,0)
+Instance.new("UICorner", Close).CornerRadius = UDim.new(1,0)
 
 -- Taşıma: Sürüklenebilir pencere
 do
@@ -180,45 +172,51 @@ end)
 -------------------------
 -- FONKSİYONLAR
 -------------------------
--- *** AIMBOT ***
+-- States & Connections
 local aimbotState, aimbotConn = false, nil
--- *** SILENTAIM ***
 local silentAimState = false
--- *** ESP ***
-local espState, espBoxes, espConn = false, {}, nil
--- *** NOCLIP ***
+local espState, espConn = false, nil
+local espBoxes = {}
 local noclipState, noclipConn = false, nil
--- *** FLY ***
 local flyState, flyConn = false, nil
 local flySpeed = 40
--- *** SPINBOT ***
 local spinbotState, spinbotConn = false, nil
 local spinSpeed = 12
-local flyMove = Vector3.new()
 local UserInputService = game:GetService("UserInputService")
 
---**** EN YAKIN PLAYER FONK
+-- En yakın oyuncu fonk (her frame çağrılmaz, throttled!)
+local cachedClosest = nil
+local cachedClosestTick = 0
+
 local function getClosestTarget()
+    local nowTick = tick()
+    if nowTick - cachedClosestTick < 0.08 and cachedClosest then
+        return cachedClosest
+    end
     local cam = workspace.CurrentCamera
     local mouse = plr:GetMouse()
-    local closest, dist, posScreen = nil, math.huge, nil
+    local closest, dist = nil, math.huge
     for _,v in ipairs(game:GetService("Players"):GetPlayers()) do
         if v ~= plr and v.Character and v.Character:FindFirstChild("Head") then
-            local pos, onScreen = cam:WorldToViewportPoint(v.Character.Head.Position)
-            if onScreen then
-                local d = (Vector2.new(pos.X,pos.Y) - Vector2.new(mouse.X,mouse.Y)).Magnitude
-                if d < dist then
-                    dist = d
-                    closest = v
-                    posScreen = pos
+            local succ,pos = pcall(function()
+                return cam:WorldToViewportPoint(v.Character.Head.Position)
+            end)
+            if succ and pos then
+                if (typeof(pos) == "Vector3") and (pos.Z > 0) then
+                    local d = (Vector2.new(pos.X,pos.Y) - Vector2.new(mouse.X,mouse.Y)).Magnitude
+                    if d < dist then
+                        dist = d
+                        closest = v
+                    end
                 end
             end
         end
     end
-    return closest,posScreen
+    cachedClosest, cachedClosestTick = closest, nowTick
+    return closest
 end
 
---**** AIMBOT 
+-- AIMBOT
 local function updateAim()
     local tgt = getClosestTarget()
     if tgt and tgt.Character and tgt.Character:FindFirstChild("Head") then
@@ -230,41 +228,39 @@ Buttons.Aimbot.Button.MouseButton1Click:Connect(function()
     aimbotState = not aimbotState
     Buttons.Aimbot.Button.Text = aimbotState and Buttons.Aimbot.On or Buttons.Aimbot.Off
     if aimbotState then
-        aimbotConn = game:GetService("RunService").RenderStepped:Connect(function()
-            if aimbotState then updateAim() end
-        end)
+        if not aimbotConn then
+            aimbotConn = game:GetService("RunService").RenderStepped:Connect(function()
+                if aimbotState then updateAim() end
+            end)
+        end
     else
         if aimbotConn then aimbotConn:Disconnect(); aimbotConn = nil end
     end
 end)
 
---**** SILENTAIM (Mouse.Target değiştirme)
-local origMT = nil
-local silentAimedTarget = nil
+-- SILENTAIM (hooked metatable ile, throttled)
+local oldIndex
+local mouse = plr:GetMouse()
 Buttons.SilentAim.Button.MouseButton1Click:Connect(function()
     silentAimState = not silentAimState
     Buttons.SilentAim.Button.Text = silentAimState and Buttons.SilentAim.On or Buttons.SilentAim.Off
-    if silentAimState then
-        local mouse = plr:GetMouse()
-        origMT = hookmetamethod and hookmetamethod(game, "__index", function(self, k)
-            if silentAimState and self == mouse and (k == "Target" or k == "Hit") then
-                local tgt = getClosestTarget()
-                if tgt and tgt.Character and tgt.Character:FindFirstChild("Head") then
-                    silentAimedTarget = tgt
-                    return tgt.Character.Head
+    if silentAimState and not oldIndex then
+        if hookmetamethod then
+            oldIndex = hookmetamethod(game, "__index", function(self, k)
+                if self==mouse and (k == "Target" or k == "Hit") and silentAimState then
+                    local tgt = getClosestTarget()
+                    if tgt and tgt.Character and tgt.Character:FindFirstChild("Head") then
+                        if k=="Target" then return tgt.Character.Head end
+                        if k=="Hit" then return tgt.Character.Head.CFrame end
+                    end
                 end
-            end
-            return origMT(self, k)
-        end)
-    else
-        if origMT then
-            -- Remove hook (not all exploits support, so just ignore)
-            origMT = nil
+                return oldIndex(self, k)
+            end)
         end
     end
 end)
 
---**** ESP
+-- ESP: Sadece değişiklik olunca güncelle
 local function clearESP()
     for _,b in pairs(espBoxes) do if b and b.Parent then b:Destroy() end end
     espBoxes = {}
@@ -279,36 +275,37 @@ local function makeESP(char)
     box.ZIndex = 12
     box.Size = char:GetExtentsSize()
     box.Color3 = Color3.new(1,0.9,0)
-    box.Transparency = 0.75
+    box.Transparency = 0.8
     box.Parent = workspace
-    return box
+    table.insert(espBoxes,box)
 end
 
 Buttons.ESP.Button.MouseButton1Click:Connect(function()
     espState = not espState
     Buttons.ESP.Button.Text = espState and Buttons.ESP.On or Buttons.ESP.Off
     if espState then
-        clearESP()
-        espConn = game:GetService("RunService").RenderStepped:Connect(function()
+        local function updateESP()
             clearESP()
             for _,v in ipairs(game:GetService("Players"):GetPlayers()) do
                 if v ~= plr and v.Character and v.Character:FindFirstChild("Head") then
-                    local espBox = makeESP(v.Character)
-                    if espBox then table.insert(espBoxes,espBox) end
+                    makeESP(v.Character)
                 end
             end
-        end)
+        end
+        updateESP()
+        espConn = game:GetService("Players").PlayerAdded:Connect(updateESP)
+        game:GetService("Players").PlayerRemoving:Connect(updateESP)
     else
-        if espConn then espConn:Disconnect(); espConn = nil end
+        if espConn then pcall(function() espConn:Disconnect() end) espConn=nil end
         clearESP()
     end
 end)
 
---**** NOCLIP
+-- NOCLIP
 Buttons.Noclip.Button.MouseButton1Click:Connect(function()
     noclipState = not noclipState
     Buttons.Noclip.Button.Text = noclipState and Buttons.Noclip.On or Buttons.Noclip.Off
-    if noclipState then
+    if noclipState and not noclipConn then
         noclipConn = game:GetService("RunService").Stepped:Connect(function()
             if plr.Character then
                 for _,part in pairs(plr.Character:GetDescendants()) do
@@ -326,7 +323,7 @@ Buttons.Noclip.Button.MouseButton1Click:Connect(function()
     end
 end)
 
---**** FLY + SPINBOT ENTEGRASYON
+-- FLY (flyConn sadece bir tane aktif!)
 local function doFly(enable)
     if enable then
         local char = plr.Character
@@ -334,41 +331,42 @@ local function doFly(enable)
         local hrp = char.HumanoidRootPart
         local velocity = Instance.new("BodyVelocity", hrp)
         velocity.MaxForce = Vector3.new(1e5, 1e5, 1e5)
-        local gy = Instance.new("BodyGyro", hrp)
-        gy.MaxTorque = Vector3.new(1e5, 1e5, 1e5)
-        local dir
+        velocity.P = 9e4
+        local gyro = Instance.new("BodyGyro", hrp)
+        gyro.MaxTorque = Vector3.new(1e6, 1e6, 1e6)
+        local move = Vector3.new()
         flyConn = game:GetService("RunService").Heartbeat:Connect(function()
             if not flyState or not char or not char:FindFirstChild("HumanoidRootPart") then
-                if velocity and velocity.Parent then velocity:Destroy() end
-                if gy and gy.Parent then gy:Destroy() end
+                pcall(function() velocity:Destroy() end)
+                pcall(function() gyro:Destroy() end)
                 if flyConn then flyConn:Disconnect(); flyConn=nil end
                 return
             end
-            dir = Vector3.new()
+            move = Vector3.new()
             if UserInputService:IsKeyDown(Enum.KeyCode.W) then
-                dir = dir + (workspace.CurrentCamera.CFrame.LookVector)
+                move = move + (workspace.CurrentCamera.CFrame.LookVector)
             end
             if UserInputService:IsKeyDown(Enum.KeyCode.S) then
-                dir = dir - (workspace.CurrentCamera.CFrame.LookVector)
+                move = move - (workspace.CurrentCamera.CFrame.LookVector)
             end
             if UserInputService:IsKeyDown(Enum.KeyCode.A) then
-                dir = dir - (workspace.CurrentCamera.CFrame.RightVector)
+                move = move - (workspace.CurrentCamera.CFrame.RightVector)
             end
             if UserInputService:IsKeyDown(Enum.KeyCode.D) then
-                dir = dir + (workspace.CurrentCamera.CFrame.RightVector)
+                move = move + (workspace.CurrentCamera.CFrame.RightVector)
             end
             if UserInputService:IsKeyDown(Enum.KeyCode.Space) then
-                dir = dir + Vector3.new(0,1,0)
+                move = move + Vector3.new(0,1,0)
             end
             if UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) then
-                dir = dir - Vector3.new(0,1,0)
+                move = move - Vector3.new(0,1,0)
             end
-            if dir.Magnitude>0 then
-                velocity.Velocity = dir.Unit * flySpeed
+            if move.Magnitude>0 then
+                velocity.Velocity = move.Unit * flySpeed
             else
                 velocity.Velocity = Vector3.new()
             end
-            gy.CFrame = workspace.CurrentCamera.CFrame
+            gyro.CFrame = workspace.CurrentCamera.CFrame
         end)
     else
         if flyConn then flyConn:Disconnect(); flyConn=nil end
@@ -380,19 +378,20 @@ local function doFly(enable)
         end
     end
 end
+
 Buttons.Fly.Button.MouseButton1Click:Connect(function()
     flyState = not flyState
     Buttons.Fly.Button.Text = flyState and Buttons.Fly.On or Buttons.Fly.Off
     doFly(flyState)
 end)
 
---**** SPINBOT (FLY VARKEN DE AKTİF)
+-- SPINBOT (Heartbeat ile, sadece döndürme - minimum iş)
 Buttons.Spinbot.Button.MouseButton1Click:Connect(function()
     spinbotState = not spinbotState
     Buttons.Spinbot.Button.Text = spinbotState and Buttons.Spinbot.On or Buttons.Spinbot.Off
-    if spinbotState then
+    if spinbotState and not spinbotConn then
         spinbotConn = game:GetService("RunService").Heartbeat:Connect(function()
-            if plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
+            if spinbotState and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
                 local hrp = plr.Character.HumanoidRootPart
                 hrp.CFrame = hrp.CFrame * CFrame.Angles(0, math.rad(spinSpeed), 0)
             end
