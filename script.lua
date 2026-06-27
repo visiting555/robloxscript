@@ -305,7 +305,7 @@ renderSection("aim")
 local Drawing = Drawing
 local currentESP = {}
 local espRunning = false
-local ESP_DISTANCE = 40
+local ESP_DISTANCE = 300
 
 function get2DFrom3D(p)
     local pos, onscreen = Cam:WorldToViewportPoint(p)
