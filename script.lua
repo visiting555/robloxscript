@@ -2,10 +2,9 @@ local UIS = game:GetService("UserInputService")
 local Players = game:GetService("Players")
 local RS = game:GetService("RunService")
 local TPService = game:GetService("TeleportService")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local Lighting = game:GetService("Lighting")
 local LP = Players.LocalPlayer
 local Cam = workspace.CurrentCamera
+
 local gui = Instance.new("ScreenGui")
 gui.Name = "VisitingMenu"
 pcall(function() gui.Parent = game:GetService("CoreGui") end)
@@ -305,9 +304,8 @@ function renderSection(secKey)
 end
 renderSection("aim")
 
-local Drawing = Drawing
 local currentESP = {}
-local espRunning = false
+local espConn = nil
 local ESP_DISTANCE = 350
 
 function get2DFrom3D(p)
@@ -315,164 +313,90 @@ function get2DFrom3D(p)
     return Vector2.new(pos.X, pos.Y), onscreen
 end
 
-function getBoxVertsFromParts(char)
-    local hrp = char:FindFirstChild("HumanoidRootPart")
-    if not hrp then return nil end
-    local size = hrp.Size
-    local scale = 1.07
-    local offsetY = Vector3.new(0, size.Y*scale/2, 0)
-    local verts3d = {
-        (hrp.Position + hrp.CFrame.RightVector*size.X/2*scale + offsetY + hrp.CFrame.LookVector*size.Z/2*scale),
-        (hrp.Position - hrp.CFrame.RightVector*size.X/2*scale + offsetY + hrp.CFrame.LookVector*size.Z/2*scale),
-        (hrp.Position - hrp.CFrame.RightVector*size.X/2*scale + offsetY - hrp.CFrame.LookVector*size.Z/2*scale),
-        (hrp.Position + hrp.CFrame.RightVector*size.X/2*scale + offsetY - hrp.CFrame.LookVector*size.Z/2*scale),
-        (hrp.Position + hrp.CFrame.RightVector*size.X/2*scale - offsetY + hrp.CFrame.LookVector*size.Z/2*scale),
-        (hrp.Position - hrp.CFrame.RightVector*size.X/2*scale - offsetY + hrp.CFrame.LookVector*size.Z/2*scale),
-        (hrp.Position - hrp.CFrame.RightVector*size.X/2*scale - offsetY - hrp.CFrame.LookVector*size.Z/2*scale),
-        (hrp.Position + hrp.CFrame.RightVector*size.X/2*scale - offsetY - hrp.CFrame.LookVector*size.Z/2*scale),
-    }
-    local verts2d, onscreen = {}, true
-    for i,v in pairs(verts3d) do
-        local pt, scr = get2DFrom3D(v)
-        verts2d[i] = pt
-        onscreen = onscreen and scr
-    end
-    return verts2d, onscreen
-end
-
-function getCharacterOutline(char)
-    local body = {}
-    for _, part in pairs(char:GetChildren()) do
-        if (part:IsA("BasePart") or part:IsA("MeshPart")) and part.Name~="HumanoidRootPart" then
-            table.insert(body, part)
-        end
-    end
-    return body
-end
-
 function drawBodyESP(p)
-    if not p.Character then return end
-    if not currentESP[p] then currentESP[p] = {} end
-    local hrp = p.Character:FindFirstChild("HumanoidRootPart")
-    if not hrp then return end
-    local dist = (LP.Character and LP.Character:FindFirstChild("HumanoidRootPart") and (LP.Character.HumanoidRootPart.Position-hrp.Position).Magnitude) or 999
+    local char = p.Character
+    if not char or not char:FindFirstChild("HumanoidRootPart") then return end
+    local lpChar = LP.Character
+    if not lpChar or not lpChar:FindFirstChild("HumanoidRootPart") then return end
+    local dist = (lpChar.HumanoidRootPart.Position - char.HumanoidRootPart.Position).Magnitude
     if dist > ESP_DISTANCE then
         if currentESP[p] then
-            if currentESP[p].boxLines then for _,l in ipairs(currentESP[p].boxLines) do if l then l.Visible=false end end end
-            if currentESP[p].outlineParts then for _,l in ipairs(currentESP[p].outlineParts) do if l then l.Visible=false end end end
+            for _,line in pairs(currentESP[p]) do if line and line.Visible then line.Visible = false end end
         end
         return
     end
-    local corners, onscreen = getBoxVertsFromParts(p.Character)
-    local lines = currentESP[p].boxLines or {}
-    local edgeIndexes = {{1,2},{2,3},{3,4},{4,1},{5,6},{6,7},{7,8},{8,5},{1,5},{2,6},{3,7},{4,8}}
-    if not lines[1] then
-        for i=1,#edgeIndexes do
-            local l = Drawing and Drawing.new and Drawing.new("Line") or nil
-            if l then
-                l.Color = Color3.fromRGB(255, 0, 0)
-                l.Thickness = 2.2
-                l.Transparency = 0.96
-                l.Visible = false
-                lines[i] = l
-            end
-        end
-        currentESP[p].boxLines = lines
-    end
-    if corners and onscreen then
-        for i,ij in ipairs(edgeIndexes) do
-            local l = lines[i]
-            if l then
-                l.From = corners[ij[1]]
-                l.To = corners[ij[2]]
-                l.Visible = optStates["ESP"] and true or false
-                l.Color = Color3.fromRGB(255, 0, 0)
-            end
-        end
-    else
-        for _,l in ipairs(lines) do if l then l.Visible = false end end
-    end
-    local outline = currentESP[p].outlineParts or {}
-    local idx = 1
-    for _,part in pairs(getCharacterOutline(p.Character)) do
+    if not currentESP[p] then currentESP[p] = {} end
+    for _,v in pairs(currentESP[p]) do v.Visible = false end
+    local function makeOutline(part)
+        if not part or not part:IsA("BasePart") then return end
         local size = part.Size
-        local corners3d = {
-            part.CFrame * Vector3.new( size.X/2,  size.Y/2,  size.Z/2),
-            part.CFrame * Vector3.new(-size.X/2,  size.Y/2,  size.Z/2),
-            part.CFrame * Vector3.new(-size.X/2, -size.Y/2,  size.Z/2),
-            part.CFrame * Vector3.new( size.X/2, -size.Y/2,  size.Z/2),
-            part.CFrame * Vector3.new( size.X/2,  size.Y/2, -size.Z/2),
-            part.CFrame * Vector3.new(-size.X/2,  size.Y/2, -size.Z/2),
-            part.CFrame * Vector3.new(-size.X/2, -size.Y/2, -size.Z/2),
-            part.CFrame * Vector3.new( size.X/2, -size.Y/2, -size.Z/2)
-        }
-        local c2d, visible = {}, true
-        for i=1,8 do
-            local pt, scr = get2DFrom3D(corners3d[i])
-            c2d[i] = pt
-            visible = visible and scr
+        local cf = part.CFrame
+        local corners = {}
+        for x=-1,1,2 do
+            for y=-1,1,2 do
+                for z=-1,1,2 do
+                    table.insert(corners, (cf * Vector3.new(x*size.X/2, y*size.Y/2, z*size.Z/2)))
+                end
+            end
         end
-        local edges = {{1,2},{2,3},{3,4},{4,1},{5,6},{6,7},{7,8},{8,5},{1,5},{2,6},{3,7},{4,8}}
-        for _,edge in ipairs(edges) do
-            if not outline[idx] then
-                local l = Drawing and Drawing.new and Drawing.new("Line") or nil
-                if l then l.Color=Color3.fromRGB(255,0,0) l.Thickness=1.25 l.Transparency=0.97 l.Visible=false end
-                outline[idx] = l
+        local lines = {
+            {1,2},{1,3},{1,5},{2,4},{2,6},{3,4},{3,7},{4,8},
+            {5,6},{5,7},{6,8},{7,8}
+        }
+        for i,l in ipairs(lines) do
+            local a2d,on1 = get2DFrom3D(corners[l[1]])
+            local b2d,on2 = get2DFrom3D(corners[l[2]])
+            if on1 and on2 then
+                if not currentESP[p][part.Name..i] then
+                    local e = Drawing and Drawing.new and Drawing.new("Line")
+                    if e then
+                        e.Thickness = 1.4
+                        e.Color = Color3.fromRGB(255,0,0)
+                        e.Transparency = 0.8
+                        e.Visible = true
+                        currentESP[p][part.Name..i] = e
+                    end
+                end
+                local e = currentESP[p][part.Name..i]
+                if e then
+                    e.From = a2d
+                    e.To = b2d
+                    e.Visible = optStates.ESP
+                    e.Color = Color3.fromRGB(255,0,0)
+                end
+            elseif currentESP[p][part.Name..i] then
+                currentESP[p][part.Name..i].Visible = false
             end
-            local l = outline[idx]
-            if l and visible then
-                l.From = c2d[edge[1]]
-                l.To = c2d[edge[2]]
-                l.Color = Color3.fromRGB(255, 0, 0)
-                l.Visible = optStates["ESP"]
-            elseif l then
-                l.Visible = false
-            end
-            idx = idx + 1
         end
     end
-    for ci = idx, #(outline) do pcall(function() outline[ci].Visible = false end) end
-    currentESP[p].outlineParts = outline
+    for _,part in pairs(char:GetDescendants()) do
+        if (part:IsA("BasePart") or part:IsA("MeshPart")) and part.Name~="HumanoidRootPart" then
+            makeOutline(part)
+        end
+    end
 end
 
 function clearDeadESP()
-    for p, sections in pairs(currentESP) do
+    for p, stuff in pairs(currentESP) do
         if not Players:FindFirstChild(p.Name) or not p.Character or not p.Character:FindFirstChild("HumanoidRootPart") then
-            local boxLines = sections.boxLines or {}
-            for _,l in ipairs(boxLines) do if l and typeof(l.Remove)=="function" then l:Remove() end end
-            local outlineParts = sections.outlineParts or {}
-            for _,l in ipairs(outlineParts) do if l and typeof(l.Remove)=="function" then l:Remove() end end
+            for _,e in pairs(stuff) do if e and typeof(e.Remove)=="function" then e:Remove() end end
             currentESP[p] = nil
         end
     end
 end
 
 function startESP()
-    if espRunning then return end
-    espRunning = true
-    local ESPUpdateTick = 0
-    RS.RenderStepped:Connect(function(dt)
-        ESPUpdateTick = ESPUpdateTick + dt
-        if ESPUpdateTick < 0.033 then
+    if espConn then pcall(function() espConn:Disconnect() end) end
+    espConn = RS.RenderStepped:Connect(function()
+        if not optStates.ESP then
+            for k,t in pairs(currentESP) do for _,line in pairs(t) do if line then line.Visible = false end end end
             return
-        end
-        ESPUpdateTick = 0
-        if not optStates["ESP"] then
-            for _,sections in pairs(currentESP) do
-                for _,l in ipairs(sections.boxLines or {}) do if l then l.Visible=false end end
-                for _,l in ipairs(sections.outlineParts or {}) do if l then l.Visible=false end end
-            end
-            return
-        end
-        local framePlayers = {}
-        for _,p in pairs(Players:GetPlayers()) do
-            if p ~= LP and p.Character and p.Character:FindFirstChild("HumanoidRootPart") and p.Character:FindFirstChildOfClass("Humanoid") and p.Character:FindFirstChildOfClass("Humanoid").Health > 0 then
-                table.insert(framePlayers, p)
-            end
         end
         clearDeadESP()
-        for _,p in pairs(framePlayers) do
-            drawBodyESP(p)
+        for _,p in pairs(Players:GetPlayers()) do
+            if p ~= LP and p.Character and p.Character:FindFirstChild("HumanoidRootPart") and p.Character:FindFirstChildOfClass("Humanoid") and p.Character:FindFirstChildOfClass("Humanoid").Health > 0 then
+                drawBodyESP(p)
+            end
         end
     end)
 end
@@ -500,10 +424,6 @@ function startAimbot()
     end)
 end
 
-local function __random()
-    local t = tick() * math.pi
-    return math.abs(math.sin(t*3.97)+math.cos(t*1.51)*math.sin(t*2.05))
-end
 function startSilentAim()
     local mouse = LP:GetMouse()
     local function getClosest()
@@ -524,42 +444,36 @@ function startSilentAim()
         if optStates["SilentAim"] then
             local plr,pos = getClosest()
             if plr and pos then
-                local offset = Vector3.new(
-                    math.sin(tick()*__random())*0.32,
-                    math.cos(tick()*__random())*0.16,
-                    0)
                 mouse.Target = plr.Character.Head
-                mouse.Hit = CFrame.new(pos + offset)
+                mouse.Hit = CFrame.new(pos)
             end
         end
     end)
 end
 
-local flyBV, flyConn
+local flyBV
 function startFly()
-    flyBV = nil
-    local flyingFunc = function()
-        if not optStates["Fly"] or not LP.Character or not LP.Character:FindFirstChild("HumanoidRootPart") then
-            if flyBV then flyBV:Destroy() flyBV=nil end return
+    RS.RenderStepped:Connect(function()
+        if optStates["Fly"] and LP.Character and LP.Character:FindFirstChild("HumanoidRootPart") then
+            if not flyBV then
+                flyBV = Instance.new("BodyVelocity")
+                flyBV.MaxForce = Vector3.new(1e6,1e6,1e6)
+                flyBV.Parent = LP.Character.HumanoidRootPart
+            end
+            local vel = Vector3.new()
+            local spd = 62
+            if UIS:IsKeyDown(Enum.KeyCode.W) then vel = vel + Cam.CFrame.LookVector end
+            if UIS:IsKeyDown(Enum.KeyCode.S) then vel = vel - Cam.CFrame.LookVector end
+            if UIS:IsKeyDown(Enum.KeyCode.A) then vel = vel - Cam.CFrame.RightVector end
+            if UIS:IsKeyDown(Enum.KeyCode.D) then vel = vel + Cam.CFrame.RightVector end
+            if UIS:IsKeyDown(Enum.KeyCode.E) then vel = vel + Cam.CFrame.UpVector end
+            if UIS:IsKeyDown(Enum.KeyCode.Q) then vel = vel - Cam.CFrame.UpVector end
+            if vel.Magnitude > 0 then vel = vel.Unit * spd end
+            flyBV.Velocity = vel
+        else
+            if flyBV then flyBV:Destroy() flyBV = nil end
         end
-        if not flyBV then
-            flyBV = Instance.new("BodyVelocity")
-            flyBV.MaxForce = Vector3.new(math.huge,math.huge,math.huge)
-            flyBV.Parent = LP.Character.HumanoidRootPart
-        end
-        local vel = Vector3.new()
-        local spd = 62
-        if UIS:IsKeyDown(Enum.KeyCode.W) then vel = vel + Cam.CFrame.LookVector end
-        if UIS:IsKeyDown(Enum.KeyCode.S) then vel = vel - Cam.CFrame.LookVector end
-        if UIS:IsKeyDown(Enum.KeyCode.A) then vel = vel - Cam.CFrame.RightVector end
-        if UIS:IsKeyDown(Enum.KeyCode.D) then vel = vel + Cam.CFrame.RightVector end
-        if UIS:IsKeyDown(Enum.KeyCode.E) then vel = vel + Cam.CFrame.UpVector end
-        if UIS:IsKeyDown(Enum.KeyCode.Q) then vel = vel - Cam.CFrame.UpVector end
-        if vel.Magnitude > 0 then vel = vel.Unit * spd end
-        flyBV.Velocity = vel
-    end
-    flyConn = RS.RenderStepped:Connect(flyingFunc)
-    UIS.InputBegan:Connect(function(i,gpe) if not gpe and i.KeyCode==Enum.KeyCode.F and optStates["Fly"] then optStates["Fly"] = false if flyBV then flyBV:Destroy() flyBV=nil end end end)
+    end)
 end
 
 function startNoclip()
@@ -576,71 +490,50 @@ function startGorunmezlik()
     RS.RenderStepped:Connect(function()
         if optStates["Görünmezlik"] and LP.Character and LP.Character:FindFirstChild("HumanoidRootPart") then
             for _,v in ipairs(LP.Character:GetDescendants()) do
-                if v:IsA("BasePart") or v:IsA("MeshPart") then v.Transparency=1 v.LocalTransparencyModifier=1 end
+                if v:IsA("BasePart") or v:IsA("MeshPart") then
+                    v.Transparency=1 v.LocalTransparencyModifier=1
+                    if game:GetService("ReplicatedStorage"):FindFirstChild("Events") and v.Name~="HumanoidRootPart" then
+                        v:GetPropertyChangedSignal("Transparency"):Connect(function()
+                            if optStates["Görünmezlik"] then v.Transparency=1 v.LocalTransparencyModifier=1 end
+                        end)
+                    end
+                end
                 if v.ClassName=="Decal" or v.ClassName=="Texture" then v.Transparency=1 end
             end
             if LP.Character:FindFirstChild("HumanoidRootPart") then
                 LP.Character.HumanoidRootPart.Transparency=1
             end
-            if LP.Character:FindFirstChildOfClass("Humanoid") then
-                LP.Character:FindFirstChildOfClass("Humanoid").Name = "__VIS__"
-            end
-            if game.Workspace:FindFirstChild(LP.Name) then
-                game.Workspace[LP.Name].Name = tostring(math.random(100000,999999))
-            end
         elseif LP.Character then
             for _,v in ipairs(LP.Character:GetDescendants()) do
-                if v:IsA("BasePart") or v:IsA("MeshPart") then
-                    v.Transparency=0
-                    v.LocalTransparencyModifier=0
-                end
+                if v:IsA("BasePart") or v:IsA("MeshPart") then v.Transparency=0 v.LocalTransparencyModifier=0 end
             end
-            if LP.Character:FindFirstChildOfClass("Humanoid") then
-                LP.Character:FindFirstChildOfClass("Humanoid").Name = "Humanoid"
-            end
-            if game.Workspace:FindFirstChild(tostring(math.random(100000,999999))) then
-                game.Workspace[tostring(math.random(100000,999999))].Name = LP.Name
+            if LP.Character:FindFirstChild("HumanoidRootPart") then
+                LP.Character.HumanoidRootPart.Transparency=0
             end
         end
     end)
 end
 
-function bypassAntiCheat()
-    local ranName = tostring(math.random(100000,999999))
-    local mt = getrawmetatable and getrawmetatable(game)
-    if mt then
-        setreadonly(mt, false)
-        local rawnamecall = mt.__namecall
-        mt.__namecall = newcclosure(function(self,...)
-            local Method = getnamecallmethod and getnamecallmethod() or ""
-            if Method == "Kick" or Method == "Ban" or tostring(self):lower():find("ban") or tostring(self):lower():find("kick") or tostring(self):lower():find("anti") then
-                return
-            end
-            return rawnamecall(self, ...)
-        end)
-        if setreadonly then setreadonly(mt, true) end
-    end
-    if hookfunction and LP and LP.Kick then
-        pcall(function()
-            hookfunction(LP.Kick, function() end)
-        end)
-    end
-    local envs = {"kick","ban",".kick",".ban","anticheat"}
-    for _,v in ipairs(envs) do
-        for _,s in pairs(getgc and getgc(true) or {}) do
-            if type(s)=="function" and debug.getinfo(s).name:lower():find(v) then
-                if hookfunction then pcall(function() hookfunction(s, function() end) end) end
-            end
+local function safeBypass()
+    local suc,err = pcall(function()
+        if setreadonly and getrawmetatable and hookfunction then
+            local mt = getrawmetatable(game)
+            setreadonly(mt,false)
+            local old = mt.__namecall
+            mt.__namecall = newcclosure(function(self,...)
+                local m = getnamecallmethod and getnamecallmethod() or ""
+                if tostring(self):lower():find("anti") or tostring(self):lower():find("ban") or tostring(self):lower():find("kick") or m=="Kick" or m=="Ban" then return end
+                return old(self,...)
+            end)
+            setreadonly(mt,true)
         end
-    end
-    game.DescendantAdded:Connect(function(child)
-        if (child:IsA("RemoteEvent") or child:IsA("RemoteFunction")) and (child.Name:lower():find("ban") or child.Name:lower():find("kick") or child.Name:lower():find("anti")) then
-            pcall(function() child.Parent=nil end)
+        if hookfunction and LP and LP.Kick then
+            pcall(function() hookfunction(LP.Kick,function() end) end)
         end
     end)
 end
+safeBypass()
 
-bypassAntiCheat()
 startESP()
 startAimbot()
 startSilentAim()
