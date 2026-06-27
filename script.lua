@@ -47,7 +47,7 @@ local opts = {
 
 local optStates, btns = {}, {}
 local taskHandles = {}
-local alwaysActive = {"Aimbot","ESP","Godmode","Spinbot","Noclip","Fly","NoSpread","NoRecoil","SilentAim"} -- bunlar ölüp yeniden doğunca da açık kalır
+local alwaysActive = {"Aimbot","ESP","Godmode","Spinbot","Noclip","Fly","NoSpread","NoRecoil","SilentAim"}
 
 local function Notify(msg)
     local t = Instance.new("TextLabel")
@@ -79,26 +79,34 @@ local function PlayerDropdown(callback)
     scorll.ScrollBarImageColor3 = Color3.fromRGB(47,47,47)
     scorll.BorderSizePixel = 0
     scorll.AutomaticCanvasSize = Enum.AutomaticSize.Y
+    scorll.ScrollBarThickness = 6
+
+    local sortedPlayers = {} -- Alphabetical list for better selection
+    for _,p in pairs(Players:GetPlayers()) do
+        if p ~= LP then
+            table.insert(sortedPlayers, p)
+        end
+    end
+    table.sort(sortedPlayers,function(a,b) return a.Name:lower() < b.Name:lower() end)
 
     local i = 0
-    for _,p in pairs(Players:GetPlayers()) do
-        if p~=LP then
-            i = i + 1
-            local b = Instance.new("TextButton")
-            b.Size = UDim2.new(1,-10,0,26)
-            b.Position = UDim2.new(0,5,0,5+(i-1)*31)
-            b.BackgroundColor3 = Color3.fromRGB(28,28,28)
-            b.BorderSizePixel = 0
-            b.Font = Enum.Font.SourceSans
-            b.Text = p.Name
-            b.TextColor3 = Color3.fromRGB(248,219,109)
-            b.TextSize = 18
-            b.Parent = scorll
-            b.MouseButton1Click:Connect(function()
-                pcall(callback, p)
-                ddFrame:Destroy()
-            end)
-        end
+    for _,p in ipairs(sortedPlayers) do
+        i = i + 1
+        local b = Instance.new("TextButton")
+        b.Size = UDim2.new(1,-10,0,26)
+        b.Position = UDim2.new(0,5,0,5+(i-1)*31)
+        b.BackgroundColor3 = Color3.fromRGB(28,28,28)
+        b.BorderSizePixel = 0
+        b.Font = Enum.Font.SourceSans
+        b.Text = p.Name
+        b.TextColor3 = Color3.fromRGB(248,219,109)
+        b.TextSize = 18
+        b.Parent = scorll
+        b.MouseButton1Click:Connect(function()
+            pcall(callback, p)
+            ddFrame:Destroy()
+            taskHandles["_dropdown"]=nil
+        end)
     end
     taskHandles["_dropdown"] = ddFrame
 end
@@ -140,11 +148,11 @@ end
 local DrawLib = (Drawing and Drawing.new and Drawing) or nil
 local espBoxes = {}
 local function StartESP()
-    if taskHandles._espCon then taskHandles._espCon:Disconnect() end
+    if taskHandles._espCon then pcall(function() taskHandles._espCon:Disconnect() end) end
     if not DrawLib then Notify("[ESP] Drawing Library yok!"); return end
-    for _,b in pairs(espBoxes) do pcall(function() if b.Remove then b:Remove() end end) end
+    for _,b in pairs(espBoxes) do pcall(function() if typeof(b.Remove)=="function" then b:Remove() end end) end
     espBoxes = {}
-    local function updateESP()
+    taskHandles._espCon = RS.RenderStepped:Connect(function()
         for _,p in pairs(Players:GetPlayers()) do
             if p ~= LP and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
                 if not espBoxes[p] then
@@ -153,31 +161,31 @@ local function StartESP()
                     b.Thickness = 2
                     b.Transparency = 1
                     b.Filled = false
+                    b.Visible = true
                     espBoxes[p] = b
                 end
                 local pos,vis = Camera:WorldToViewportPoint(p.Character.HumanoidRootPart.Position)
                 if espBoxes[p] then
                     espBoxes[p].Position = Vector2.new(pos.X-28,pos.Y-52)
                     espBoxes[p].Size = Vector2.new(57,105)
-                    espBoxes[p].Visible = vis
+                    espBoxes[p].Visible = vis and p.Character:FindFirstChildOfClass("Humanoid") and (p.Character:FindFirstChildOfClass("Humanoid").Health > 0)
                 end
             elseif espBoxes[p] then
                 espBoxes[p].Visible = false
             end
         end
         for k,b in pairs(espBoxes) do
-            if not k.Parent or not Players:FindFirstChild(k.Name) then
-                if b.Remove then b:Remove() end
+            if not Players:FindFirstChild(k.Name) or not k.Character then
+                if typeof(b.Remove)=="function" then b:Remove() end
                 espBoxes[k]=nil
             end
         end
-    end
-    taskHandles._espCon = RS.RenderStepped:Connect(updateESP)
+    end)
 end
 
 local aimbotLocked = false
 local function StartAimbot()
-    if taskHandles._aimCon then taskHandles._aimCon:Disconnect() end
+    if taskHandles._aimCon then pcall(function() taskHandles._aimCon:Disconnect() end) end
     taskHandles._aimCon = RS.RenderStepped:Connect(function()
         if optStates["Aimbot"] then
             local trg = GetClosestPlayer()
@@ -190,11 +198,12 @@ end
 
 local spinAngle = 0
 local function StartSpinbot()
-    if taskHandles._spinbotCon then taskHandles._spinbotCon:Disconnect() end
+    if taskHandles._spinbotCon then pcall(function() taskHandles._spinbotCon:Disconnect() end) end
+    spinAngle = 0
     taskHandles._spinbotCon = RS.RenderStepped:Connect(function()
         if optStates["Spinbot"] and LP.Character and LP.Character:FindFirstChild("HumanoidRootPart") then
-            spinAngle = spinAngle + .25
-            LP.Character.HumanoidRootPart.CFrame = LP.Character.HumanoidRootPart.CFrame * CFrame.Angles(0, spinAngle, 0)
+            spinAngle = spinAngle + .32
+            LP.Character.HumanoidRootPart.CFrame = LP.Character.HumanoidRootPart.CFrame * CFrame.Angles(0, math.rad(spinAngle), 0)
         end
     end)
 end
@@ -203,9 +212,20 @@ local function GodMode(on)
     if LP.Character then
         local hum = LP.Character:FindFirstChildOfClass("Humanoid")
         if hum then
-            hum.Name = on and "GodHumanoid" or "Humanoid"
-            hum.MaxHealth = on and math.huge or 100
-            hum.Health = on and math.huge or (hum.MaxHealth or 100)
+            if on then
+                hum.Name = "GodHumanoid"
+                hum.MaxHealth = math.huge
+                hum.Health = math.huge
+                hum:SetStateEnabled(Enum.HumanoidStateType.Dead, false)
+                hum.BreakJointsOnDeath = false
+                hum.PlatformStand = false
+            else
+                hum.Name = "Humanoid"
+                hum.MaxHealth = 100
+                hum.Health = hum.MaxHealth
+                hum:SetStateEnabled(Enum.HumanoidStateType.Dead, true)
+                hum.BreakJointsOnDeath = true
+            end
         end
     end
 end
@@ -213,14 +233,20 @@ end
 local function KillAllPlayers()
     for _,p in pairs(Players:GetPlayers()) do
         if p~=LP and p.Character and p.Character:FindFirstChildOfClass("Humanoid") then
-            p.Character.Humanoid.Health = 0
+            local hum = p.Character:FindFirstChildOfClass("Humanoid")
+            if hum and hum.Health > 0 then
+                hum.Health = 0
+            end
         end
     end
 end
 
 local function KillPlayer(p)
     if p and p.Character and p.Character:FindFirstChildOfClass("Humanoid") then
-        p.Character.Humanoid.Health = 0
+        local hum = p.Character:FindFirstChildOfClass("Humanoid")
+        if hum and hum.Health > 0 then
+            hum.Health = 0
+        end
     end
 end
 
@@ -234,17 +260,20 @@ local function SetFOV(fval)
     Camera.FieldOfView = tonumber(fval) or 70
 end
 
-local noclipConn = nil
 local function StartNoclip()
-    if noclipConn then pcall(function() noclipConn:Disconnect() end) end
-    noclipConn = RS.Stepped:Connect(function()
+    if taskHandles["Noclip"] then
+        pcall(function() taskHandles["Noclip"]:Disconnect() end)
+        taskHandles["Noclip"]=nil
+    end
+    taskHandles["Noclip"] = RS.Stepped:Connect(function()
         if LP.Character then
             for _,v in pairs(LP.Character:GetChildren()) do
-                if v:IsA("BasePart") and v.CanCollide then v.CanCollide = false end
+                if v:IsA("BasePart") then
+                    v.CanCollide = false
+                end
             end
         end
     end)
-    taskHandles["Noclip"] = noclipConn
 end
 
 local flyConn, flyKeyConns, flyingMove = nil, {}, {w=0,s=0,a=0,d=0,up=0,down=0}
@@ -399,8 +428,12 @@ for i,v in ipairs(opts) do
         end)
     elseif key=="Button" then
         but.MouseButton1Click:Connect(function()
-            Notify(opt.." uygulandı!") 
-            if opt=="Kill All" then KillAllPlayers() end
+            if opt=="Kill All" then
+                KillAllPlayers()
+                Notify("Tüm oyuncular öldürüldü!")
+            else
+                Notify(opt.." uygulandı!")
+            end
         end)
     elseif key=="Input" then
         but.MouseButton1Click:Connect(function()
