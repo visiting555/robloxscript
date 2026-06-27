@@ -1,6 +1,7 @@
 local UIS = game:GetService("UserInputService")
 local Players = game:GetService("Players")
 local RS = game:GetService("RunService")
+local TPService = game:GetService("TeleportService")
 local LP = Players.LocalPlayer
 local Cam = workspace.CurrentCamera
 
@@ -12,9 +13,11 @@ if not gui.Parent then gui.Parent = LP:FindFirstChildOfClass("PlayerGui") end
 local frame = Instance.new("Frame")
 frame.Parent = gui
 frame.BackgroundColor3 = Color3.fromRGB(28, 31, 42)
-frame.Size = UDim2.new(0, 400, 0, 455)
-frame.Position = UDim2.new(0.5, -200, 0.5, -220)
+frame.Size = UDim2.new(0, 400, 0, 495)
+frame.Position = UDim2.new(0.5, -200, 0.5, -240)
 frame.BorderSizePixel = 0
+frame.Active = true
+frame.Draggable = true
 
 local uiCorner = Instance.new("UICorner", frame)
 uiCorner.CornerRadius = UDim.new(0, 12)
@@ -35,7 +38,8 @@ local options = {
     {name="SilentAim",   kind="Toggle"},
     {name="Noclip",      kind="Toggle"},
     {name="Fly",         kind="Toggle"},
-    {name="Teleport",    kind="PickPlayer"}
+    {name="Teleport",    kind="PickPlayer"},
+    {name="Rejoin",      kind="Button"}
 }
 local optStates, btns = {}, {}
 local dropdownHandle = nil
@@ -47,12 +51,12 @@ local function notify(txt)
     n.Size = UDim2.new(1, 0, 0, 28)
     n.Position = UDim2.new(0,0,1,-34)
     n.BackgroundTransparency = 0.3
-    n.BackgroundColor3 = Color3.fromRGB(20,20,20)
-    n.TextColor3 = Color3.fromRGB(255,225,90)
+    n.BackgroundColor3 = Color3.fromRGB(40,13,13)
+    n.TextColor3 = Color3.fromRGB(255,83,83)
     n.Font = Enum.Font.GothamSemibold
     n.TextSize = 20
     n.ZIndex = 30
-    task.wait(2.8)
+    task.wait(2.2)
     pcall(function() n:Destroy() end)
 end
 
@@ -61,7 +65,7 @@ local function playerDropdown(cb)
     local panel = Instance.new("Frame")
     panel.Size = UDim2.new(0, 290, 0, 220)
     panel.Position = UDim2.new(0.5,-145,0.5,-110)
-    panel.BackgroundColor3 = Color3.fromRGB(36,40,56)
+    panel.BackgroundColor3 = Color3.fromRGB(36,12,12)
     panel.BorderSizePixel = 0
     local cr = Instance.new("UICorner", panel)
     cr.CornerRadius = UDim.new(0,11)
@@ -83,10 +87,10 @@ local function playerDropdown(cb)
             b.Parent = scroll
             b.Size = UDim2.new(1,-10,0,34)
             b.Position = UDim2.new(0,6,0,10+(i-1)*38)
-            b.TextColor3 = Color3.fromRGB(168,224,255)
+            b.TextColor3 = Color3.fromRGB(255,64,64)
             b.Font = Enum.Font.GothamBold
             b.TextSize = 20
-            b.BackgroundColor3 = Color3.fromRGB(31,50,90)
+            b.BackgroundColor3 = Color3.fromRGB(49,8,8)
             b.Text = player.DisplayName.." ["..player.Name.."]"
             local cr2 = Instance.new("UICorner", b)
             cr2.CornerRadius = UDim.new(0,7)
@@ -116,7 +120,7 @@ local function createOption(idx, name, kind)
     label.Text = name
     label.Font = Enum.Font.GothamMedium
     label.TextSize = 22
-    label.TextColor3 = Color3.fromRGB(204,227,252)
+    label.TextColor3 = Color3.fromRGB(255,83,83)
     label.TextXAlignment = Enum.TextXAlignment.Left
 
     if kind == "Toggle" then
@@ -127,7 +131,7 @@ local function createOption(idx, name, kind)
         toggle.Text = "KAPALI"
         toggle.Font = Enum.Font.GothamBold
         toggle.TextSize = 19
-        toggle.BackgroundColor3 = Color3.fromRGB(55,77,120)
+        toggle.BackgroundColor3 = Color3.fromRGB(91,26,26)
         toggle.TextColor3 = Color3.fromRGB(251,181,64)
         local cr = Instance.new("UICorner", toggle)
         cr.CornerRadius = UDim.new(0,8)
@@ -135,7 +139,7 @@ local function createOption(idx, name, kind)
         toggle.MouseButton1Click:Connect(function()
             optStates[name] = not optStates[name]
             toggle.Text = optStates[name] and "AÇIK" or "KAPALI"
-            toggle.BackgroundColor3 = optStates[name] and Color3.fromRGB(62,180,120) or Color3.fromRGB(55,77,120)
+            toggle.BackgroundColor3 = optStates[name] and Color3.fromRGB(210,33,52) or Color3.fromRGB(91,26,26)
         end)
         btns[name] = toggle
     elseif kind == "PickPlayer" then
@@ -146,7 +150,7 @@ local function createOption(idx, name, kind)
         openList.Text = "OYUNCU SEÇ"
         openList.Font = Enum.Font.GothamBold
         openList.TextSize = 18
-        openList.BackgroundColor3 = Color3.fromRGB(80, 67, 155)
+        openList.BackgroundColor3 = Color3.fromRGB(225, 38, 68)
         openList.TextColor3 = Color3.fromRGB(255,221,92)
         local cr = Instance.new("UICorner", openList)
         cr.CornerRadius = UDim.new(0,8)
@@ -159,6 +163,24 @@ local function createOption(idx, name, kind)
             end)
         end)
         btns[name] = openList
+    elseif kind == "Button" then
+        local btn = Instance.new("TextButton")
+        btn.Parent = holder
+        btn.Size = UDim2.new(0,105,1,0)
+        btn.Position = UDim2.new(1, -113, 0, 0)
+        btn.Text = name
+        btn.Font = Enum.Font.GothamBlack
+        btn.TextSize = 18
+        btn.BackgroundColor3 = Color3.fromRGB(200,26,42)
+        btn.TextColor3 = Color3.fromRGB(255,255,255)
+        local cr = Instance.new("UICorner", btn)
+        cr.CornerRadius = UDim.new(0,8)
+        btn.MouseButton1Click:Connect(function()
+            if name == "Rejoin" then
+                TPService:Teleport(game.PlaceId)
+            end
+        end)
+        btns[name] = btn
     end
 end
 
@@ -166,13 +188,45 @@ for i, v in ipairs(options) do
     createOption(i, v.name, v.kind)
 end
 
+local Drawing = Drawing
 local currentESP = {}
+local currentESPTracers = {}
 local espRunning = false
 
+local function get2DFrom3D(p)
+    local pos, onscreen = Cam:WorldToViewportPoint(p)
+    return Vector2.new(pos.X, pos.Y), onscreen
+end
+local function getBodyCorners(char)
+    local cfs = {}
+    local hrp = char:FindFirstChild("HumanoidRootPart")
+    if not hrp then return cfs end
+    local size = hrp.Size
+    local right = hrp.CFrame.RightVector
+    local up = hrp.CFrame.UpVector
+    local look = hrp.CFrame.LookVector
+    local half = size/2
+    local points = {
+        (hrp.Position + right*half.X + up*half.Y + look*half.Z),
+        (hrp.Position - right*half.X + up*half.Y + look*half.Z),
+        (hrp.Position + right*half.X - up*half.Y + look*half.Z),
+        (hrp.Position - right*half.X - up*half.Y + look*half.Z),
+        (hrp.Position + right*half.X + up*half.Y - look*half.Z),
+        (hrp.Position - right*half.X + up*half.Y - look*half.Z),
+        (hrp.Position + right*half.X - up*half.Y - look*half.Z),
+        (hrp.Position - right*half.X - up*half.Y - look*half.Z)
+    }
+    for _, pt in pairs(points) do
+        local vec, ons = get2DFrom3D(pt)
+        table.insert(cfs, {vec,ons})
+    end
+    return cfs
+end
+
 local function updateESP()
-    for p, obj in pairs(currentESP) do
+    for p, items in pairs(currentESP) do
         if not p.Parent or not Players:FindFirstChild(p.Name) then
-            if obj and typeof(obj.Remove)=="function" then obj:Remove() end
+            if items and #items > 0 then for _,o in pairs(items) do if o and typeof(o.Remove)=="function" then o:Remove() end end end
             currentESP[p] = nil
         end
     end
@@ -183,28 +237,40 @@ local function startESP()
     espRunning = true
     RS.RenderStepped:Connect(function()
         updateESP()
-        if not optStates["ESP"] then for _,o in pairs(currentESP) do pcall(function() if typeof(o.Remove)=="function" then o:Remove() end end) end currentESP = {} return end
+        if not optStates["ESP"] then
+            for _,items in pairs(currentESP) do for _,o in pairs(items) do pcall(function() if o and typeof(o.Remove)=="function" then o:Remove() end end) end end
+            currentESP = {}
+            return
+        end
         for _,p in pairs(Players:GetPlayers()) do
             if p ~= LP and p.Character and p.Character:FindFirstChild("HumanoidRootPart") and p.Character:FindFirstChildOfClass("Humanoid") and p.Character:FindFirstChildOfClass("Humanoid").Health > 0 then
-                if not currentESP[p] then
-                    if Drawing and Drawing.new then
-                        local s = Drawing.new("Square")
-                        s.Color = Color3.fromRGB(74,227,255)
-                        s.Thickness = 2
-                        s.Transparency = 1
-                        s.Filled = false
-                        s.Visible = true
-                        currentESP[p] = s
+                local corners = getBodyCorners(p.Character)
+                if not currentESP[p] then currentESP[p] = {} end
+                -- Outline
+                if p.Character and #corners >= 8 then
+                    if #currentESP[p]<12 then
+                        for i=1,12-#currentESP[p] do
+                            local l = Drawing and Drawing.new and Drawing.new("Line") or nil
+                            if l then l.Color=Color3.fromRGB(255,32,32) l.Thickness=2 l.Transparency=1 l.Visible=true end
+                            table.insert(currentESP[p], l)
+                        end
+                    end
+                    local boxIdx = 1
+                    local edges = {{1,2},{2,4},{4,3},{3,1},{5,6},{6,8},{8,7},{7,5},{1,5},{2,6},{3,7},{4,8}}
+                    for ei,edge in ipairs(edges) do
+                        local p1, on1 = corners[edge[1]][1], corners[edge[1]][2]
+                        local p2, on2 = corners[edge[2]][1], corners[edge[2]][2]
+                        if on1 and on2 then
+                            local l = currentESP[p][boxIdx]
+                            if l then l.From=l.To and l.From or p1 l.From=p1 l.To=p2 l.Color = Color3.fromRGB(255,32,32) l.Visible=true end
+                        else
+                            if currentESP[p][boxIdx] then currentESP[p][boxIdx].Visible=false end
+                        end
+                        boxIdx = boxIdx + 1
                     end
                 end
-                if currentESP[p] then
-                    local pos,vis = Cam:WorldToViewportPoint(p.Character.HumanoidRootPart.Position)
-                    currentESP[p].Position = Vector2.new(pos.X-35, pos.Y-55)
-                    currentESP[p].Size = Vector2.new(70,105)
-                    currentESP[p].Visible = vis
-                end
             elseif currentESP[p] then
-                currentESP[p].Visible = false
+                for _,o in pairs(currentESP[p]) do if o then o.Visible=false end end
             end
         end
     end)
@@ -239,7 +305,6 @@ local __random = function()
 end
 
 local function startSilentAim()
-    -- Fake raycast/hitbox math; binds to Mouse.Target or closest part to mouse
     local mouse = LP:GetMouse()
     local function getClosest()
         local mindist, target, tarpos = math.huge, nil, nil
@@ -259,41 +324,47 @@ local function startSilentAim()
         if optStates["SilentAim"] then
             local plr,pos = getClosest()
             if plr and pos then
-                -- math.power: imlece yakınına saptır
                 local offset = Vector3.new(
-                    math.sin(tick()*__random())*0.3,
-                    math.cos(tick()*__random())*0.15,
+                    math.sin(tick()*__random())*0.31,
+                    math.cos(tick()*__random())*0.19,
                     0)
                 mouse.Target = plr.Character.Head
-                mouse.Hit = CFrame.new(pos+offset)
+                mouse.Hit = CFrame.new(pos + offset)
             end
         end
     end)
 end
 
-local flyCon = nil
+local flyVel = Vector3.new()
+local flyActive, flyBV, flyConn = false, nil, nil
 local function startFly()
-    local bv = nil
-    flyCon = UIS.InputBegan:Connect(function(input, gpe)
-        if not optStates["Fly"] then if bv then bv:Destroy() bv=nil end return end
-        if input.KeyCode == Enum.KeyCode.Space and LP.Character and LP.Character:FindFirstChild("HumanoidRootPart") then
-            if not bv then
-                bv=Instance.new("BodyVelocity")
-                bv.MaxForce = Vector3.new(1,1,1)*999999
-                bv.Velocity = Vector3.new(0,64,0)
-                bv.Parent = LP.Character.HumanoidRootPart
-            end
+    flyBV = nil
+    flyActive = false
+    local function flyStep()
+        if not optStates["Fly"] or not LP.Character or not LP.Character:FindFirstChild("HumanoidRootPart") then
+            if flyBV then flyBV:Destroy() flyBV=nil end return
         end
-    end)
-    UIS.InputEnded:Connect(function(input, gpe)
-        if input.KeyCode == Enum.KeyCode.Space and bv then
-            bv:Destroy()
-            bv = nil
+        if not flyBV then
+            flyBV = Instance.new("BodyVelocity")
+            flyBV.MaxForce = Vector3.new(math.huge,math.huge,math.huge)
+            flyBV.Velocity = Vector3.new()
+            flyBV.Parent = LP.Character.HumanoidRootPart
         end
-    end)
+        local vel = Vector3.new()
+        local spd = 58
+        if UIS:IsKeyDown(Enum.KeyCode.W) then vel = vel + Cam.CFrame.LookVector end
+        if UIS:IsKeyDown(Enum.KeyCode.S) then vel = vel - Cam.CFrame.LookVector end
+        if UIS:IsKeyDown(Enum.KeyCode.A) then vel = vel - Cam.CFrame.RightVector end
+        if UIS:IsKeyDown(Enum.KeyCode.D) then vel = vel + Cam.CFrame.RightVector end
+        if UIS:IsKeyDown(Enum.KeyCode.E) then vel = vel + Cam.CFrame.UpVector end
+        if UIS:IsKeyDown(Enum.KeyCode.Q) then vel = vel - Cam.CFrame.UpVector end
+        if vel.Magnitude > 0 then vel = vel.Unit * spd end
+        flyBV.Velocity = vel
+    end
+    flyConn = RS.RenderStepped:Connect(flyStep)
+    UIS.InputBegan:Connect(function(i,gpe) if not gpe and i.KeyCode==Enum.KeyCode.F and optStates["Fly"] then optStates["Fly"] = false if flyBV then flyBV:Destroy() flyBV=nil end end end)
 end
 
-local noclipCon = nil
 local function startNoclip()
     RS.Stepped:Connect(function()
         if optStates["Noclip"] and LP.Character then
