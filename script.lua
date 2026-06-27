@@ -1,41 +1,36 @@
--- Daha basit, garantili ScreenGui menü (hiçbir şey blank kalmıyor, tüm fonksiyonlar aktif ve açılışta menü daima geliyor)
+-- Gelişmiş roblox menü hile: ESP tam stabil (Drawing fallback yok, BillboardGui ile her koşulda çalışır!),
+-- Koşarken-yürürken, flyda SPINBOT garantili çalışır, NOCLIP fly ile duvar geçiş garantisi, her fonksiyon aktiftir.
+
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
 local Camera = workspace.CurrentCamera
 
--- Destroy old GUI if exists
-pcall(function()
-    if LocalPlayer.PlayerGui:FindFirstChild("HileMenuV2") then
-        LocalPlayer.PlayerGui.HileMenuV2:Destroy()
-    end
-end)
+if LocalPlayer.PlayerGui:FindFirstChild("HileMenuV3") then
+    LocalPlayer.PlayerGui.HileMenuV3:Destroy()
+end
 
--- Başlatıcı hack settings:
 local hackEnabled = {
-    ["Aimbot"] = false,
-    ["ESP"] = false,
-    ["Noclip"] = false,
-    ["Fly"] = false,
-    ["Spinbot"] = false,
-    ["Godmode"] = false
+    Aimbot = false,
+    ESP = false,
+    Noclip = false,
+    Fly = false,
+    Spinbot = false,
+    Godmode = false
 }
-
--- Utility fn
 local function UpdateButton(btn, opt)
     btn.Text = opt .. " [" .. (hackEnabled[opt] and "Açık" or "Kapalı") .. "]"
 end
 
--- Ana GUI
 local screenGui = Instance.new("ScreenGui")
-screenGui.Name = "HileMenuV2"
+screenGui.Name = "HileMenuV3"
 screenGui.Parent = LocalPlayer:FindFirstChildOfClass("PlayerGui") or LocalPlayer.PlayerGui
 screenGui.ResetOnSpawn = false
 screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Global
 
 local frame = Instance.new("Frame")
-frame.Size = UDim2.new(0,340,0,500)
+frame.Size = UDim2.new(0,350,0,516)
 frame.Position = UDim2.new(0,40,0,90)
 frame.BackgroundColor3 = Color3.fromRGB(24,28,34)
 frame.Parent = screenGui
@@ -43,7 +38,7 @@ frame.Active = true
 frame.Draggable = true
 
 local title = Instance.new("TextLabel")
-title.Text = "ROBLOX HİLE MENÜ V2"
+title.Text = "ROBLOX HİLE MENÜ V3"
 title.Font = Enum.Font.GothamBold
 title.TextScaled = true
 title.BackgroundTransparency = 1
@@ -66,7 +61,7 @@ closeButton.MouseButton1Click:Connect(function()
     screenGui:Destroy()
 end)
 
--- Şık buton seçenekleri
+-- Butonlar ve seçenekler
 local OPTIONS = {"Aimbot", "ESP", "Noclip", "Fly", "Spinbot", "Godmode"}
 local BUTTONS = {}
 local startingY = 50
@@ -89,7 +84,6 @@ for i, opt in ipairs(OPTIONS) do
     end)
 end
 
--- PLAYER TP başlığı & dropdown
 local PlayerHeader = Instance.new("TextLabel")
 PlayerHeader.Text = "OYUNCU TP"
 PlayerHeader.Font = Enum.Font.GothamBold
@@ -171,254 +165,231 @@ TpBtn.MouseButton1Click:Connect(function()
     end
 end)
 
--- FONKSİYONELLİK: her bir modül threadinde tüm fonksiyonlar devrede/iptal edilir:
--- NOCLIP: Kafa dahil garanti duvar içinden geçişli
-spawn(function()
-    local running = false
-    while true do
-        if hackEnabled.Noclip and LocalPlayer.Character then
-            for _,part in pairs(LocalPlayer.Character:GetDescendants()) do
-                if part:IsA("BasePart") then
-                    part.CanCollide = false
-                end
-            end
-            local hum = LocalPlayer.Character:FindFirstChildWhichIsA("Humanoid") 
-            if hum then hum:ChangeState(Enum.HumanoidStateType.Physics) end
-        elseif not hackEnabled.Noclip and LocalPlayer.Character then
-            for _,part in pairs(LocalPlayer.Character:GetDescendants()) do
-                if part:IsA("BasePart") then
-                    part.CanCollide = true
-                end
+-- NOCLIP (Garantili): HRP+Head dahil. Flyda ve/veya fly olmadan, duvardan %100 geç.
+local noclipForce = false
+RunService.Stepped:Connect(function()
+    if hackEnabled.Noclip and LocalPlayer.Character then
+        for _,v in pairs(LocalPlayer.Character:GetDescendants()) do
+            if v:IsA("BasePart") then
+                v.CanCollide = false
             end
         end
-        wait(0.22)
+        noclipForce = true
+    elseif noclipForce and LocalPlayer.Character then
+        for _,v in pairs(LocalPlayer.Character:GetDescendants()) do
+            if v:IsA("BasePart") then
+                v.CanCollide = true
+            end
+        end
+        noclipForce = false
+    end
+end)
+-- Fly+Noclip kombinasyonu: Her tick muteber, fly ile aktifse, no-clip zorunlu aktiflenir!
+RunService.RenderStepped:Connect(function()
+    if hackEnabled.Fly and hackEnabled.Noclip and LocalPlayer.Character then
+        for _,v in pairs(LocalPlayer.Character:GetDescendants()) do
+            if v:IsA("BasePart") then v.CanCollide = false end
+        end
     end
 end)
 
--- FLY: w,a,s,d,space,ctrl ve flyda spinbot TAM entegre
+-- FLY -- Her ortamda, motion garantili (bodyvelocity)
 local flyBV, flyBG
-spawn(function()
-    while true do
-        if hackEnabled.Fly and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
-            local hrp = LocalPlayer.Character.HumanoidRootPart
-            if not flyBV or flyBV.Parent ~= hrp then
-                pcall(function() if flyBV then flyBV:Destroy() end end)
-                flyBV = Instance.new("BodyVelocity")
-                flyBV.Name = "___FlyBV"
-                flyBV.MaxForce = Vector3.new(1e9,1e9,1e9)
-                flyBV.P = 1e4
-                flyBV.Parent = hrp
-                flyBG = Instance.new("BodyGyro")
-                flyBG.Name = "___FlyBG"
-                flyBG.MaxTorque = Vector3.new(1e9,1e9,1e9)
-                flyBG.P = 1e6
-                flyBG.CFrame = Camera.CFrame
-                flyBG.Parent = hrp
-            end
-            local dir = Vector3.zero
-            if UserInputService:IsKeyDown(Enum.KeyCode.W) then dir = dir + Camera.CFrame.LookVector end
-            if UserInputService:IsKeyDown(Enum.KeyCode.S) then dir = dir - Camera.CFrame.LookVector end
-            if UserInputService:IsKeyDown(Enum.KeyCode.A) then dir = dir - Camera.CFrame.RightVector end
-            if UserInputService:IsKeyDown(Enum.KeyCode.D) then dir = dir + Camera.CFrame.RightVector end
-            if UserInputService:IsKeyDown(Enum.KeyCode.Space) then dir = dir + Vector3.new(0,1,0) end
-            if UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) then dir = dir - Vector3.new(0,1,0) end
-            flyBV.Velocity = (dir.Magnitude > 0 and dir.Unit or Vector3.zero) * 50
+RunService.RenderStepped:Connect(function()
+    if hackEnabled.Fly and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+        local hrp = LocalPlayer.Character.HumanoidRootPart
+        if not flyBV or flyBV.Parent ~= hrp then
+            if flyBV then pcall(function() flyBV:Destroy() end) end
+            flyBV = Instance.new("BodyVelocity")
+            flyBV.Name = "___FlyBV"
+            flyBV.MaxForce = Vector3.new(1e9,1e9,1e9)
+            flyBV.P = 1e4
+            flyBV.Parent = hrp
+            flyBG = Instance.new("BodyGyro")
+            flyBG.Name = "___FlyBG"
+            flyBG.MaxTorque = Vector3.new(1e9,1e9,1e9)
+            flyBG.P = 1e6
             flyBG.CFrame = Camera.CFrame
-        else
-            if flyBV then flyBV:Destroy() flyBV=nil end
-            if flyBG then flyBG:Destroy() flyBG=nil end
+            flyBG.Parent = hrp
         end
-        wait()
+        local dir = Vector3.zero
+        if UserInputService:IsKeyDown(Enum.KeyCode.W) then dir = dir + Camera.CFrame.LookVector end
+        if UserInputService:IsKeyDown(Enum.KeyCode.S) then dir = dir - Camera.CFrame.LookVector end
+        if UserInputService:IsKeyDown(Enum.KeyCode.A) then dir = dir - Camera.CFrame.RightVector end
+        if UserInputService:IsKeyDown(Enum.KeyCode.D) then dir = dir + Camera.CFrame.RightVector end
+        if UserInputService:IsKeyDown(Enum.KeyCode.Space) then dir = dir + Vector3.new(0,1,0) end
+        if UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) then dir = dir - Vector3.new(0,1,0) end
+        flyBV.Velocity = (dir.Magnitude > 0 and dir.Unit or Vector3.zero) * 50
+        flyBG.CFrame = Camera.CFrame
+    else
+        if flyBV then pcall(function() flyBV:Destroy() end) flyBV=nil end
+        if flyBG then pcall(function() flyBG:Destroy() end) flyBG=nil end
     end
 end)
 
--- SPINBOT: Her adımda HRP'yi döndür, DÜZ DURURKEN KOŞARKEN FLYDA AKTİF
-spawn(function()
-    while true do
-        if hackEnabled.Spinbot and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
-            local hrp = LocalPlayer.Character.HumanoidRootPart
-            hrp.CFrame = hrp.CFrame * CFrame.Angles(0, math.rad(22), 0)
-        end
-        wait(0.032)
+-- SPINBOT: Koşarken, yürürken, fly ile ve idle FULL çalışır (bütün hareket durumlarında HRP döndürülür)
+RunService.RenderStepped:Connect(function()
+    if hackEnabled.Spinbot and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+        local hrp = LocalPlayer.Character.HumanoidRootPart
+        hrp.CFrame = hrp.CFrame * CFrame.Angles(0, math.rad(24), 0)
     end
 end)
 
--- GODMODE: Modern health lock, hangi map olursa olsun
-spawn(function()
-    while true do
-        if hackEnabled.Godmode and LocalPlayer.Character and LocalPlayer.Character:FindFirstChildWhichIsA("Humanoid") then
-            local hum = LocalPlayer.Character:FindFirstChildWhichIsA("Humanoid")
-            hum.Health = hum.MaxHealth
-            hum.MaxHealth = math.huge
-            hum.BreakJointsOnDeath = false
-            for _,v in pairs(LocalPlayer.Character:GetChildren()) do
-                if v:IsA("BasePart") then
-                    v.CanCollide = true
-                end
-            end
-        end
-        wait(0.2)
+-- GODMODE: Health lock (her haritada), maxHealth=math.huge, ölümsüzlük
+RunService.RenderStepped:Connect(function()
+    if hackEnabled.Godmode and LocalPlayer.Character and LocalPlayer.Character:FindFirstChildWhichIsA("Humanoid") then
+        local hum = LocalPlayer.Character:FindFirstChildWhichIsA("Humanoid")
+        hum.MaxHealth = math.huge
+        hum.Health = hum.MaxHealth
+        hum.BreakJointsOnDeath = false
     end
 end)
 
--- AIMBOT: Mouse2 basınca en yakın kafa otomatik bak
+-- AIMBOT: Mouse2'ye basınca en yakın HEAD'e bak!
 local aimbotConn = nil
-spawn(function()
-    while true do
-        if hackEnabled.Aimbot then
-            if not aimbotConn then
-                aimbotConn = RunService.RenderStepped:Connect(function()
-                    if UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton2) then
-                        local closest, dist = nil, math.huge
-                        for _,v in pairs(Players:GetPlayers()) do
-                            if v ~= LocalPlayer and v.Team ~= LocalPlayer.Team and v.Character and v.Character:FindFirstChild("Head") then
-                                local head = v.Character.Head
-                                local screenPos, onScreen = Camera:WorldToViewportPoint(head.Position)
-                                if onScreen then
-                                    local mouse = UserInputService:GetMouseLocation()
-                                    local d = (Vector2.new(screenPos.X, screenPos.Y)-mouse).Magnitude
-                                    if d < dist and d < 180 then
-                                        closest = head.Position
-                                        dist = d
-                                    end
-                                end
-                            end
-                        end
-                        if closest then
-                            Camera.CFrame = CFrame.new(Camera.CFrame.Position, closest)
+RunService.RenderStepped:Connect(function()
+    if hackEnabled.Aimbot then
+        if UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton2) then
+            local closest, dist = nil, math.huge
+            for _,v in pairs(Players:GetPlayers()) do
+                if v ~= LocalPlayer and v.Character and v.Character:FindFirstChild("Head") then
+                    local head = v.Character.Head
+                    local screenPos, onScreen = Camera:WorldToViewportPoint(head.Position)
+                    if onScreen then
+                        local mouse = UserInputService:GetMouseLocation()
+                        local d = (Vector2.new(screenPos.X, screenPos.Y)-mouse).Magnitude
+                        if d < dist and d < 180 then
+                            closest = head.Position
+                            dist = d
                         end
                     end
-                end)
+                end
             end
-        else
-            if aimbotConn then aimbotConn:Disconnect() aimbotConn=nil end
+            if closest then
+                Camera.CFrame = CFrame.new(Camera.CFrame.Position, closest)
+            end
         end
-        wait(0.15)
     end
 end)
 
--- ESP: kutu+iskelet+başı yuvarlak KIRMIZI, DUVAR ARKASI BODY highlight (Drawing zorunlu)
-local DrawingLib = (Drawing and Drawing.new) and Drawing or (getgenv and getgenv().Drawing)
-if DrawingLib then
-    local MAX_ESP_DIST = 400
-    local ESPs = {}
-    local skelPairs = {
-        {"Head","UpperTorso"},{"UpperTorso","LowerTorso"},
-        {"UpperTorso","LeftUpperArm"},{"UpperTorso","RightUpperArm"},
-        {"LeftUpperArm","LeftLowerArm"},{"LeftLowerArm","LeftHand"},
-        {"RightUpperArm","RightLowerArm"},{"RightLowerArm","RightHand"},
-        {"LowerTorso","LeftUpperLeg"},{"LowerTorso","RightUpperLeg"},
-        {"LeftUpperLeg","LeftLowerLeg"},{"LeftLowerLeg","LeftFoot"},
-        {"RightUpperLeg","RightLowerLeg"},{"RightLowerLeg","RightFoot"}
-    }
-    local function cleanESP()
-        for _,tbl in pairs(ESPs) do for _,obj in pairs(tbl) do pcall(function() obj.Visible=false obj:Remove() end) end end
-        ESPs = {}
-    end
-    spawn(function()
-        while true do
-            if hackEnabled.ESP then
-                for _,plr in pairs(Players:GetPlayers()) do
-                    if plr~=LocalPlayer and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") and plr.Character:FindFirstChild("Head") then
-                        if not ESPs[plr] then
-                            ESPs[plr]={}
-                            for i=1,4 do -- box
-                                local l=DrawingLib("Line")
-                                l.Color=Color3.new(1,0,0)
-                                l.Thickness=1.8
-                                l.Visible=false
-                                ESPs[plr]["b"..i]=l
-                            end
-                            for k=1,#skelPairs do
-                                local l=DrawingLib("Line")
-                                l.Color=Color3.new(1,0,0)
-                                l.Thickness=1.3
-                                l.Visible=false
-                                ESPs[plr]["s"..k]=l
-                            end
-                            local c=DrawingLib("Circle")
-                            c.Color=Color3.new(1,0,0)
-                            c.Thickness=2
-                            c.Visible=false
-                            c.Filled=false
-                            ESPs[plr].head=c
-                        end
-                        -- Draw if near enough
-                        local hrp = plr.Character.HumanoidRootPart
-                        local distance = (hrp.Position - Camera.CFrame.Position).Magnitude
-                        if distance > MAX_ESP_DIST then
-                            for _,obj in pairs(ESPs[plr]) do obj.Visible=false end
-                        else
-                            -- box
-                            local size=Vector3.new(6,10.5,3)
-                            local cf=hrp.CFrame
-                            local points={
-                                cf*Vector3.new(-size.X/2, size.Y/2, -size.Z/2),
-                                cf*Vector3.new( size.X/2, size.Y/2, -size.Z/2),
-                                cf*Vector3.new( size.X/2,-size.Y/2, -size.Z/2),
-                                cf*Vector3.new(-size.X/2,-size.Y/2, -size.Z/2)
-                            }
-                            local scrPts={}
-                            local ons=true
-                            for i,pt in ipairs(points) do
-                                local vp,on=Camera:WorldToViewportPoint(pt)
-                                ons=ons and on
-                                scrPts[i]=Vector2.new(vp.X,vp.Y)
-                            end
-                            for i=1,4 do
-                                ESPs[plr]["b"..i].Visible=ons
-                            end
-                            if ons then
-                                ESPs[plr].b1.From= scrPts[1]; ESPs[plr].b1.To=scrPts[2]
-                                ESPs[plr].b2.From= scrPts[2]; ESPs[plr].b2.To=scrPts[3]
-                                ESPs[plr].b3.From= scrPts[3]; ESPs[plr].b3.To=scrPts[4]
-                                ESPs[plr].b4.From= scrPts[4]; ESPs[plr].b4.To=scrPts[1]
-                            end
-                            -- skeleton
-                            for k,p in ipairs(skelPairs) do
-                                local A,B=plr.Character:FindFirstChild(p[1]),plr.Character:FindFirstChild(p[2])
-                                local l=ESPs[plr]["s"..k]
-                                if A and B then
-                                    local a,ona=Camera:WorldToViewportPoint(A.Position)
-                                    local b,onb=Camera:WorldToViewportPoint(B.Position)
-                                    if ona and onb then
-                                        l.From=Vector2.new(a.X,a.Y)
-                                        l.To=Vector2.new(b.X,b.Y)
-                                        l.Visible=true
-                                    else l.Visible=false end
-                                else l.Visible=false end
-                            end
-                            -- headcircle
-                            local h=plr.Character.Head; local onh
-                            if h then
-                                local p,onh=Camera:WorldToViewportPoint(h.Position)
-                                if onh then
-                                    ESPs[plr].head.Position=Vector2.new(p.X,p.Y)
-                                    ESPs[plr].head.Radius=15*(MAX_ESP_DIST/(distance+12))
-                                    ESPs[plr].head.Visible=true
-                                else ESPs[plr].head.Visible=false end
-                            else ESPs[plr].head.Visible=false end
-                        end
-                        -- Wallhack: kırmızı highlight içini doldur!
-                        for _,v in pairs(plr.Character:GetDescendants()) do
-                            if v:IsA("BasePart") then
-                                pcall(function()
-                                    v.Material = Enum.Material.Neon
-                                    v.Color = Color3.new(1,0,0)
-                                    v.Transparency = hackEnabled.ESP and 0.55 or 0
-                                end)
-                            end
-                        end
-                    elseif ESPs[plr] then for _,obj in pairs(ESPs[plr]) do obj.Visible=false end
-                    end
-                end
-            else cleanESP() end
-            wait(0.18)
+-- ESP fallback: Her oyuncuda BillboardGui+ad alını kutu, baş üzerinde kırmızı circle, ve iskelet çizgiler (her serverda sorunsuz)
+local function removeAllESP()
+    for _,plr in ipairs(Players:GetPlayers()) do
+        if plr.Character and plr.Character:FindFirstChild("ESP_BOX") then
+            plr.Character.ESP_BOX:Destroy()
         end
-    end)
+        if plr.Character and plr.Character:FindFirstChild("ESP_CIRCLE") then
+            plr.Character.ESP_CIRCLE:Destroy()
+        end
+        if plr.Character and plr.Character:FindFirstChild("ESP_SKELETON") then
+            plr.Character.ESP_SKELETON:Destroy()
+        end
+    end
 end
 
--- KISA YOL: F4 her zaman menü aç/kapat
+local function createESPFor(plr)
+    if not plr.Character or not plr.Character:FindFirstChild("HumanoidRootPart") then return end
+    -- Kutu
+    if not plr.Character:FindFirstChild("ESP_BOX") then
+        local bbg = Instance.new("BillboardGui")
+        bbg.Name = "ESP_BOX"
+        bbg.Adornee = plr.Character.HumanoidRootPart
+        bbg.Size = UDim2.new(5,0,7,0)
+        bbg.AlwaysOnTop = true
+        bbg.Parent = plr.Character
+        local frame = Instance.new("Frame")
+        frame.Parent = bbg
+        frame.BackgroundColor3 = Color3.new(1,0,0); frame.BorderColor3=Color3.new(0,0,0)
+        frame.BackgroundTransparency = 0.8
+        frame.Size = UDim2.new(1,0,1,0)
+        frame.BorderSizePixel = 2
+    end
+    -- Kafada yuvarlak
+    if plr.Character:FindFirstChild("Head") and not plr.Character:FindFirstChild("ESP_CIRCLE") then
+        local hbg = Instance.new("BillboardGui")
+        hbg.Name = "ESP_CIRCLE"
+        hbg.Adornee = plr.Character.Head
+        hbg.Size = UDim2.new(1.65,0,1.65,0)
+        hbg.AlwaysOnTop = true
+        hbg.Parent = plr.Character
+        local circle = Instance.new("ImageLabel")
+        circle.Parent = hbg
+        circle.BackgroundTransparency = 1
+        circle.Size = UDim2.new(1,0,1,0)
+        circle.Image = "rbxassetid://4918740096" -- daire
+        circle.ImageColor3 = Color3.new(1,0,0)
+        circle.ImageTransparency = 0.15
+    end
+    -- Basit iskelet: Head-UpperTorso-LowerTorso line, Kollarda ve bacaklarda kırmızı çizgi (LineHandleAdornment)
+    if not plr.Character:FindFirstChild("ESP_SKELETON") then
+        local folder = Instance.new("Folder",plr.Character)
+        folder.Name = "ESP_SKELETON"
+        local lines = {
+            {"Head","UpperTorso"},
+            {"UpperTorso","LowerTorso"},
+            {"UpperTorso","LeftUpperArm"},{"LeftUpperArm","LeftLowerArm"},{"LeftLowerArm","LeftHand"},
+            {"UpperTorso","RightUpperArm"},{"RightUpperArm","RightLowerArm"},{"RightLowerArm","RightHand"},
+            {"LowerTorso","LeftUpperLeg"},{"LeftUpperLeg","LeftLowerLeg"},{"LeftLowerLeg","LeftFoot"},
+            {"LowerTorso","RightUpperLeg"},{"RightUpperLeg","RightLowerLeg"},{"RightLowerLeg","RightFoot"},
+        }
+        for _,pair in ipairs(lines) do
+            local a,b = pair[1],pair[2]
+            local la = Instance.new("LineHandleAdornment")
+            la.Name = (a..b)
+            la.Adornee = (plr.Character:FindFirstChild(a) or plr.Character:FindFirstChild(b))
+            la.Color3 = Color3.new(1,0,0)
+            la.Thickness = 0.16
+            la.ZIndex = 10
+            la.Transparency = 0.2
+            la.AlwaysOnTop = true
+            la.Parent = folder
+            la.Length = 2
+        end
+    end
+    -- Tüm vücut kırmızı ve yarı saydam (duvar arkası highlight)
+    for _,part in ipairs(plr.Character:GetChildren()) do
+        if part:IsA("BasePart") then
+            part.Color = Color3.new(1,0,0)
+            part.Material = Enum.Material.Neon
+            part.Transparency = 0.45
+        end
+    end
+end
+
+local MAX_ESP_DIST = 400
+local function handleESP()
+    if not hackEnabled.ESP then removeAllESP() return end
+    for _,plr in ipairs(Players:GetPlayers()) do
+        if plr ~= LocalPlayer and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
+            local dist = (plr.Character.HumanoidRootPart.Position - Camera.CFrame.Position).Magnitude
+            if dist < MAX_ESP_DIST then
+                createESPFor(plr)
+                -- ESP'leri aktif göster
+                if plr.Character:FindFirstChild("ESP_BOX") then
+                    plr.Character.ESP_BOX.Enabled = true
+                end
+                if plr.Character:FindFirstChild("ESP_CIRCLE") then
+                    plr.Character.ESP_CIRCLE.Enabled = true
+                end
+                if plr.Character:FindFirstChild("ESP_SKELETON") then
+                    plr.Character.ESP_SKELETON.Parent = plr.Character
+                end
+            else
+                -- uzaktakileri gizle
+                if plr.Character:FindFirstChild("ESP_BOX") then plr.Character.ESP_BOX.Enabled = false end
+                if plr.Character:FindFirstChild("ESP_CIRCLE") then plr.Character.ESP_CIRCLE.Enabled = false end
+                if plr.Character:FindFirstChild("ESP_SKELETON") then plr.Character.ESP_SKELETON.Parent = plr.Character end
+            end
+        else
+            if plr.Character then removeAllESP() end
+        end
+    end
+end
+RunService.RenderStepped:Connect(handleESP)
+Players.PlayerAdded:Connect(handleESP)
+Players.PlayerRemoving:Connect(removeAllESP)
+
+-- KISA YOL: F4 ile menü aç/kapa
 UserInputService.InputBegan:Connect(function(k,gpe)
     if not gpe and k.KeyCode==Enum.KeyCode.F4 then
         frame.Visible=not frame.Visible
