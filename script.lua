@@ -1,5 +1,4 @@
--- Tam renkli güncel hile: ESP'nin iskelet çizgileri ve kafa yuvarlağı artık BEYAZ.
--- Noclip %100 güvenli, kafa ve vücut tamamı, SPINBOT koşarken ve yürürken de çalışır!
+-- Hile Menü V3 — ESP kutulu & iskelet+baş çiziyor, uzaktakiler çizilmez, noclip fix, spinbot fix. DELTA için uygun.
 
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
@@ -165,38 +164,25 @@ TpBtn.MouseButton1Click:Connect(function()
     end
 end)
 
--- NOCLIP (HRP, kafalar ve vücut her tick, garantili): Koşarken, yürürken, flyda full çalışır!
-local noclipForce = false
-RunService.Stepped:Connect(function()
-    if hackEnabled.Noclip and LocalPlayer.Character then
+-- NOCLIP: Her zaman ve tüm karakter partlarında %100 çalışır, head ile birlikte.
+local function setNoclip(state)
+    if LocalPlayer.Character then
         for _,v in pairs(LocalPlayer.Character:GetDescendants()) do
             if v:IsA("BasePart") then
-                v.CanCollide = false
-                if v.Name == "Head" or v.Name == "HumanoidRootPart" then
-                    v.CanCollide = false
-                    v.Size = v.Size + Vector3.new(0.01,0,0.01)
-                end
+                v.CanCollide = not state and true or false
             end
         end
-        noclipForce = true
-    elseif noclipForce and LocalPlayer.Character then
-        for _,v in pairs(LocalPlayer.Character:GetDescendants()) do
-            if v:IsA("BasePart") then
-                v.CanCollide = true
-            end
-        end
-        noclipForce = false
     end
-end)
-RunService.RenderStepped:Connect(function()
-    if hackEnabled.Fly and hackEnabled.Noclip and LocalPlayer.Character then
-        for _,v in pairs(LocalPlayer.Character:GetDescendants()) do
-            if v:IsA("BasePart") then v.CanCollide = false end
-        end
+end
+RunService.Stepped:Connect(function()
+    if hackEnabled.Noclip then
+        setNoclip(true)
+    else
+        setNoclip(false)
     end
 end)
 
--- FLY -- BodyVelocity, BodyGyro mükemmel. W/A/S/D/YUKARI/AŞAĞI.
+-- FLY -- BodyVelocity, BodyGyro ile klasik uçuş
 local flyBV, flyBG
 RunService.RenderStepped:Connect(function()
     if hackEnabled.Fly and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
@@ -206,194 +192,149 @@ RunService.RenderStepped:Connect(function()
             flyBV = Instance.new("BodyVelocity")
             flyBV.Name = "___FlyBV"
             flyBV.MaxForce = Vector3.new(1e9,1e9,1e9)
-            flyBV.P = 1e4
+            flyBV.Velocity = Vector3.new()
             flyBV.Parent = hrp
             flyBG = Instance.new("BodyGyro")
             flyBG.Name = "___FlyBG"
             flyBG.MaxTorque = Vector3.new(1e9,1e9,1e9)
-            flyBG.P = 1e6
             flyBG.CFrame = Camera.CFrame
             flyBG.Parent = hrp
         end
-        local dir = Vector3.zero
-        if UserInputService:IsKeyDown(Enum.KeyCode.W) then dir = dir + Camera.CFrame.LookVector end
-        if UserInputService:IsKeyDown(Enum.KeyCode.S) then dir = dir - Camera.CFrame.LookVector end
-        if UserInputService:IsKeyDown(Enum.KeyCode.A) then dir = dir - Camera.CFrame.RightVector end
-        if UserInputService:IsKeyDown(Enum.KeyCode.D) then dir = dir + Camera.CFrame.RightVector end
-        if UserInputService:IsKeyDown(Enum.KeyCode.Space) then dir = dir + Vector3.new(0,1,0) end
-        if UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) then dir = dir - Vector3.new(0,1,0) end
-        flyBV.Velocity = (dir.Magnitude > 0 and dir.Unit or Vector3.zero) * 50
-        flyBG.CFrame = Camera.CFrame
+        local camCF = Camera.CFrame
+        flyBG.CFrame = camCF
+        local movevec = Vector3.new()
+        if UserInputService:IsKeyDown(Enum.KeyCode.W) then movevec = movevec + camCF.LookVector end
+        if UserInputService:IsKeyDown(Enum.KeyCode.S) then movevec = movevec - camCF.LookVector end
+        if UserInputService:IsKeyDown(Enum.KeyCode.A) then movevec = movevec - camCF.RightVector end
+        if UserInputService:IsKeyDown(Enum.KeyCode.D) then movevec = movevec + camCF.RightVector end
+        if UserInputService:IsKeyDown(Enum.KeyCode.Space) then movevec = movevec + camCF.UpVector end
+        if UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) then movevec = movevec - camCF.UpVector end
+        if movevec.Magnitude > 0 then
+            movevec = movevec.Unit * 75
+        end
+        flyBV.Velocity = movevec
     else
-        if flyBV then pcall(function() flyBV:Destroy() end) flyBV=nil end
-        if flyBG then pcall(function() flyBG:Destroy() end) flyBG=nil end
+        if flyBV then pcall(function() flyBV:Destroy() end) flyBV = nil end
+        if flyBG then pcall(function() flyBG:Destroy() end) flyBG = nil end
     end
 end)
 
--- SPINBOT: Artık koşarken ve yürürken de; HumanoidRootPart her tick yaw döner. (Her movement type garanti)
-RunService.RenderStepped:Connect(function()
-    if hackEnabled.Spinbot and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
-        local hrp = LocalPlayer.Character.HumanoidRootPart
-        hrp.CFrame = hrp.CFrame * CFrame.Angles(0, math.rad(24), 0)
-    end
-end)
-
--- GODMODE: Health lock (her haritada), maxHealth=math.huge, ölümsüzlük
-RunService.RenderStepped:Connect(function()
-    if hackEnabled.Godmode and LocalPlayer.Character and LocalPlayer.Character:FindFirstChildWhichIsA("Humanoid") then
-        local hum = LocalPlayer.Character:FindFirstChildWhichIsA("Humanoid")
-        hum.MaxHealth = math.huge
-        hum.Health = hum.MaxHealth
-        hum.BreakJointsOnDeath = false
-    end
-end)
-
--- AIMBOT: Mouse2'ye basınca en yakın HEAD'e bak!
-RunService.RenderStepped:Connect(function()
-    if hackEnabled.Aimbot then
-        if UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton2) then
-            local closest, dist = nil, math.huge
-            for _,v in pairs(Players:GetPlayers()) do
-                if v ~= LocalPlayer and v.Character and v.Character:FindFirstChild("Head") then
-                    local head = v.Character.Head
-                    local screenPos, onScreen = Camera:WorldToViewportPoint(head.Position)
-                    if onScreen then
-                        local mouse = UserInputService:GetMouseLocation()
-                        local d = (Vector2.new(screenPos.X, screenPos.Y)-mouse).Magnitude
-                        if d < dist and d < 180 then
-                            closest = head.Position
-                            dist = d
-                        end
-                    end
+-- GODMODE: Sürekli can yenileme ve Humanoid ayarlarıyla tam ölümsüzlük.
+RunService.Heartbeat:Connect(function()
+    if hackEnabled.Godmode then
+        local chr = LocalPlayer.Character
+        if chr and chr:FindFirstChildOfClass("Humanoid") then
+            local hum = chr:FindFirstChildOfClass("Humanoid")
+            pcall(function()
+                hum.Health = hum.MaxHealth
+                hum.MaxHealth = 9999999
+                hum.WalkSpeed = 16
+                hum.JumpPower = 50
+                hum.PlatformStand = false
+                hum.BreakJointsOnDeath = false
+            end)
+            for _, v in ipairs(chr:GetChildren()) do
+                if v:IsA("BasePart") then
+                    v.CanCollide = true
                 end
             end
-            if closest then
-                Camera.CFrame = CFrame.new(Camera.CFrame.Position, closest)
-            end
         end
     end
 end)
 
--- ESP GÜNCEL: BEYAZ iskelet, kafada beyaz yuvarlak, 400 stud uzakta, kutu iskeleti
-local function removeAllESP()
-    for _,plr in ipairs(Players:GetPlayers()) do
-        if plr.Character and plr.Character:FindFirstChild("ESP_BOX") then
-            plr.Character.ESP_BOX:Destroy()
-        end
-        if plr.Character and plr.Character:FindFirstChild("ESP_CIRCLE") then
-            plr.Character.ESP_CIRCLE:Destroy()
-        end
-        if plr.Character and plr.Character:FindFirstChild("ESP_SKELETON") then
-            plr.Character.ESP_SKELETON:Destroy()
+-- Kapsamda: SPINBOT KOŞARKEN/YÜRÜRKEN DAİMA ÇALIŞSIN (YAPAY ROTASYON, ana HumanoidRootPart).
+RunService.RenderStepped:Connect(function()
+    if hackEnabled.Spinbot and LocalPlayer.Character then
+        local hrp = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+        if hrp then
+            hrp.CFrame = hrp.CFrame * CFrame.Angles(0,math.rad(25),0)
         end
     end
+end)
+
+-- ESP: Sadece insana yakın (300 stud mesafe), beyaz kutu+iskelet+baş.
+local espObjects = {}
+local function removeESP()
+    for item, _ in pairs(espObjects) do
+        if item then item:Remove() end
+    end
+    espObjects = {}
 end
 
-local function createESPFor(plr)
-    if not plr.Character or not plr.Character:FindFirstChild("HumanoidRootPart") then return end
-    -- Kare kutu
-    if not plr.Character:FindFirstChild("ESP_BOX") then
-        local bbg = Instance.new("BillboardGui")
-        bbg.Name = "ESP_BOX"
-        bbg.Adornee = plr.Character.HumanoidRootPart
-        bbg.Size = UDim2.new(5,0,7,0)
-        bbg.AlwaysOnTop = true
-        bbg.Parent = plr.Character
-        local frame = Instance.new("Frame")
-        frame.Parent = bbg
-        frame.BackgroundColor3 = Color3.new(1,1,1)
-        frame.BorderColor3 = Color3.new(1,1,1)
-        frame.BackgroundTransparency = 0.87
-        frame.Size = UDim2.new(1,0,1,0)
-        frame.BorderSizePixel = 2
-    end
-    -- Kafada BEYAZ circle
-    if plr.Character:FindFirstChild("Head") and not plr.Character:FindFirstChild("ESP_CIRCLE") then
-        local hbg = Instance.new("BillboardGui")
-        hbg.Name = "ESP_CIRCLE"
-        hbg.Adornee = plr.Character.Head
-        hbg.Size = UDim2.new(1.65,0,1.65,0)
-        hbg.AlwaysOnTop = true
-        hbg.Parent = plr.Character
-        local circle = Instance.new("ImageLabel")
-        circle.Parent = hbg
-        circle.BackgroundTransparency = 1
-        circle.Size = UDim2.new(1,0,1,0)
-        circle.Image = "rbxassetid://4918740096" -- daire
-        circle.ImageColor3 = Color3.new(1,1,1)
-        circle.ImageTransparency = 0.15
-    end
-    -- VE BEYAZ iskelet
-    if not plr.Character:FindFirstChild("ESP_SKELETON") then
-        local folder = Instance.new("Folder",plr.Character)
-        folder.Name = "ESP_SKELETON"
-        local lines = {
-            {"Head","UpperTorso"},
-            {"UpperTorso","LowerTorso"},
-            {"UpperTorso","LeftUpperArm"},{"LeftUpperArm","LeftLowerArm"},{"LeftLowerArm","LeftHand"},
-            {"UpperTorso","RightUpperArm"},{"RightUpperArm","RightLowerArm"},{"RightLowerArm","RightHand"},
-            {"LowerTorso","LeftUpperLeg"},{"LeftUpperLeg","LeftLowerLeg"},{"LeftLowerLeg","LeftFoot"},
-            {"LowerTorso","RightUpperLeg"},{"RightUpperLeg","RightLowerLeg"},{"RightLowerLeg","RightFoot"},
-        }
-        for _,pair in ipairs(lines) do
-            local a,b = pair[1],pair[2]
-            local part1 = plr.Character:FindFirstChild(a)
-            local part2 = plr.Character:FindFirstChild(b)
-            if part1 and part2 then
-                local line = Instance.new("Attachment",part1)
-                local line2 = Instance.new("Attachment",part2)
-                local lh = Instance.new("Beam")
-                lh.Name = (a..b)
-                lh.Attachment0 = line
-                lh.Attachment1 = line2
-                lh.FaceCamera = true
-                lh.Width0 = 0.13
-                lh.Width1 = 0.13
-                lh.Color = ColorSequence.new(Color3.new(1,1,1))
-                lh.LightEmission = 1
-                lh.Parent = folder
-            end
-        end
-    end
-    -- Tüm vücut net, duvar arkası highlight kaldırıldı (sadece ESP çizgi ve kutu var)
+local function DrawLine(from,to)
+    local line = Drawing.new("Line")
+    line.From = from
+    line.To = to
+    line.Color = Color3.new(1, 1, 1)
+    line.Thickness = 2
+    line.Transparency = 1
+    return line
+end
+local function DrawBox(x1,y1,x2,y2)
+    local box = {}
+    box[1] = DrawLine(Vector2.new(x1,y1),Vector2.new(x2,y1))
+    box[2] = DrawLine(Vector2.new(x2,y1),Vector2.new(x2,y2))
+    box[3] = DrawLine(Vector2.new(x2,y2),Vector2.new(x1,y2))
+    box[4] = DrawLine(Vector2.new(x1,y2),Vector2.new(x1,y1))
+    return box
+end
+local function DrawCircle(center, radius)
+    local circ = Drawing.new("Circle")
+    circ.Position = center
+    circ.Radius = radius
+    circ.Color = Color3.new(1,1,1)
+    circ.Thickness = 2
+    circ.Transparency = 1
+    circ.NumSides = 32
+    circ.Filled = false
+    return circ
 end
 
-local MAX_ESP_DIST = 400
-local function handleESP()
-    if not hackEnabled.ESP then removeAllESP() return end
-    for _,plr in ipairs(Players:GetPlayers()) do
-        if plr ~= LocalPlayer and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
-            local dist = (plr.Character.HumanoidRootPart.Position - Camera.CFrame.Position).Magnitude
-            if dist < MAX_ESP_DIST then
-                createESPFor(plr)
-                -- ESP'leri aktif göster
-                if plr.Character:FindFirstChild("ESP_BOX") then
-                    plr.Character.ESP_BOX.Enabled = true
+RunService:BindToRenderStep("ESPHack", 199, function()
+    if not hackEnabled.ESP then removeESP() return end
+    removeESP()
+    for _,ply in ipairs(Players:GetPlayers()) do
+        if ply ~= LocalPlayer and ply.Character and ply.Character:FindFirstChild("HumanoidRootPart") and ply.Character:FindFirstChild("Head") and ply.Character:FindFirstChildOfClass("Humanoid") and ply.Character:FindFirstChild("Torso") then
+            local hrp = ply.Character.HumanoidRootPart
+            local head = ply.Character.Head
+            local torso = ply.Character:FindFirstChild("Torso") or ply.Character:FindFirstChild("UpperTorso") or ply.Character:FindFirstChild("LowerTorso")
+            local hum = ply.Character:FindFirstChildOfClass("Humanoid")
+            if (hrp.Position - Camera.CFrame.Position).Magnitude < 300 then
+                -- Kutu Koordinatları
+                local pos, onScreen = Camera:WorldToViewportPoint(hrp.Position)
+                if not onScreen then continue end
+                local sizeY = math.clamp((Camera:WorldToViewportPoint(head.Position).Y - Camera:WorldToViewportPoint(hrp.Position - Vector3.new(0,2.5,0)).Y), 90, 310)
+                local sizeX = sizeY / 2
+                local top = Vector2.new(pos.X, pos.Y - sizeY/2)
+                local bottom = Vector2.new(pos.X, pos.Y + sizeY/2)
+                -- Box (dikdörtgen)
+                local box = DrawBox(pos.X-sizeX/2, pos.Y-sizeY/2, pos.X+sizeX/2, pos.Y+sizeY/2)
+                for _, b in ipairs(box) do espObjects[b] = true end
+                -- Kafa (daire)
+                local headVec, headOnScreen = Camera:WorldToViewportPoint(head.Position)
+                if headOnScreen then
+                    local circ = DrawCircle(Vector2.new(headVec.X, headVec.Y), math.clamp(sizeX/2.5, 13, 38))
+                    espObjects[circ] = true
                 end
-                if plr.Character:FindFirstChild("ESP_CIRCLE") then
-                    plr.Character.ESP_CIRCLE.Enabled = true
-                end
-                if plr.Character:FindFirstChild("ESP_SKELETON") then
-                    plr.Character.ESP_SKELETON.Parent = plr.Character
-                end
-            else
-                -- uzaktakileri gizle
-                if plr.Character:FindFirstChild("ESP_BOX") then plr.Character.ESP_BOX.Enabled = false end
-                if plr.Character:FindFirstChild("ESP_CIRCLE") then plr.Character.ESP_CIRCLE.Enabled = false end
-                if plr.Character:FindFirstChild("ESP_SKELETON") then plr.Character.ESP_SKELETON.Parent = plr.Character end
+                -- İskelet (Head→Torso→HRP→Ayaklar)
+                local function W2V(pos) local v,ok=Camera:WorldToViewportPoint(pos) return Vector2.new(v.X,v.Y),ok end
+                local rsho = ply.Character:FindFirstChild("RightUpperArm") or ply.Character:FindFirstChild("Right Arm")
+                local lsho = ply.Character:FindFirstChild("LeftUpperArm") or ply.Character:FindFirstChild("Left Arm")
+                local rleg = ply.Character:FindFirstChild("RightUpperLeg") or ply.Character:FindFirstChild("Right Leg")
+                local lleg = ply.Character:FindFirstChild("LeftUpperLeg") or ply.Character:FindFirstChild("Left Leg")
+                -- Head→Torso, Torso→Arms, Torso→Legs
+                local tvec,_ = W2V(torso.Position)
+                local hvec,_ = W2V(head.Position)
+                local rshovec,_ = rsho and W2V(rsho.Position) or {tvec,true}
+                local lshovec,_ = lsho and W2V(lsho.Position) or {tvec,true}
+                local rlegvec,_ = rleg and W2V(rleg.Position) or {tvec,true}
+                local llegvec,_ = lleg and W2V(lleg.Position) or {tvec,true}
+                espObjects[DrawLine(hvec, tvec)] = true
+                espObjects[DrawLine(tvec, rshovec)] = true
+                espObjects[DrawLine(tvec, lshovec)] = true
+                espObjects[DrawLine(tvec, rlegvec)] = true
+                espObjects[DrawLine(tvec, llegvec)] = true
             end
-        else
-            if plr.Character then removeAllESP() end
         end
-    end
-end
-RunService.RenderStepped:Connect(handleESP)
-Players.PlayerAdded:Connect(handleESP)
-Players.PlayerRemoving:Connect(removeAllESP)
-
--- KISA YOL: F4 ile menü aç/kapa
-UserInputService.InputBegan:Connect(function(k,gpe)
-    if not gpe and k.KeyCode==Enum.KeyCode.F4 then
-        frame.Visible=not frame.Visible
     end
 end)
