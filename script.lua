@@ -6,52 +6,79 @@ local LP = Players.LocalPlayer
 local Cam = workspace.CurrentCamera
 
 local gui = Instance.new("ScreenGui")
-gui.Name = "ModernCheatGUI"
+gui.Name = "VisitingMenu"
 pcall(function() gui.Parent = game:GetService("CoreGui") end)
 if not gui.Parent then gui.Parent = LP:FindFirstChildOfClass("PlayerGui") end
 
 local frame = Instance.new("Frame")
 frame.Parent = gui
-frame.BackgroundColor3 = Color3.fromRGB(28, 31, 42)
-frame.Size = UDim2.new(0, 400, 0, 495)
-frame.Position = UDim2.new(0.5, -200, 0.5, -240)
+frame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+frame.Size = UDim2.new(0, 430, 0, 560)
+frame.Position = UDim2.new(0.5, -215, 0.5, -260)
 frame.BorderSizePixel = 0
 frame.Active = true
 frame.Draggable = true
+frame.Visible = true
+
+local menuOpen = true
 
 local uiCorner = Instance.new("UICorner", frame)
-uiCorner.CornerRadius = UDim.new(0, 12)
+uiCorner.CornerRadius = UDim.new(0, 13)
 
-local title = Instance.new("TextLabel")
-title.Parent = frame
-title.Text = "visitingmenu"
-title.Size = UDim2.new(1, 0, 0, 54)
-title.BackgroundTransparency = 1
-title.TextColor3 = Color3.fromRGB(222,245,255)
-title.TextStrokeTransparency = .4
-title.Font = Enum.Font.GothamBold
-title.TextSize = 32
+local header = Instance.new("Frame", frame)
+header.Size = UDim2.new(1,0,0,54)
+header.Position = UDim2.new(0,0,0,0)
+header.BackgroundColor3 = Color3.fromRGB(16,16,16)
+header.BorderSizePixel = 0
+local corn = Instance.new("UICorner", header)
+corn.CornerRadius = UDim.new(0,13)
 
-local options = {
-    {name="Aimbot",      kind="Toggle"},
-    {name="ESP",         kind="Toggle"},
-    {name="SilentAim",   kind="Toggle"},
-    {name="Noclip",      kind="Toggle"},
-    {name="Fly",         kind="Toggle"},
-    {name="Teleport",    kind="PickPlayer"},
-    {name="Rejoin",      kind="Button"}
+local baslik = Instance.new("TextLabel", header)
+baslik.Text = "visitingmenu"
+baslik.Size = UDim2.new(1, 0, 1, 0)
+baslik.BackgroundTransparency = 1
+baslik.TextColor3 = Color3.fromRGB(255,83,83)
+baslik.TextStrokeTransparency = .4
+baslik.Font = Enum.Font.GothamBold
+baslik.TextSize = 33
+
+local kapat = Instance.new("TextButton", header)
+kapat.Size = UDim2.new(0,44,0,44)
+kapat.Position = UDim2.new(1,-52,0,6)
+kapat.BackgroundColor3 = Color3.fromRGB(40,0,0)
+local ccr = Instance.new("UICorner", kapat)
+ccr.CornerRadius = UDim.new(1,0)
+kapat.Text = "✕"
+kapat.TextColor3 = Color3.fromRGB(255,83,83)
+kapat.Font = Enum.Font.GothamBold
+kapat.TextSize = 26
+kapat.MouseButton1Click:Connect(function()
+    menuOpen = not menuOpen
+    frame.Visible = menuOpen
+end)
+UIS.InputBegan:Connect(function(input,gpe)
+    if not gpe and input.KeyCode == Enum.KeyCode.RightControl then
+        menuOpen = not menuOpen
+        frame.Visible = menuOpen
+    end
+end)
+
+local sectionTitles = {
+    {name="OYUNCU HİLELERİ", order=1},
+    {name="DÜNYA HİLELERİ", order=2},
+    {name="SERVİS", order=3}
 }
-local optStates, btns = {}, {}
-local dropdownHandle = nil
+local sectionMap = {}
+local optStates, btns, dropdownHandle = {}, {}, nil
 
-local function notify(txt)
+function notify(txt)
     local n = Instance.new("TextLabel")
     n.Parent = frame
-    n.Text = txt
-    n.Size = UDim2.new(1, 0, 0, 28)
-    n.Position = UDim2.new(0,0,1,-34)
-    n.BackgroundTransparency = 0.3
-    n.BackgroundColor3 = Color3.fromRGB(40,13,13)
+    n.Text = tostring(txt)
+    n.Size = UDim2.new(1, 0, 0, 31)
+    n.Position = UDim2.new(0,0,1,-36)
+    n.BackgroundTransparency = 0.21
+    n.BackgroundColor3 = Color3.fromRGB(70,0,0)
     n.TextColor3 = Color3.fromRGB(255,83,83)
     n.Font = Enum.Font.GothamSemibold
     n.TextSize = 20
@@ -60,24 +87,34 @@ local function notify(txt)
     pcall(function() n:Destroy() end)
 end
 
-local function playerDropdown(cb)
+function playerDropdown(callback)
     if dropdownHandle then pcall(function() dropdownHandle:Destroy() end) end
     local panel = Instance.new("Frame")
-    panel.Size = UDim2.new(0, 290, 0, 220)
-    panel.Position = UDim2.new(0.5,-145,0.5,-110)
-    panel.BackgroundColor3 = Color3.fromRGB(36,12,12)
+    panel.Size = UDim2.new(0, 320, 0, 238)
+    panel.Position = UDim2.new(0.5,-160,0.5,-120)
+    panel.BackgroundColor3 = Color3.fromRGB(0,0,0)
     panel.BorderSizePixel = 0
     local cr = Instance.new("UICorner", panel)
     cr.CornerRadius = UDim.new(0,11)
     panel.Parent = frame
 
+    local kapatDD = Instance.new("TextButton", panel)
+    kapatDD.Size = UDim2.new(0,34,0,34)
+    kapatDD.Position = UDim2.new(1,-36,0,3)
+    kapatDD.BackgroundTransparency = 1
+    kapatDD.Text = "✖"
+    kapatDD.TextColor3 = Color3.new(1,0.3,0.3)
+    kapatDD.TextSize = 27
+    kapatDD.Font = Enum.Font.GothamBold
+    kapatDD.MouseButton1Click:Connect(function() panel:Destroy() dropdownHandle = nil end)
+
     local scroll = Instance.new("ScrollingFrame", panel)
-    scroll.Size = UDim2.new(1, 0, 1, 0)
+    scroll.Size = UDim2.new(1, 0, 1, -30)
+    scroll.Position = UDim2.new(0,0,0,29)
     scroll.BackgroundTransparency = 1
-    scroll.ScrollBarThickness = 7
-    scroll.CanvasSize = UDim2.new(0,0,0, math.max(1,(#Players:GetPlayers()-1)*38+10))
+    scroll.ScrollBarThickness = 8
+    scroll.CanvasSize = UDim2.new(0,0,0, math.max(1,(#Players:GetPlayers()-1)*36+10))
     scroll.BorderSizePixel = 0
-    scroll.Position = UDim2.new(0,0,0,0)
 
     local i = 0
     for _,player in pairs(Players:GetPlayers()) do
@@ -85,17 +122,17 @@ local function playerDropdown(cb)
             i = i + 1
             local b = Instance.new("TextButton")
             b.Parent = scroll
-            b.Size = UDim2.new(1,-10,0,34)
-            b.Position = UDim2.new(0,6,0,10+(i-1)*38)
+            b.Size = UDim2.new(1,-10,0,31)
+            b.Position = UDim2.new(0,6,0,6+(i-1)*36)
             b.TextColor3 = Color3.fromRGB(255,64,64)
             b.Font = Enum.Font.GothamBold
             b.TextSize = 20
-            b.BackgroundColor3 = Color3.fromRGB(49,8,8)
+            b.BackgroundColor3 = Color3.fromRGB(44,0,0)
             b.Text = player.DisplayName.." ["..player.Name.."]"
             local cr2 = Instance.new("UICorner", b)
-            cr2.CornerRadius = UDim.new(0,7)
+            cr2.CornerRadius = UDim.new(0,5)
             b.MouseButton1Click:Connect(function()
-                if cb then cb(player) end
+                if callback then callback(player) end
                 panel:Destroy()
                 dropdownHandle = nil
             end)
@@ -104,113 +141,174 @@ local function playerDropdown(cb)
     dropdownHandle = panel
 end
 
-local function createOption(idx, name, kind)
-    local y = 54 + (idx-1)*54
+function createSection(txt, index)
+    local h = Instance.new("TextLabel", frame)
+    h.Size = UDim2.new(1, -32, 0, 32)
+    h.Position = UDim2.new(0,16,0, 53 + (index-1)*162)
+    h.BackgroundColor3 = Color3.fromRGB(13,13,13)
+    h.Text = txt
+    h.Font = Enum.Font.GothamBold
+    h.TextSize = 22
+    h.TextColor3 = Color3.fromRGB(255,83,83)
+    h.BorderSizePixel = 0
+    h.TextXAlignment = Enum.TextXAlignment.Left
+    h.BackgroundTransparency = 0
+    local c = Instance.new("UICorner", h)
+    c.CornerRadius = UDim.new(0,7)
+    sectionMap[index] = h
+end
+
+local sectionContents = {
+    [1] = {
+        {name="Aimbot",        kind="Toggle"},
+        {name="ESP",           kind="Toggle"},
+        {name="SilentAim",     kind="Toggle"},
+        {name="Noclip",        kind="Toggle"},
+        {name="Fly",           kind="Toggle"},
+        {name="Görünmezlik",   kind="Toggle"},
+    },
+    [2] = {
+        {name="Teleport",      kind="PickPlayer"},
+        {name="Yanına Çek",    kind="PickPlayer"},
+        {name="Patlat",        kind="PickPlayer"},
+    },
+    [3] = {
+        {name="Yeniden Katıl", kind="Button"},
+    }
+}
+
+function createOption(idx,inSection, name, typ)
+    local px = 20 + (idx-1)*41 + (inSection-1)*162
+    local yOff = 53+(inSection-1)*162
     local holder = Instance.new("Frame")
     holder.Parent = frame
-    holder.Size = UDim2.new(1,-40,0,46)
-    holder.Position = UDim2.new(0,24,0,y)
+    holder.Size = UDim2.new(1, -56, 0, 37)
+    holder.Position = UDim2.new(0,32,0, yOff+22+((idx-1)*41))
     holder.BackgroundTransparency = 1
 
     local label = Instance.new("TextLabel")
     label.Parent = holder
-    label.Size = UDim2.new(0.56, 0, 1, 0)
-    label.Position = UDim2.new(0,3,0,0)
+    label.Size = UDim2.new(0.55, 0, 1, 0)
+    label.Position = UDim2.new(0,1,0,0)
     label.BackgroundTransparency = 1
     label.Text = name
+    label.TextColor3 = Color3.fromRGB(255,64,64)
     label.Font = Enum.Font.GothamMedium
-    label.TextSize = 22
-    label.TextColor3 = Color3.fromRGB(255,83,83)
+    label.TextSize = 19
     label.TextXAlignment = Enum.TextXAlignment.Left
 
-    if kind == "Toggle" then
-        local toggle = Instance.new("TextButton")
-        toggle.Parent = holder
-        toggle.Size = UDim2.new(0,90,1,0)
-        toggle.Position = UDim2.new(1,-97,0,0)
-        toggle.Text = "KAPALI"
-        toggle.Font = Enum.Font.GothamBold
-        toggle.TextSize = 19
-        toggle.BackgroundColor3 = Color3.fromRGB(91,26,26)
-        toggle.TextColor3 = Color3.fromRGB(251,181,64)
-        local cr = Instance.new("UICorner", toggle)
-        cr.CornerRadius = UDim.new(0,8)
+    if typ == "Toggle" then
+        local tgl = Instance.new("TextButton")
+        tgl.Parent = holder
+        tgl.Size = UDim2.new(0,85,1,0)
+        tgl.Position = UDim2.new(1,-93,0,0)
+        tgl.Text = "KAPALI"
+        tgl.Font = Enum.Font.GothamBold
+        tgl.TextSize = 18
+        tgl.BackgroundColor3 = Color3.fromRGB(103,0,0)
+        tgl.TextColor3 = Color3.fromRGB(255,83,83)
+        local cr = Instance.new("UICorner", tgl)
+        cr.CornerRadius = UDim.new(0,6)
         optStates[name] = false
-        toggle.MouseButton1Click:Connect(function()
+        tgl.MouseButton1Click:Connect(function()
             optStates[name] = not optStates[name]
-            toggle.Text = optStates[name] and "AÇIK" or "KAPALI"
-            toggle.BackgroundColor3 = optStates[name] and Color3.fromRGB(210,33,52) or Color3.fromRGB(91,26,26)
+            tgl.Text = optStates[name] and "AÇIK" or "KAPALI"
+            tgl.BackgroundColor3 = optStates[name] and Color3.fromRGB(255,83,83) or Color3.fromRGB(103,0,0)
+            tgl.TextColor3 = optStates[name] and Color3.new(0.13,0.13,0.13) or Color3.fromRGB(255,83,83)
         end)
-        btns[name] = toggle
-    elseif kind == "PickPlayer" then
+        btns[name] = tgl
+    elseif typ == "PickPlayer" then
         local openList = Instance.new("TextButton")
         openList.Parent = holder
-        openList.Size = UDim2.new(0,122,1,0)
-        openList.Position = UDim2.new(1, -129, 0, 0)
-        openList.Text = "OYUNCU SEÇ"
+        openList.Size = UDim2.new(0,110,1,0)
+        openList.Position = UDim2.new(1, -118, 0, 0)
+        openList.Text = name
         openList.Font = Enum.Font.GothamBold
-        openList.TextSize = 18
-        openList.BackgroundColor3 = Color3.fromRGB(225, 38, 68)
-        openList.TextColor3 = Color3.fromRGB(255,221,92)
+        openList.TextSize = 17
+        openList.BackgroundColor3 = Color3.fromRGB(255,83,83)
+        openList.TextColor3 = Color3.new(0.07,0.07,0.07)
         local cr = Instance.new("UICorner", openList)
-        cr.CornerRadius = UDim.new(0,8)
+        cr.CornerRadius = UDim.new(0,6)
         openList.MouseButton1Click:Connect(function()
-            playerDropdown(function(plr)
-                if plr and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
-                    LP.Character:MoveTo(plr.Character.HumanoidRootPart.Position + Vector3.new(0,7,0))
-                    notify(plr.Name.." yanına ışınlandın.")
-                end
-            end)
+            if name=="Teleport" then
+                playerDropdown(function(plr)
+                    if plr and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
+                        LP.Character:MoveTo(plr.Character.HumanoidRootPart.Position + Vector3.new(0,7,0))
+                        notify(plr.Name.." yanına ışınlandın.")
+                    end
+                end)
+            elseif name=="Yanına Çek" then
+                playerDropdown(function(plr)
+                    if plr and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") and LP.Character and LP.Character:FindFirstChild("HumanoidRootPart") then
+                        plr.Character.HumanoidRootPart.CFrame = LP.Character.HumanoidRootPart.CFrame + Vector3.new(0,7,0)
+                        notify(plr.Name.." sana çekildi!")
+                    end
+                end)
+            elseif name=="Patlat" then
+                playerDropdown(function(plr)
+                    if plr and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
+                        local hrp = plr.Character.HumanoidRootPart
+                        local boom = Instance.new("Explosion")
+                        boom.BlastRadius = 8
+                        boom.BlastPressure = 100000
+                        boom.DestroyJointRadiusPercent = 0.65
+                        boom.Position = hrp.Position + Vector3.new(0,2,0)
+                        boom.Parent = workspace
+                        plr.Character:FindFirstChildOfClass("Humanoid").Health = 0
+                        notify(plr.Name.." patlatıldı!")
+                    end
+                end)
+            end
         end)
         btns[name] = openList
-    elseif kind == "Button" then
+    elseif typ == "Button" then
         local btn = Instance.new("TextButton")
         btn.Parent = holder
-        btn.Size = UDim2.new(0,105,1,0)
-        btn.Position = UDim2.new(1, -113, 0, 0)
+        btn.Size = UDim2.new(0,112,1,0)
+        btn.Position = UDim2.new(1, -118, 0, 0)
         btn.Text = name
         btn.Font = Enum.Font.GothamBlack
-        btn.TextSize = 18
-        btn.BackgroundColor3 = Color3.fromRGB(200,26,42)
-        btn.TextColor3 = Color3.fromRGB(255,255,255)
+        btn.TextSize = 16
+        btn.BackgroundColor3 = Color3.fromRGB(255,83,83)
+        btn.TextColor3 = Color3.new(0.09,0.09,0.09)
         local cr = Instance.new("UICorner", btn)
-        cr.CornerRadius = UDim.new(0,8)
+        cr.CornerRadius = UDim.new(0,6)
         btn.MouseButton1Click:Connect(function()
-            if name == "Rejoin" then
+            if name == "Yeniden Katıl" then
                 TPService:Teleport(game.PlaceId)
             end
         end)
-        btns[name] = btn
+        btns[name]=btn
     end
 end
 
-for i, v in ipairs(options) do
-    createOption(i, v.name, v.kind)
+for sn,section in ipairs(sectionTitles) do
+    createSection(section.name,section.order)
+    local scArr = sectionContents[section.order]
+    for k,v in ipairs(scArr) do createOption(k,section.order,v.name,v.kind) end
 end
 
 local Drawing = Drawing
 local currentESP = {}
-local espConnections = {}
 local espRunning = false
 
-local function get2DFrom3D(p)
+function get2DFrom3D(p)
     local pos, onscreen = Cam:WorldToViewportPoint(p)
     return Vector2.new(pos.X, pos.Y), onscreen
 end
 
-local function getBoxVertsFromParts(char)
+function getBoxVertsFromParts(char)
     local hrp = char:FindFirstChild("HumanoidRootPart")
     if not hrp then return nil end
 
     local size = hrp.Size
-    local scale = 1.2
+    local scale = 1.25
     local offsetY = Vector3.new(0, size.Y*scale/2, 0)
     local verts3d = {
         (hrp.Position + hrp.CFrame.RightVector*size.X/2*scale + offsetY + hrp.CFrame.LookVector*size.Z/2*scale),
         (hrp.Position - hrp.CFrame.RightVector*size.X/2*scale + offsetY + hrp.CFrame.LookVector*size.Z/2*scale),
         (hrp.Position - hrp.CFrame.RightVector*size.X/2*scale + offsetY - hrp.CFrame.LookVector*size.Z/2*scale),
         (hrp.Position + hrp.CFrame.RightVector*size.X/2*scale + offsetY - hrp.CFrame.LookVector*size.Z/2*scale),
-
         (hrp.Position + hrp.CFrame.RightVector*size.X/2*scale - offsetY + hrp.CFrame.LookVector*size.Z/2*scale),
         (hrp.Position - hrp.CFrame.RightVector*size.X/2*scale - offsetY + hrp.CFrame.LookVector*size.Z/2*scale),
         (hrp.Position - hrp.CFrame.RightVector*size.X/2*scale - offsetY - hrp.CFrame.LookVector*size.Z/2*scale),
@@ -225,7 +323,7 @@ local function getBoxVertsFromParts(char)
     return verts2d, onscreen
 end
 
-local function getCharacterOutline(char)
+function getCharacterOutline(char)
     local body = {}
     for _, part in pairs(char:GetChildren()) do
         if (part:IsA("BasePart") or part:IsA("MeshPart")) and part.Name~="HumanoidRootPart" then
@@ -235,11 +333,10 @@ local function getCharacterOutline(char)
     return body
 end
 
-local function drawBodyESP(p)
+function drawBodyESP(p)
     if not p.Character then return end
     if not currentESP[p] then currentESP[p] = {} end
 
-    -- 3D box
     local corners, onscreen = getBoxVertsFromParts(p.Character)
     local lines = currentESP[p].boxLines or {}
     local edgeIndexes = {{1,2},{2,3},{3,4},{4,1},{5,6},{6,7},{7,8},{8,5},{1,5},{2,6},{3,7},{4,8}}
@@ -248,7 +345,7 @@ local function drawBodyESP(p)
             local l = Drawing and Drawing.new and Drawing.new("Line") or nil
             if l then
                 l.Color = Color3.fromRGB(255, 0, 0)
-                l.Thickness = 2.7
+                l.Thickness = 2.6
                 l.Transparency = 1
                 l.Visible = false
                 lines[i] = l
@@ -271,7 +368,6 @@ local function drawBodyESP(p)
         for _,l in ipairs(lines) do if l then l.Visible = false end end
     end
 
-    -- Body outline
     local outline = currentESP[p].outlineParts or {}
     local idx = 1
     for _,part in pairs(getCharacterOutline(p.Character)) do
@@ -296,7 +392,7 @@ local function drawBodyESP(p)
         for _,edge in ipairs(edges) do
             if not outline[idx] then
                 local l = Drawing and Drawing.new and Drawing.new("Line") or nil
-                if l then l.Color=Color3.fromRGB(255,0,0) l.Thickness=1.9 l.Transparency=1 l.Visible=false end
+                if l then l.Color=Color3.fromRGB(255,0,0) l.Thickness=1.7 l.Transparency=1 l.Visible=false end
                 outline[idx] = l
             end
             local l = outline[idx]
@@ -304,7 +400,6 @@ local function drawBodyESP(p)
                 l.From = c2d[edge[1]]
                 l.To = c2d[edge[2]]
                 l.Color = Color3.fromRGB(255, 0, 0)
-                l.Thickness = 1.9
                 l.Visible = optStates["ESP"]
             elseif l then
                 l.Visible = false
@@ -312,12 +407,11 @@ local function drawBodyESP(p)
             idx = idx + 1
         end
     end
-    -- Clear leftovers
     for ci = idx, #(outline) do pcall(function() outline[ci].Visible = false end) end
     currentESP[p].outlineParts = outline
 end
 
-local function updateESP()
+function updateESP()
     for p, sections in pairs(currentESP) do
         if not Players:FindFirstChild(p.Name) or not p.Character then
             local boxLines = sections.boxLines or {}
@@ -329,7 +423,7 @@ local function updateESP()
     end
 end
 
-local function startESP()
+function startESP()
     if espRunning then return end
     espRunning = true
     RS.RenderStepped:Connect(function()
@@ -353,7 +447,7 @@ local function startESP()
     end)
 end
 
-local function startAimbot()
+function startAimbot()
     RS.RenderStepped:Connect(function()
         if optStates["Aimbot"] then
             local closest, mindist = nil, math.huge
@@ -381,7 +475,7 @@ local __random = function()
     return math.abs(math.sin(t*3.97)+math.cos(t*1.51)*math.sin(t*2.05))
 end
 
-local function startSilentAim()
+function startSilentAim()
     local mouse = LP:GetMouse()
     local function getClosest()
         local mindist, target, tarpos = math.huge, nil, nil
@@ -402,8 +496,8 @@ local function startSilentAim()
             local plr,pos = getClosest()
             if plr and pos then
                 local offset = Vector3.new(
-                    math.sin(tick()*__random())*0.31,
-                    math.cos(tick()*__random())*0.19,
+                    math.sin(tick()*__random())*0.32,
+                    math.cos(tick()*__random())*0.16,
                     0)
                 mouse.Target = plr.Character.Head
                 mouse.Hit = CFrame.new(pos + offset)
@@ -412,23 +506,20 @@ local function startSilentAim()
     end)
 end
 
-local flyVel = Vector3.new()
-local flyActive, flyBV, flyConn = false, nil, nil
-local function startFly()
+local flyBV, flyConn
+function startFly()
     flyBV = nil
-    flyActive = false
-    local function flyStep()
+    local flyingFunc = function()
         if not optStates["Fly"] or not LP.Character or not LP.Character:FindFirstChild("HumanoidRootPart") then
             if flyBV then flyBV:Destroy() flyBV=nil end return
         end
         if not flyBV then
             flyBV = Instance.new("BodyVelocity")
             flyBV.MaxForce = Vector3.new(math.huge,math.huge,math.huge)
-            flyBV.Velocity = Vector3.new()
             flyBV.Parent = LP.Character.HumanoidRootPart
         end
         local vel = Vector3.new()
-        local spd = 58
+        local spd = 62
         if UIS:IsKeyDown(Enum.KeyCode.W) then vel = vel + Cam.CFrame.LookVector end
         if UIS:IsKeyDown(Enum.KeyCode.S) then vel = vel - Cam.CFrame.LookVector end
         if UIS:IsKeyDown(Enum.KeyCode.A) then vel = vel - Cam.CFrame.RightVector end
@@ -438,15 +529,33 @@ local function startFly()
         if vel.Magnitude > 0 then vel = vel.Unit * spd end
         flyBV.Velocity = vel
     end
-    flyConn = RS.RenderStepped:Connect(flyStep)
+    flyConn = RS.RenderStepped:Connect(flyingFunc)
     UIS.InputBegan:Connect(function(i,gpe) if not gpe and i.KeyCode==Enum.KeyCode.F and optStates["Fly"] then optStates["Fly"] = false if flyBV then flyBV:Destroy() flyBV=nil end end end)
 end
 
-local function startNoclip()
+function startNoclip()
     RS.Stepped:Connect(function()
         if optStates["Noclip"] and LP.Character then
             for _, v in pairs(LP.Character:GetDescendants()) do
                 if v:IsA("BasePart") then v.CanCollide = false end
+            end
+        end
+    end)
+end
+
+function startGorunmezlik()
+    RS.RenderStepped:Connect(function()
+        if optStates["Görünmezlik"] and LP.Character and LP.Character:FindFirstChild("HumanoidRootPart") then
+            for _,v in ipairs(LP.Character:GetDescendants()) do
+                if v:IsA("BasePart") or v:IsA("MeshPart") then v.Transparency=1 end
+                if v.ClassName=="Decal" or v.ClassName=="Texture" then v.Transparency=1 end
+            end
+            if LP.Character:FindFirstChild("HumanoidRootPart") then
+                LP.Character.HumanoidRootPart.Transparency=1
+            end
+        elseif LP.Character then
+            for _,v in ipairs(LP.Character:GetDescendants()) do
+                if v:IsA("BasePart") or v:IsA("MeshPart") then v.Transparency=0 end
             end
         end
     end)
@@ -457,3 +566,4 @@ startAimbot()
 startSilentAim()
 startFly()
 startNoclip()
+startGorunmezlik()
