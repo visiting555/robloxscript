@@ -1,657 +1,657 @@
--- QUARTZ.LUA: Prison Life (Roblox) Premium Exploit Script
--- Modern black GUI, categorized, all features fully functional and professionally structured.
-
 if game.PlaceId ~= 155615604 then
-    return error("This exploit only works in Prison Life!")
+    return
 end
 
-local uis = game:GetService("UserInputService")
-local plrs = game:GetService("Players")
-local lplr = plrs.LocalPlayer
-local chr = lplr.Character or lplr.CharacterAdded:Wait()
-local remotes = game.ReplicatedStorage:WaitForChild("ReloadEvent").Parent
-local ws = game:GetService("Workspace")
-local rs = game:GetService("RunService")
-local camera = ws.CurrentCamera
+local UIS = game:GetService("UserInputService")
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local Character = LocalPlayer.Character or LocalPlayer.CharacterAdded:Wait()
+local RepStorage = game:GetService("ReplicatedStorage")
+local Remotes = RepStorage:WaitForChild("ReloadEvent").Parent
+local Workspace = game:GetService("Workspace")
+local RunService = game:GetService("RunService")
+local Camera = Workspace.CurrentCamera
 
-local quartz = Instance.new("ScreenGui", game.CoreGui)
-quartz.Name = "QUARTZ_GUI"
-quartz.ResetOnSpawn = false
-
--- Utility Functions
-local function notif(msg)
-    game.StarterGui:SetCore("SendNotification", {
-        Title = "QUARTZ";
-        Text = msg;
-        Duration = 2;
-    })
+local function Notification(msg)
+    pcall(function()
+        game.StarterGui:SetCore("SendNotification", {Title="QUARTZ", Text=msg, Duration=2})
+    end)
 end
 
-local function getPlayer(name)
-    for i,v in pairs(plrs:GetPlayers()) do
-        if v.Name:lower():sub(1, #name) == name:lower() then
-            return v
+local function GetPlayer(name)
+    name = name:lower()
+    for _,p in ipairs(Players:GetPlayers()) do
+        if p.Name:lower():sub(1, #name) == name then
+            return p
         end
     end
 end
 
-local function createSection(parent, title)
-    local tab = Instance.new("Frame", parent)
-    tab.BackgroundColor3 = Color3.fromRGB(20,20,20)
-    tab.Size = UDim2.new(1, -12, 0, 32)
-    tab.BorderSizePixel = 0
-    tab.BackgroundTransparency = 0.15
+local QuartzGUI = Instance.new("ScreenGui")
+QuartzGUI.Name = "QUARTZ_GUI"
+QuartzGUI.ResetOnSpawn = false
+QuartzGUI.Parent = game.CoreGui
 
-    local label = Instance.new("TextLabel", tab)
-    label.Text = "  " .. title
-    label.TextColor3 = Color3.fromRGB(220,220,220)
-    label.TextSize = 22
-    label.TextXAlignment = Enum.TextXAlignment.Left
-    label.BackgroundTransparency = 1
-    label.Size = UDim2.new(1, 0, 1, 0)
-    return tab
+local MainPanel = Instance.new("Frame")
+MainPanel.Size = UDim2.new(0, 350, 0, 500)
+MainPanel.Position = UDim2.new(0.5, -175, 0.5, -250)
+MainPanel.BackgroundColor3 = Color3.fromRGB(6,6,6)
+MainPanel.BorderSizePixel = 0
+MainPanel.Active = true
+MainPanel.Draggable = true
+MainPanel.AnchorPoint = Vector2.new(0.5,0.5)
+MainPanel.Parent = QuartzGUI
+local Corner = Instance.new("UICorner",MainPanel)
+Corner.CornerRadius = UDim.new(0, 15)
+
+local TabBar = Instance.new("Frame")
+TabBar.Size = UDim2.new(1,0,0,48)
+TabBar.BackgroundColor3 = Color3.fromRGB(15,15,15)
+TabBar.BorderSizePixel = 0
+TabBar.Parent = MainPanel
+TabBar.Position = UDim2.new(0,0,0,0)
+local TabLayout = Instance.new("UIListLayout", TabBar)
+TabLayout.FillDirection = Enum.FillDirection.Horizontal
+TabLayout.Padding = UDim.new(0,4)
+
+local Tabs = {
+    "Takım & Rol", "Silah Mod", "Hareket", "ESP & Savaş", "Koruma", "Sunucu"
+}
+local TabFrames = {}
+
+local function MakeSection(parent,text)
+    local Section = Instance.new("Frame")
+    Section.Size = UDim2.new(1, -10, 0, 34)
+    Section.BackgroundColor3 = Color3.fromRGB(25,25,25)
+    Section.BorderSizePixel = 0
+    Section.BackgroundTransparency = 0.13
+    Section.Parent = parent
+    local lbl = Instance.new("TextLabel",Section)
+    lbl.Text = "  "..text
+    lbl.TextColor3 = Color3.fromRGB(230,230,230)
+    lbl.TextXAlignment = Enum.TextXAlignment.Left
+    lbl.BackgroundTransparency = 1
+    lbl.Font = Enum.Font.GothamBold
+    lbl.TextSize = 21
+    lbl.Size = UDim2.new(1,0,1,0)
 end
 
-local function createButton(parent, name, callback)
-    local btn = Instance.new("TextButton", parent)
-    btn.Size = UDim2.new(1, -24, 0, 30)
-    btn.Text = name
-    btn.TextColor3 = Color3.new(1,1,1)
-    btn.TextSize = 18
-    btn.BackgroundColor3 = Color3.fromRGB(28,28,28)
-    btn.BorderSizePixel = 0
-    btn.AutoButtonColor = true
-    btn.MouseButton1Click:Connect(callback)
-    local c1 = Instance.new("UICorner", btn)
-    c1.CornerRadius = UDim.new(0,6)
-    return btn
+local function MakeButton(parent, name, callback)
+    local Btn = Instance.new("TextButton")
+    Btn.Size = UDim2.new(1, -18, 0, 32)
+    Btn.Text = name
+    Btn.TextColor3 = Color3.fromRGB(250,250,250)
+    Btn.TextSize = 18
+    Btn.Font = Enum.Font.Gotham
+    Btn.BackgroundColor3 = Color3.fromRGB(30,30,30)
+    Btn.BorderSizePixel = 0
+    Btn.AutoButtonColor = true
+    Btn.Parent = parent
+    local c1 = Instance.new("UICorner", Btn)
+    c1.CornerRadius = UDim.new(0,7)
+    Btn.MouseButton1Click:Connect(callback)
+    return Btn
 end
 
-local function createSlider(parent, text, min, max, def, callback)
+local function MakeSlider(parent,text, min, max, def, callback)
     local frame = Instance.new("Frame", parent)
-    frame.Size = UDim2.new(1, -24, 0, 36)
-    frame.BackgroundColor3 = Color3.fromRGB(32,32,32)
+    frame.Size = UDim2.new(1, -18, 0, 36)
+    frame.BackgroundColor3 = Color3.fromRGB(34,34,34)
     frame.BorderSizePixel = 0
 
     local lbl = Instance.new("TextLabel", frame)
-    lbl.Text = text .. " [" .. tostring(def) .. "]"
+    lbl.Text = text.." ["..tostring(def).."]"
     lbl.TextColor3 = Color3.fromRGB(200,200,200)
     lbl.TextSize = 16
+    lbl.Font = Enum.Font.Gotham
     lbl.BackgroundTransparency = 1
-    lbl.Size = UDim2.new(0.7, 0, 1, 0)
+    lbl.Size = UDim2.new(0.65, 0, 1, 0)
     lbl.TextXAlignment = Enum.TextXAlignment.Left
 
-    local slider = Instance.new("TextButton", frame)
-    slider.Size = UDim2.new(0.3, 0, 0.8, 0)
-    slider.Position = UDim2.new(0.7, 8, 0.1, 0)
-    slider.Text = tostring(def)
-    slider.TextColor3 = Color3.new(1,1,1)
-    slider.BackgroundColor3 = Color3.fromRGB(25,25,25)
-    slider.BorderSizePixel = 0
-
-    local c1 = Instance.new("UICorner", slider)
+    local slide = Instance.new("TextButton", frame)
+    slide.Size = UDim2.new(0.31, 0, 0.78, 0)
+    slide.Position = UDim2.new(0.69, 8, 0.11, 0)
+    slide.Text = tostring(def)
+    slide.TextColor3 = Color3.fromRGB(240,240,240)
+    slide.Font = Enum.Font.Gotham
+    slide.BackgroundColor3 = Color3.fromRGB(25,25,25)
+    slide.BorderSizePixel = 0
+    local c1 = Instance.new("UICorner",slide)
     c1.CornerRadius = UDim.new(0,6)
-
-    slider.MouseButton1Click:Connect(function()
-        local value = tonumber(game:GetService("StarterGui"):PromptInput("\nYeni değer gir [" .. min .. " - " .. max .. "]"))
-        if value and value >= min and value <= max then
-            lbl.Text = text .. " [" .. tostring(value) .. "]"
-            slider.Text = tostring(value)
-            callback(value)
+    slide.MouseButton1Click:Connect(function()
+        local newval = tonumber(game:GetService("StarterGui"):PromptInput(text.." ["..min.." - "..max.."]"))
+        if newval and newval >= min and newval <= max then
+            lbl.Text = text.." ["..tostring(newval).."]"
+            slide.Text = tostring(newval)
+            callback(newval)
         else
-            notif("Geçersiz değer girdiniz!")
+            Notification("Geçersiz değer.")
         end
     end)
-
     return frame
 end
 
-local function createTab(name)
-    local tab = Instance.new("Frame", mainPanel)
-    tab.BackgroundColor3 = Color3.fromRGB(22,22,22)
-    tab.Size = UDim2.new(0, 300, 0, 420)
-    tab.BorderSizePixel = 0
-    tab.Visible = false
+local function MakeTab(name)
+    local frame = Instance.new("Frame")
+    frame.BackgroundColor3 = Color3.fromRGB(18,18,18)
+    frame.Size = UDim2.new(0, 330, 0, 435)
+    frame.BorderSizePixel = 0
+    frame.Visible = false
+    frame.Position = UDim2.new(0,10,0,58)
+    frame.Parent = MainPanel
 
-    local tabLabel = Instance.new("TextLabel", tab)
-    tabLabel.Size = UDim2.new(1, 0, 0, 36)
-    tabLabel.Text = "QUARTZ | " .. name
-    tabLabel.TextColor3 = Color3.fromRGB(255,255,255)
-    tabLabel.BackgroundColor3 = Color3.fromRGB(12,12,12)
-    tabLabel.Font = Enum.Font.GothamBold
-    tabLabel.TextSize = 24
-    tabLabel.BorderSizePixel = 0
-
-    local layout = Instance.new("UIListLayout", tab)
-    layout.Padding = UDim.new(0,4)
+    local lbl = Instance.new("TextLabel",frame)
+    lbl.Text = "QUARTZ | "..name
+    lbl.Size = UDim2.new(1,0,0,40)
+    lbl.TextColor3 = Color3.fromRGB(253,253,253)
+    lbl.BackgroundColor3 = Color3.fromRGB(12,12,12)
+    lbl.Font = Enum.Font.GothamBold
+    lbl.TextSize = 22
+    lbl.BorderSizePixel = 0
+    local layout = Instance.new("UIListLayout", frame)
+    layout.Padding = UDim.new(0,5)
     layout.SortOrder = Enum.SortOrder.LayoutOrder
-    tab.Layout = layout
-    layout.Parent = tab
-
-    return tab
+    return frame
 end
 
--- GUI Construction
-local mainPanel = Instance.new("Frame", quartz)
-mainPanel.Position = UDim2.new(0.5,-160,0.5,-235)
-mainPanel.Size = UDim2.new(0, 320, 0, 468)
-mainPanel.AnchorPoint = Vector2.new(0.5,0.5)
-mainPanel.BackgroundColor3 = Color3.fromRGB(8,8,8)
-mainPanel.BorderSizePixel = 0
-mainPanel.Active = true
-mainPanel.Draggable = true
-
-local mainCorner = Instance.new("UICorner", mainPanel)
-mainCorner.CornerRadius = UDim.new(0,14)
-
-local navBar = Instance.new("Frame", mainPanel)
-navBar.Size = UDim2.new(1,0,0,48)
-navBar.BackgroundColor3 = Color3.fromRGB(18,18,18)
-navBar.BorderSizePixel = 0
-navBar.Position = UDim2.new(0,0,0,0)
-local navLayout = Instance.new("UIListLayout", navBar)
-navLayout.FillDirection = Enum.FillDirection.Horizontal
-navLayout.Padding = UDim.new(0,4)
-
-local pages = {}
-local pageNames = {
-    "Takım & Rol", "Silah Mod", "Hareket", "ESP & Savaş", "Koruma", "Sunucu"
-}
-local pageFrames = {}
-
-for i, n in ipairs(pageNames) do
-    local btn = Instance.new("TextButton", navBar)
-    btn.Text = n
-    btn.Size = UDim2.new(0, 94, 1, 0)
-    btn.BackgroundColor3 = Color3.fromRGB(30,30,30)
-    btn.TextColor3 = Color3.new(1,1,1)
+for idx, tabname in ipairs(Tabs) do
+    local btn = Instance.new("TextButton",TabBar)
+    btn.Text = tabname
+    btn.Size = UDim2.new(0, 105, 1, 0)
+    btn.BackgroundColor3 = Color3.fromRGB(36,36,36)
+    btn.TextColor3 = Color3.fromRGB(240,240,240)
+    btn.Font = Enum.Font.GothamSemibold
+    btn.TextSize = 17
     btn.BorderSizePixel = 0
     btn.AutoButtonColor = true
-    btn.Font = Enum.Font.GothamSemibold
-    btn.TextSize = 18
-    local cor = Instance.new("UICorner", btn)
-    cor.CornerRadius = UDim.new(0,7)
-    local pf = createTab(n)
-    pf.Position = UDim2.new(0,10,0,58)
-    pf.Visible = (i == 1)
-    pf.Parent = mainPanel
-    table.insert(pageFrames, pf)
+    local cr = Instance.new("UICorner", btn)
+    cr.CornerRadius = UDim.new(0,7)
+    local frame = MakeTab(tabname)
+    frame.Visible = (idx==1)
+    table.insert(TabFrames,frame)
     btn.MouseButton1Click:Connect(function()
-        for j, tab in pairs(pageFrames) do
-            tab.Visible = (j == i)
+        for i,tabfr in pairs(TabFrames) do
+            tabfr.Visible = (i==idx)
         end
     end)
 end
 
-local enableKey = Enum.KeyCode.RightShift
-uis.InputBegan:Connect(function(inp, gp)
-    if inp.KeyCode == enableKey then
-        quartz.Enabled = not quartz.Enabled
+local EnableKey = Enum.KeyCode.RightShift
+UIS.InputBegan:Connect(function(input, gp)
+    if input.KeyCode == EnableKey then
+        QuartzGUI.Enabled = not QuartzGUI.Enabled
     end
 end)
 
--- Tab 1: Takım & Rol Yönetimi
-local teamTab = pageFrames[1]
-createSection(teamTab, "Takım & Rol Yönetimi")
-
-createButton(teamTab, "Auto Criminal", function()
-    workspace.Remote.TeamEvent:FireServer("Criminal")
-    notif("Takımınız: Criminal (Suçlu)")
+-- Takım & Rol
+local tab_team = TabFrames[1]
+MakeSection(tab_team,"Takım & Rol Yönetimi")
+MakeButton(tab_team,"Auto Criminal",function()
+    Workspace.Remote.TeamEvent:FireServer("Criminal")
+    Notification("Takımınız Criminal yapıldı.")
 end)
-createButton(teamTab, "Become Guard", function()
-    workspace.Remote.TeamEvent:FireServer("Guard")
-    notif("Takımınız: Polis")
+MakeButton(tab_team,"Become Guard",function()
+    Workspace.Remote.TeamEvent:FireServer("Guard")
+    Notification("Polis takımına geçildi.")
 end)
-createButton(teamTab, "Become Prisoner", function()
-    workspace.Remote.TeamEvent:FireServer("Prisoner")
-    notif("Takımınız: Mahkum")
+MakeButton(tab_team,"Become Prisoner",function()
+    Workspace.Remote.TeamEvent:FireServer("Prisoner")
+    Notification("Mahkum olundu.")
 end)
-createButton(teamTab, "Neutral Mode", function()
-    workspace.Remote.TeamEvent:FireServer("Neutral")
-    notif("Takımsız (Nötr) oldunuz")
+MakeButton(tab_team,"Neutral Mode",function()
+    Workspace.Remote.TeamEvent:FireServer("Neutral")
+    Notification("Takımsız mod aktif.")
 end)
-createButton(teamTab, "Force Inmate (Force Prisoner)", function()
-    for i,pl in pairs(plrs:GetPlayers()) do
-        if pl.Team.Name ~= "Prisoner" and pl ~= lplr then
-            workspace.Remote.TeamEvent:FireServer("Prisoner", pl)
+MakeButton(tab_team,"Force Inmate",function()
+    for _,p in pairs(Players:GetPlayers()) do
+        if p ~= LocalPlayer and p.Team.Name~="Prisoner" then
+            Workspace.Remote.TeamEvent:FireServer("Prisoner",p)
         end
     end
-    notif("Tüm oyuncular zorla Prisoner yapıldı!")
+    Notification("Tüm oyuncular Prisoner yapıldı.")
 end)
 
--- Tab 2: Silah Modifikasyonları
-local weaponsTab = pageFrames[2]
-createSection(weaponsTab, "Silah Modifikasyonları")
-
-createButton(weaponsTab, "Give ALL Weapons", function()
+-- Silah Modları
+local tab_weap = TabFrames[2]
+MakeSection(tab_weap,"Silah Modifikasyonları")
+MakeButton(tab_weap,"Give All Weapons",function()
     for _,w in pairs({"M9","Remington 870","AK-47"}) do
-        workspace.Remote.ItemHandler:InvokeServer(w)
+        Workspace.Remote.ItemHandler:InvokeServer(w)
     end
-    notif("Tüm silahlar envantere eklendi!")
+    Notification("Tüm silahlar alındı.")
 end)
-createButton(weaponsTab, "Infinite Ammo", function()
-    rs.RenderStepped:Connect(function()
-        if lplr.Character and lplr.Character:FindFirstChildOfClass("Tool") then
-            for _,v in pairs(getgc(true)) do
-                if type(v) == "table" and rawget(v, "Ammo") then
-                    v.Ammo = 999
-                    v.MaxAmmo = 999
+MakeButton(tab_weap,"Infinite Ammo",function()
+    RunService.RenderStepped:Connect(function()
+        if LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Tool") then
+            for _,tbl in pairs(getgc(true)) do
+                if type(tbl)=="table" and rawget(tbl,"Ammo") then
+                    tbl.Ammo=999
+                    tbl.MaxAmmo=999
                 end
             end
         end
     end)
-    notif("Infinite Ammo aktif!")
+    Notification("Sonsuz mermi aktif.")
 end)
-createButton(weaponsTab, "No Recoil", function()
-    for _,v in pairs(getgc(true)) do
-        if type(v) == "table" and rawget(v, "Recoil") then
-            v.Recoil = 0
+MakeButton(tab_weap,"No Recoil",function()
+    for _,tbl in pairs(getgc(true)) do
+        if type(tbl)=="table" and rawget(tbl,"Recoil") then
+            tbl.Recoil=0
         end
     end
-    notif("No Recoil etkin!")
+    Notification("Sekme kapalı.")
 end)
-createButton(weaponsTab, "No Reload", function()
-    for _,v in pairs(getgc(true)) do
-        if type(v) == "table" and rawget(v, "Reloading") then
-            v.Reloading = false
+MakeButton(tab_weap,"No Reload",function()
+    for _,tbl in pairs(getgc(true)) do
+        if type(tbl)=="table" and rawget(tbl,"Reloading") then
+            tbl.Reloading = false
         end
     end
-    notif("No Reload aktif!")
+    Notification("Şarjör değiştirme kaldırıldı.")
 end)
-createButton(weaponsTab, "Rapid Fire", function()
-    for _,v in pairs(getgc(true)) do
-        if type(v) == "table" and rawget(v, "FireRate") then
-            v.FireRate = 0.01
+MakeButton(tab_weap,"Rapid Fire",function()
+    for _,tbl in pairs(getgc(true)) do
+        if type(tbl)=="table" and rawget(tbl,"FireRate") then
+            tbl.FireRate = 0.01
         end
     end
-    notif("Rapid Fire etkin!")
+    Notification("Hızlı ateş aktif.")
 end)
-createButton(weaponsTab, "One Shot Kill", function()
-    for _,v in pairs(getgc(true)) do
-        if type(v) == "table" and rawget(v, "Damage") then
-            v.Damage = 1000
+MakeButton(tab_weap,"One Shot Kill",function()
+    for _,tbl in pairs(getgc(true)) do
+        if type(tbl)=="table" and rawget(tbl,"Damage") then
+            tbl.Damage=1000
         end
     end
-    notif("One Shot Kill etkin!")
+    Notification("One Shot Kill aktif.")
 end)
-createButton(weaponsTab, "Wall Bang", function()
-    for _,v in pairs(getgc(true)) do
-        if type(v) == "table" and rawget(v, "WallPenetration") then
-            v.WallPenetration = true
+MakeButton(tab_weap,"Wall Bang",function()
+    for _,tbl in pairs(getgc(true)) do
+        if type(tbl)=="table" and rawget(tbl,"WallPenetration") then
+            tbl.WallPenetration=true
         end
     end
-    notif("Wall Bang aktif!")
+    Notification("Kurşunlar duvardan geçiyor.")
 end)
-createButton(weaponsTab, "Infinite Range", function()
-    for _,v in pairs(getgc(true)) do
-        if type(v) == "table" and rawget(v, "Range") then
-            v.Range = 9999
+MakeButton(tab_weap,"Infinite Range",function()
+    for _,tbl in pairs(getgc(true)) do
+        if type(tbl)=="table" and rawget(tbl,"Range") then
+            tbl.Range = 9999
         end
     end
-    notif("Infinite Range etkin!")
+    Notification("Silah menzili sınırsız.")
 end)
-createButton(weaponsTab, "Tazer Bypass", function()
-    for _,v in pairs(getgc(true)) do
-        if type(v) == "table" and rawget(v, "IsTased") then
-            v.IsTased = false
+MakeButton(tab_weap,"Tazer Bypass",function()
+    for _,tbl in pairs(getgc(true)) do
+        if type(tbl)=="table" and rawget(tbl,"IsTased") then
+            tbl.IsTased=false
         end
     end
-    notif("Tazer Bypass aktif!")
+    Notification("Tazer etkisi önlendi.")
 end)
-createButton(weaponsTab, "No Tazer Cooldown", function()
-    for _,v in pairs(getgc(true)) do
-        if type(v) == "table" and rawget(v, "TazerCooldown") then
-            v.TazerCooldown = 0
+MakeButton(tab_weap,"No Tazer Cooldown",function()
+    for _,tbl in pairs(getgc(true)) do
+        if type(tbl)=="table" and rawget(tbl,"TazerCooldown") then
+            tbl.TazerCooldown=0
         end
     end
-    notif("No Tazer Cooldown aktif!")
+    Notification("Tazer bekleme süresi sıfır.")
 end)
-createButton(weaponsTab, "Melee Reach", function()
-    for _,v in pairs(getgc(true)) do
-        if type(v) == "table" and rawget(v, "MeleeRange") then
-            v.MeleeRange = 40
+MakeButton(tab_weap,"Melee Reach",function()
+    for _,tbl in pairs(getgc(true)) do
+        if type(tbl)=="table" and rawget(tbl,"MeleeRange") then
+            tbl.MeleeRange=48
         end
     end
-    notif("Melee Reach aktif!")
+    Notification("Yakın dövüş mesafesi arttı.")
 end)
-createButton(weaponsTab, "Fast Melee", function()
-    for _,v in pairs(getgc(true)) do
-        if type(v) == "table" and rawget(v, "MeleeCooldown") then
-            v.MeleeCooldown = 0.01
+MakeButton(tab_weap,"Fast Melee",function()
+    for _,tbl in pairs(getgc(true)) do
+        if type(tbl)=="table" and rawget(tbl,"MeleeCooldown") then
+            tbl.MeleeCooldown=0.01
         end
     end
-    notif("Fast Melee aktif!")
+    Notification("Hızlı bıçak/yumruk aktif.")
 end)
 
--- Tab 3: Hareket ve Karakter
-local moveTab = pageFrames[3]
-createSection(moveTab, "Karakter & Hareket")
-
-createButton(moveTab, "Fly", function()
-    local flying = true
-    local bv = Instance.new("BodyVelocity")
-    bv.Parent = chr.HumanoidRootPart
-    bv.MaxForce = Vector3.new(1e5, 1e5, 1e5)
-    while flying do
-        local cf = camera.CFrame.LookVector
-        bv.Velocity = cf * 80
-        rs.Heartbeat:Wait()
-        if not quartz.Enabled then
-            flying = false
-        end
+-- Hareket & Karakter
+local tab_move = TabFrames[3]
+MakeSection(tab_move,"Hareket ve Karakter")
+MakeButton(tab_move,"Fly",function()
+    local fly = true
+    local BV = Instance.new("BodyVelocity",Character.HumanoidRootPart)
+    BV.MaxForce = Vector3.new(1e5,1e5,1e5)
+    while QuartzGUI.Enabled and fly do
+        BV.Velocity = Camera.CFrame.LookVector * 80
+        RunService.Heartbeat:Wait()
     end
-    bv:Destroy()
+    BV:Destroy()
 end)
-createSlider(moveTab, "Walk Speed", 16, 200, 50, function(value)
-    chr.Humanoid.WalkSpeed = value
+MakeSlider(tab_move,"WalkSpeed",16,300,100,function(v)
+    Character.Humanoid.WalkSpeed = v
 end)
-createSlider(moveTab, "Jump Power", 50, 300, 100, function(value)
-    chr.Humanoid.JumpPower = value
+MakeSlider(tab_move,"JumpPower",50,400,120,function(v)
+    Character.Humanoid.JumpPower = v
 end)
-createButton(moveTab, "Infinite Jump", function()
-    uis.JumpRequest:Connect(function()
-        chr.Humanoid:ChangeState("Jumping")
+MakeButton(tab_move,"Infinite Jump",function()
+    UIS.JumpRequest:Connect(function()
+        Character.Humanoid:ChangeState("Jumping")
     end)
-    notif("Sonsuz zıplama etkin!")
+    Notification("Sonsuz zıplama etkin.")
 end)
-createButton(moveTab, "Noclip", function()
-    rs.Stepped:Connect(function()
-        for _,v in pairs(chr:GetChildren()) do
+MakeButton(tab_move,"Noclip",function()
+    RunService.Stepped:Connect(function()
+        for _,v in pairs(Character:GetChildren()) do
             if v:IsA("BasePart") then
                 v.CanCollide = false
             end
         end
     end)
-    notif("Noclip etkin!")
+    Notification("Noclip etkin.")
 end)
-createButton(moveTab, "Click Teleport", function()
-    local mouse = lplr:GetMouse()
+MakeButton(tab_move,"Click Teleport",function()
+    local mouse = LocalPlayer:GetMouse()
     mouse.Button1Down:Connect(function()
-        chr:MoveTo(mouse.Hit.p)
+        Character:MoveTo(mouse.Hit.Position)
     end)
-    notif("Click Teleport etkin!")
+    Notification("Tıkla ışınlan etkin.")
 end)
-createSlider(moveTab, "Vehicle Speed", 50, 600, 320, function(value)
-    for _,v in pairs(ws.Vehicles:GetChildren()) do
-        if v:FindFirstChild("Engine") then
-            v.Engine.Speed.Value = value
+MakeSlider(tab_move,"Vehicle Speed",50,800,350,function(v)
+    for _,car in pairs(Workspace:FindFirstChild("Vehicles") and Workspace.Vehicles:GetChildren() or {}) do
+        if car:FindFirstChild("Engine") then
+            car.Engine.Speed.Value = v
         end
     end
 end)
-createButton(moveTab, "No Car Clip", function()
-    for _,car in pairs(ws.Vehicles:GetChildren()) do
+MakeButton(tab_move,"No Car Clip",function()
+    for _,car in pairs(Workspace:FindFirstChild("Vehicles") and Workspace.Vehicles:GetChildren() or {}) do
         for _,part in pairs(car:GetChildren()) do
             if part:IsA("BasePart") then
-                part.CanCollide = false
+                part.CanCollide=false
             end
         end
     end
-    notif("Arabalar duvardan geçebilir!")
+    Notification("Arabalar engellerin içinden geçebiliyor.")
 end)
-createButton(moveTab, "Infinite Stamina", function()
-    if chr and chr:FindFirstChild("Humanoid") then
-        chr.Humanoid:GetPropertyChangedSignal("WalkSpeed"):Connect(function()
-            chr.Humanoid.WalkSpeed = 50
+MakeButton(tab_move,"Infinite Stamina",function()
+    if Character and Character:FindFirstChild("Humanoid") then
+        Character.Humanoid:GetPropertyChangedSignal("WalkSpeed"):Connect(function()
+            Character.Humanoid.WalkSpeed=100
         end)
     end
-    notif("Sonsuz stamina etkin!")
+    Notification("Sonsuz stamina aktif.")
 end)
-createButton(moveTab, "Anti-Ragdoll", function()
-    lplr.Character.Humanoid.StateChanged:Connect(function(old, new)
-        if new == Enum.HumanoidStateType.Physics or new == Enum.HumanoidStateType.Ragdoll then
-            chr.Humanoid:ChangeState(Enum.HumanoidStateType.GettingUp)
+MakeButton(tab_move,"Anti-Ragdoll",function()
+    LocalPlayer.Character.Humanoid.StateChanged:Connect(function(_,state)
+        if state==Enum.HumanoidStateType.Physics or state==Enum.HumanoidStateType.Ragdoll then
+            Character.Humanoid:ChangeState(Enum.HumanoidStateType.GettingUp)
         end
     end)
-    notif("Anti-Ragdoll aktif!")
+    Notification("Anti-ragdoll aktif.")
 end)
 
--- Tab 4: ESP & Combat
-local espTab = pageFrames[4]
-createSection(espTab, "ESP & Savaş")
-
-createButton(espTab, "Aimbot", function()
-    rs.RenderStepped:Connect(function()
-        local closest,dist = nil,9999
-        for _,p in pairs(plrs:GetPlayers()) do
-            if p ~= lplr and p.Team ~= lplr.Team and p.Character and p.Character:FindFirstChild("Head") then
-                local mag = (camera.CFrame.Position - p.Character.Head.Position).magnitude
-                if mag < dist then
-                    closest = p.Character.Head
-                    dist = mag
+-- ESP/Combat
+local tab_esp = TabFrames[4]
+MakeSection(tab_esp,"ESP & Savaş")
+MakeButton(tab_esp,"Aimbot",function()
+    RunService.RenderStepped:Connect(function()
+        local nearest,dist=nil,99999
+        for _,p in pairs(Players:GetPlayers()) do
+            if p~=LocalPlayer and p.Team~=LocalPlayer.Team and p.Character and p.Character:FindFirstChild("Head") then
+                local d = (Camera.CFrame.Position - p.Character.Head.Position).magnitude
+                if d<dist then
+                    dist = d
+                    nearest = p.Character.Head
                 end
             end
         end
-        if closest then
-            camera.CFrame = CFrame.new(camera.CFrame.Position, closest.Position)
+        if nearest then
+            Camera.CFrame = CFrame.new(Camera.CFrame.Position, nearest.Position)
         end
     end)
-    notif("Aimbot aktif!")
+    Notification("Aimbot aktif.")
 end)
-createButton(espTab, "Silent Aim", function()
-    getgenv().quartz_silentaim = true
-    notif("Silent Aim aktif!")
+MakeButton(tab_esp,"Silent Aim",function()
+    getgenv().QUARTZ_SILENTAIM = true
+    Notification("Silent aim aktif.")
 end)
-createButton(espTab, "Player ESP", function()
-    rs.RenderStepped:Connect(function()
-        for _,p in pairs(plrs:GetPlayers()) do
-            if p ~= lplr and p.Character and p.Character:FindFirstChild("Head") then
-                if not p.Character.Head:FindFirstChild("QuadESP") then
-                    local ador = Instance.new("BillboardGui", p.Character.Head)
-                    ador.Name = "QuadESP"
-                    ador.Size = UDim2.new(0,100,0,40)
-                    ador.AlwaysOnTop = true
-                    local txt = Instance.new("TextLabel", ador)
-                    txt.Size = UDim2.new(1,0,1,0)
-                    txt.Text = p.Name .. " | " .. math.floor((p.Character.HumanoidRootPart.Position - chr.HumanoidRootPart.Position).magnitude)
-                    txt.TextColor3 = Color3.fromRGB(255,255,0)
-                    txt.BackgroundTransparency = 1
-                    txt.TextStrokeTransparency = 0.4
-                    txt.Font = Enum.Font.GothamSemibold
-                    txt.TextSize = 16
-                end
-            end
-        end
-    end)
-    notif("Player ESP aktif!")
-end)
-createButton(espTab, "Line ESP (Tracers)", function()
-    for _,p in pairs(plrs:GetPlayers()) do
-        if p ~= lplr and p.Character and p.Character:FindFirstChild("Head") then
-            local line = Instance.new("Beam", p.Character.Head)
-            line.Attachment0 = Instance.new("Attachment", camera)
-            line.Attachment1 = Instance.new("Attachment", p.Character.Head)
-            line.Segments = 1
-            line.Color = ColorSequence.new(Color3.fromRGB(255,0,0))
-        end
-    end
-    notif("Line ESP aktif!")
-end)
-createButton(espTab, "Box ESP", function()
-    rs.RenderStepped:Connect(function()
-        for _,p in pairs(plrs:GetPlayers()) do
-            if p ~= lplr and p.Character and p.Character:FindFirstChild("Head") then
-                if not p.Character.Head:FindFirstChild("BoxESP") then
-                    local adorn = Instance.new("BoxHandleAdornment", p.Character.Head)
-                    adorn.Adornee = p.Character.Head
-                    adorn.Size = Vector3.new(5,5,5)
-                    adorn.Color3 = Color3.fromRGB(0,255,0)
-                    adorn.AlwaysOnTop = true
-                    adorn.Name = "BoxESP"
-                    adorn.Transparency = .7
+MakeButton(tab_esp,"Player ESP",function()
+    RunService.RenderStepped:Connect(function()
+        for _,p in pairs(Players:GetPlayers()) do
+            if p ~= LocalPlayer and p.Character and p.Character:FindFirstChild("Head") then
+                if not p.Character.Head:FindFirstChild("PLR_ESP") then
+                    local bg = Instance.new("BillboardGui", p.Character.Head)
+                    bg.Name = "PLR_ESP"
+                    bg.Size = UDim2.new(0,140,0,34)
+                    bg.AlwaysOnTop = true
+                    local tl = Instance.new("TextLabel",bg)
+                    tl.Size = UDim2.new(1,0,1,0)
+                    tl.BackgroundTransparency = 1
+                    tl.Text = p.Name .. " | "..math.floor((p.Character.HumanoidRootPart.Position-Character.HumanoidRootPart.Position).magnitude)
+                    tl.TextStrokeTransparency = 0.8
+                    tl.TextColor3 = Color3.fromRGB(255,240,6)
+                    tl.Font=Enum.Font.GothamSemibold
+                    tl.TextSize = 14
                 end
             end
         end
     end)
-    notif("Box ESP aktif!")
+    Notification("Player ESP aktif.")
 end)
-createButton(espTab, "Item ESP", function()
-    rs.RenderStepped:Connect(function()
-        for _,it in pairs(ws["Prison_ITEMS"].single:GetChildren()) do
-            if it:IsA("Part") and not it:FindFirstChild("QuadESP") then
-                local ador = Instance.new("BillboardGui", it)
-                ador.Name = "QuadESP"
-                ador.Size = UDim2.new(0,80,0,20)
-                ador.AlwaysOnTop = true
-                local txt = Instance.new("TextLabel", ador)
-                txt.Size = UDim2.new(1,0,1,0)
-                txt.Text = it.Name
-                txt.TextColor3 = Color3.fromRGB(0,255,255)
-                txt.BackgroundTransparency = 1
-                txt.TextSize = 14
+MakeButton(tab_esp,"Line ESP (Tracers)",function()
+    RunService.RenderStepped:Connect(function()
+        for _,p in pairs(Players:GetPlayers()) do
+            if p ~= LocalPlayer and p.Character and p.Character:FindFirstChild("Head") then
+                if not p.Character.Head:FindFirstChild("TRC_ESP") then
+                    local att0 = Instance.new("Attachment",Camera)
+                    local att1 = Instance.new("Attachment",p.Character.Head)
+                    local beam = Instance.new("Beam",p.Character.Head)
+                    beam.Attachment0 = att0
+                    beam.Attachment1 = att1
+                    beam.Color = ColorSequence.new(Color3.fromRGB(250,30,40))
+                    beam.Width0 = 0.1
+                    beam.Width1 = 0.1
+                    beam.FaceCamera = true
+                    beam.Name = "TRC_ESP"
+                end
             end
         end
     end)
-    notif("Item ESP aktif!")
+    Notification("Tracer (Line ESP) aktif.")
 end)
-createButton(espTab, "Kill All", function()
-    for _,p in pairs(plrs:GetPlayers()) do
-        if p ~= lplr and p.Team ~= lplr.Team and p.Character and p.Character:FindFirstChild("Humanoid") then
+MakeButton(tab_esp,"Box ESP",function()
+    RunService.RenderStepped:Connect(function()
+        for _,p in pairs(Players:GetPlayers()) do
+            if p ~= LocalPlayer and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
+                if not p.Character.HumanoidRootPart:FindFirstChild("BOX_ESP") then
+                    local bxa = Instance.new("BoxHandleAdornment", p.Character.HumanoidRootPart)
+                    bxa.Adornee = p.Character.HumanoidRootPart
+                    bxa.Size = Vector3.new(5,7,3)
+                    bxa.Color3 = Color3.fromRGB(18,255,60)
+                    bxa.AlwaysOnTop = true
+                    bxa.Name = "BOX_ESP"
+                    bxa.Transparency = 0.6
+                end
+            end
+        end
+    end)
+    Notification("Box ESP aktif.")
+end)
+MakeButton(tab_esp,"Item ESP",function()
+    RunService.RenderStepped:Connect(function()
+        for _,item in pairs(Workspace:FindFirstChild("Prison_ITEMS") and Workspace.Prison_ITEMS.single:GetChildren() or {}) do
+            if item:IsA("Part") and not item:FindFirstChild("ITEM_ESP") then
+                local bc = Instance.new("BillboardGui", item)
+                bc.Name = "ITEM_ESP"
+                bc.Size = UDim2.new(0,85,0,24)
+                bc.AlwaysOnTop=true
+                local tx = Instance.new("TextLabel", bc)
+                tx.Size = UDim2.new(1,0,1,0)
+                tx.Text = item.Name
+                tx.BackgroundTransparency=1
+                tx.TextColor3 = Color3.fromRGB(80,255,240)
+                tx.Font=Enum.Font.GothamSemibold
+                tx.TextSize=14
+            end
+        end
+    end)
+    Notification("Eşya ESP aktif.")
+end)
+MakeButton(tab_esp,"Kill All",function()
+    for _,p in pairs(Players:GetPlayers()) do
+        if p ~= LocalPlayer and p.Team ~= LocalPlayer.Team and p.Character and p.Character:FindFirstChild("Humanoid") then
             p.Character.Humanoid.Health = 0
         end
     end
-    notif("Bütün düşmanlar öldürüldü!")
+    Notification("Düşmanlar öldürüldü.")
 end)
-createButton(espTab, "Kill Aura", function()
-    rs.RenderStepped:Connect(function()
-        for _,p in pairs(plrs:GetPlayers()) do
-            if p ~= lplr and p.Team ~= lplr.Team and p.Character and (p.Character.HumanoidRootPart.Position - chr.HumanoidRootPart.Position).magnitude < 15 then
-                p.Character.Humanoid.Health = 0
+MakeButton(tab_esp,"Kill Aura",function()
+    RunService.RenderStepped:Connect(function()
+        for _,p in pairs(Players:GetPlayers()) do
+            if p ~= LocalPlayer and p.Team ~= LocalPlayer.Team and p.Character and (p.Character.HumanoidRootPart.Position-Character.HumanoidRootPart.Position).magnitude<17 then
+                if p.Character:FindFirstChild("Humanoid") then p.Character.Humanoid.Health=0 end
             end
         end
     end)
-    notif("Kill Aura aktif!")
+    Notification("Kill Aura aktif.")
 end)
-createButton(espTab, "Auto Arrest All", function()
-    for _,p in pairs(plrs:GetPlayers()) do
-        if p ~= lplr and p.Team.Name == "Criminal" and p.Character and p.Character:FindFirstChild("Head") then
-            workspace.Remote.arrest:InvokeServer(p.Character.Head)
+MakeButton(tab_esp,"Auto Arrest All",function()
+    for _,p in pairs(Players:GetPlayers()) do
+        if p ~= LocalPlayer and p.Team.Name=="Criminal" and p.Character and p.Character:FindFirstChild("Head") then
+            Workspace.Remote.arrest:InvokeServer(p.Character.Head)
         end
     end
-    notif("Bütün suçlular tutuklandı!")
+    Notification("Tüm suçlular içeri atıldı.")
 end)
-createButton(espTab, "Arrest Range Multiplier", function()
-    for _,v in pairs(getgc(true)) do
-        if type(v) == "table" and rawget(v, "ArrestRange") then
-            v.ArrestRange = 1000
+MakeButton(tab_esp,"Arrest Range Multiplier",function()
+    for _,tbl in pairs(getgc(true)) do
+        if type(tbl)=="table" and rawget(tbl,"ArrestRange") then
+            tbl.ArrestRange=5000
         end
     end
-    notif("Arrest Range arttı!")
+    Notification("Kelepçe menzili arttı.")
 end)
 
--- Tab 5: Defans & Safety
-local defenseTab = pageFrames[5]
-createSection(defenseTab, "Koruma & Güvenlik")
-
-createButton(defenseTab, "God Mode", function()
-    chr.Humanoid.Health = math.huge
-    chr.Humanoid:GetPropertyChangedSignal("Health"):Connect(function()
-        chr.Humanoid.Health = math.huge
+-- Defans & Koruma
+local tab_def = TabFrames[5]
+MakeSection(tab_def,"Defans ve Guard")
+MakeButton(tab_def,"God Mode",function()
+    Character.Humanoid.Health = math.huge
+    Character.Humanoid:GetPropertyChangedSignal("Health"):Connect(function()
+        Character.Humanoid.Health=math.huge
     end)
-    notif("God Mod aktif!")
+    Notification("Ölümsüz oldunuz.")
 end)
-createButton(defenseTab, "Semi-God Mode", function()
-    chr.Humanoid.HealthChanged:Connect(function()
-        chr.Humanoid.Health = chr.Humanoid.MaxHealth
+MakeButton(tab_def,"Semi-God Mode",function()
+    Character.Humanoid.HealthChanged:Connect(function()
+        Character.Humanoid.Health = Character.Humanoid.MaxHealth
     end)
-    notif("Semi-God mode aktif!")
+    Notification("Semi-god aktif.")
 end)
-createButton(defenseTab, "Anti-Arrest", function()
-    lplr.PlayerGui.ChildAdded:Connect(function(c)
-        if c.Name == "ArrestGui" then
-            c:Destroy()
-        end
+MakeButton(tab_def,"Anti-Arrest",function()
+    LocalPlayer.PlayerGui.ChildAdded:Connect(function(c)
+        if c.Name == "ArrestGui" then c:Destroy() end
     end)
-    notif("Anti-Arrest aktif!")
+    Notification("Anti-arrest aktif.")
 end)
-createButton(defenseTab, "Give Keycard", function()
-    workspace.Remote.ItemHandler:InvokeServer("Key card")
-    notif("KeyCard envantere eklendi!")
+MakeButton(tab_def,"Give Keycard",function()
+    Workspace.Remote.ItemHandler:InvokeServer("Key card")
+    Notification("Keycard alındı.")
 end)
-createButton(defenseTab, "Auto Escape", function()
-    chr:MoveTo(workspace.Criminals.SpawnLocation.Position)
-    notif("Hapishaneden kaçıldı!")
-end)
-
--- Tab 6: Sunucu/Trol/Fun
-local trollTab = pageFrames[6]
-createSection(trollTab, "Sunucu/Trol & Fonksiyonlar")
-
-createButton(trollTab, "Spinbot", function()
-    rs.RenderStepped:Connect(function()
-        chr:SetPrimaryPartCFrame(chr.PrimaryPart.CFrame * CFrame.Angles(0,math.rad(40),0))
-    end)
-    notif("Spinbot aktif!")
-end)
-createButton(trollTab, "Invisible", function()
-    chr.HumanoidRootPart.Transparency = 1
-    for _,v in pairs(chr:GetChildren()) do
-        if v:IsA("BasePart") or v:IsA("MeshPart") then
-            v.Transparency = 1
+MakeButton(tab_def,"Auto Escape",function()
+    if Workspace:FindFirstChild("Criminals") then
+        if Workspace.Criminals:FindFirstChild("SpawnLocation") then
+            Character:MoveTo(Workspace.Criminals.SpawnLocation.Position)
         end
     end
-    notif("Invisible aktif!")
+    Notification("Kaçış başarılı!")
 end)
-createButton(trollTab, "Loop Kill Target", function()
-    local target = getPlayer(game:GetService("StarterGui"):PromptInput("Hedef oyuncu adı girin:"))
-    if target and target.Character and target.Character:FindFirstChild("Humanoid") then
-        rs.Stepped:Connect(function()
-            if target.Character.Humanoid.Health > 0 then
-                target.Character.Humanoid.Health = 0
+
+-- Sunucu/Trol ve Fun
+local tab_srv = TabFrames[6]
+MakeSection(tab_srv,"Sunucu/Fun/Trol")
+MakeButton(tab_srv,"Spinbot",function()
+    RunService.RenderStepped:Connect(function()
+        pcall(function()
+            Character:SetPrimaryPartCFrame(Character.PrimaryPart.CFrame * CFrame.Angles(0, math.rad(42), 0))
+        end)
+    end)
+    Notification("Spinbot aktif.")
+end)
+MakeButton(tab_srv,"Invisible",function()
+    pcall(function()
+        Character.HumanoidRootPart.Transparency = 1
+        for _,part in pairs(Character:GetChildren()) do
+            if part:IsA("BasePart") or part:IsA("MeshPart") then
+                part.Transparency=1
+            end
+        end
+    end)
+    Notification("Görünmezlik aktif.")
+end)
+MakeButton(tab_srv,"Loop Kill Target",function()
+    local pname = game:GetService("StarterGui"):PromptInput("Öldürülecek oyuncunun adını yaz:")
+    local tgt = GetPlayer(pname)
+    if tgt and tgt.Character and tgt.Character:FindFirstChild("Humanoid") then
+        RunService.Stepped:Connect(function()
+            if tgt.Character:FindFirstChild("Humanoid") and tgt.Character.Humanoid.Health > 0 then
+                tgt.Character.Humanoid.Health = 0
             end
         end)
+        Notification(pname.." öldürülüyor - loop.")
+    else
+        Notification("Oyuncu bulunamadı.")
     end
-    notif("Loop Kill aktif!")
 end)
-createButton(trollTab, "Bring All Players", function()
-    for _,p in pairs(plrs:GetPlayers()) do
-        if p ~= lplr and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
-            p.Character:MoveTo(chr.HumanoidRootPart.Position + Vector3.new(math.random(-7,7),0,math.random(-7,7)))
+MakeButton(tab_srv,"Bring All Players",function()
+    for _,p in pairs(Players:GetPlayers()) do
+        if p ~= LocalPlayer and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
+            p.Character:MoveTo(Character.HumanoidRootPart.Position + Vector3.new(math.random(-7,7),0,math.random(-7,7)))
         end
     end
-    notif("Tüm oyuncular yanınıza çekildi!")
+    Notification("Tüm oyuncular getirildi.")
 end)
-createButton(trollTab, "Teleport to Location", function()
-    local locations = {
-        ["Silah Odası"] = workspace["GunRoom"]["Guns"].Position,
-        ["Bahçe"] = workspace["Yard"]["Yard_Stuff"].Position,
-        ["Crim Base"] = workspace.Criminals.SpawnLocation.Position,
-        ["Hücreler"] = workspace["Cells"]["Cells"].Position
+MakeButton(tab_srv,"Teleport To Locations",function()
+    local locs = {
+        ["Silah Odası"] = Workspace:FindFirstChild("GunRoom") and Workspace.GunRoom:FindFirstChild("Guns") and Workspace.GunRoom.Guns.Position or nil,
+        ["Bahçe"] = Workspace:FindFirstChild("Yard") and Workspace.Yard:FindFirstChild("Yard_Stuff") and Workspace.Yard.Yard_Stuff.Position or nil,
+        ["Crim Base"] = Workspace:FindFirstChild("Criminals") and Workspace.Criminals:FindFirstChild("SpawnLocation") and Workspace.Criminals.SpawnLocation.Position or nil,
+        ["Hücreler"] = Workspace:FindFirstChild("Cells") and Workspace.Cells:FindFirstChild("Cells") and Workspace.Cells.Cells.Position or nil
     }
-    local loc = game:GetService("StarterGui"):PromptInput("Konum adı gir (Silah Odası, Bahçe, Crim Base, Hücreler):")
-    if loc and locations[loc] then
-        chr:MoveTo(locations[loc])
-        notif(loc.." konumuna ışınlandınız!")
+    local pick = game:GetService("StarterGui"):PromptInput("Konum adı (Silah Odası, Bahçe, Crim Base, Hücreler):")
+    if pick and locs[pick] then
+        Character:MoveTo(locs[pick])
+        Notification(pick.." konumuna ışınlandınız.")
     else
-        notif("Geçersiz bölgü!")
+        Notification("Geçersiz konum.")
     end
 end)
-createButton(trollTab, "Chat Spammer", function()
-    local msg = game:GetService("StarterGui"):PromptInput("Spamlamak için mesaj:")
+MakeButton(tab_srv,"Chat Spammer",function()
+    local msg = game:GetService("StarterGui"):PromptInput("Mesajı girin:")
     spawn(function()
-        while quartz.Enabled do
-            workspace.Remote.SendMessage:FireServer(msg)
-            wait(0.06)
+        while QuartzGUI.Enabled do
+            pcall(function()
+                Workspace.Remote.SendMessage:FireServer(msg)
+            end)
+            task.wait(0.06)
         end
     end)
 end)
-createButton(trollTab, "Crash Server (Lag Switch)", function()
-    for i=1,500 do
-        workspace.Remote.TeamEvent:FireServer("Neutral")
-        wait()
+MakeButton(tab_srv,"Crash Server (Lag Switch)",function()
+    for i=1,750 do
+        Workspace.Remote.TeamEvent:FireServer("Neutral")
+        task.wait()
     end
-    notif("Servera aşırı yük bindirildi!")
+    Notification("Sunucu lag/crash denemesi uygulandı.")
 end)
-createButton(trollTab, "Server View (Spectate)", function()
-    for _,p in pairs(plrs:GetPlayers()) do
-        if p ~= lplr then
-            camera.CameraSubject = p.Character:FindFirstChild("Humanoid")
+MakeButton(tab_srv,"Server View (Spectate)",function()
+    for _,p in pairs(Players:GetPlayers()) do
+        if p ~= LocalPlayer and p.Character and p.Character:FindFirstChild("Humanoid") then
+            Camera.CameraSubject = p.Character.Humanoid
+            Notification(p.Name.." izleniyor.")
             break
         end
     end
-    notif("Bir oyuncu spectate modunda izleniyor!")
 end)
 
-notif("QUARTZ.LUA | Prison Life Exploit yüklendi! [Menu: RightShift]")
-
--- End Generation Here
-```
+Notification("QUARTZ.LUA yüklendi. Menü: RightShift")
