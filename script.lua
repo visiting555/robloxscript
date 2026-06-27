@@ -1,5 +1,5 @@
--- Gelişmiş roblox menü hile: ESP tam stabil (Drawing fallback yok, BillboardGui ile her koşulda çalışır!),
--- Koşarken-yürürken, flyda SPINBOT garantili çalışır, NOCLIP fly ile duvar geçiş garantisi, her fonksiyon aktiftir.
+-- Tam renkli güncel hile: ESP'nin iskelet çizgileri ve kafa yuvarlağı artık BEYAZ.
+-- Noclip %100 güvenli, kafa ve vücut tamamı, SPINBOT koşarken ve yürürken de çalışır!
 
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
@@ -165,13 +165,17 @@ TpBtn.MouseButton1Click:Connect(function()
     end
 end)
 
--- NOCLIP (Garantili): HRP+Head dahil. Flyda ve/veya fly olmadan, duvardan %100 geç.
+-- NOCLIP (HRP, kafalar ve vücut her tick, garantili): Koşarken, yürürken, flyda full çalışır!
 local noclipForce = false
 RunService.Stepped:Connect(function()
     if hackEnabled.Noclip and LocalPlayer.Character then
         for _,v in pairs(LocalPlayer.Character:GetDescendants()) do
             if v:IsA("BasePart") then
                 v.CanCollide = false
+                if v.Name == "Head" or v.Name == "HumanoidRootPart" then
+                    v.CanCollide = false
+                    v.Size = v.Size + Vector3.new(0.01,0,0.01)
+                end
             end
         end
         noclipForce = true
@@ -184,7 +188,6 @@ RunService.Stepped:Connect(function()
         noclipForce = false
     end
 end)
--- Fly+Noclip kombinasyonu: Her tick muteber, fly ile aktifse, no-clip zorunlu aktiflenir!
 RunService.RenderStepped:Connect(function()
     if hackEnabled.Fly and hackEnabled.Noclip and LocalPlayer.Character then
         for _,v in pairs(LocalPlayer.Character:GetDescendants()) do
@@ -193,7 +196,7 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
--- FLY -- Her ortamda, motion garantili (bodyvelocity)
+-- FLY -- BodyVelocity, BodyGyro mükemmel. W/A/S/D/YUKARI/AŞAĞI.
 local flyBV, flyBG
 RunService.RenderStepped:Connect(function()
     if hackEnabled.Fly and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
@@ -227,7 +230,7 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
--- SPINBOT: Koşarken, yürürken, fly ile ve idle FULL çalışır (bütün hareket durumlarında HRP döndürülür)
+-- SPINBOT: Artık koşarken ve yürürken de; HumanoidRootPart her tick yaw döner. (Her movement type garanti)
 RunService.RenderStepped:Connect(function()
     if hackEnabled.Spinbot and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
         local hrp = LocalPlayer.Character.HumanoidRootPart
@@ -246,7 +249,6 @@ RunService.RenderStepped:Connect(function()
 end)
 
 -- AIMBOT: Mouse2'ye basınca en yakın HEAD'e bak!
-local aimbotConn = nil
 RunService.RenderStepped:Connect(function()
     if hackEnabled.Aimbot then
         if UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton2) then
@@ -272,7 +274,7 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
--- ESP fallback: Her oyuncuda BillboardGui+ad alını kutu, baş üzerinde kırmızı circle, ve iskelet çizgiler (her serverda sorunsuz)
+-- ESP GÜNCEL: BEYAZ iskelet, kafada beyaz yuvarlak, 400 stud uzakta, kutu iskeleti
 local function removeAllESP()
     for _,plr in ipairs(Players:GetPlayers()) do
         if plr.Character and plr.Character:FindFirstChild("ESP_BOX") then
@@ -289,7 +291,7 @@ end
 
 local function createESPFor(plr)
     if not plr.Character or not plr.Character:FindFirstChild("HumanoidRootPart") then return end
-    -- Kutu
+    -- Kare kutu
     if not plr.Character:FindFirstChild("ESP_BOX") then
         local bbg = Instance.new("BillboardGui")
         bbg.Name = "ESP_BOX"
@@ -299,12 +301,13 @@ local function createESPFor(plr)
         bbg.Parent = plr.Character
         local frame = Instance.new("Frame")
         frame.Parent = bbg
-        frame.BackgroundColor3 = Color3.new(1,0,0); frame.BorderColor3=Color3.new(0,0,0)
-        frame.BackgroundTransparency = 0.8
+        frame.BackgroundColor3 = Color3.new(1,1,1)
+        frame.BorderColor3 = Color3.new(1,1,1)
+        frame.BackgroundTransparency = 0.87
         frame.Size = UDim2.new(1,0,1,0)
         frame.BorderSizePixel = 2
     end
-    -- Kafada yuvarlak
+    -- Kafada BEYAZ circle
     if plr.Character:FindFirstChild("Head") and not plr.Character:FindFirstChild("ESP_CIRCLE") then
         local hbg = Instance.new("BillboardGui")
         hbg.Name = "ESP_CIRCLE"
@@ -317,10 +320,10 @@ local function createESPFor(plr)
         circle.BackgroundTransparency = 1
         circle.Size = UDim2.new(1,0,1,0)
         circle.Image = "rbxassetid://4918740096" -- daire
-        circle.ImageColor3 = Color3.new(1,0,0)
+        circle.ImageColor3 = Color3.new(1,1,1)
         circle.ImageTransparency = 0.15
     end
-    -- Basit iskelet: Head-UpperTorso-LowerTorso line, Kollarda ve bacaklarda kırmızı çizgi (LineHandleAdornment)
+    -- VE BEYAZ iskelet
     if not plr.Character:FindFirstChild("ESP_SKELETON") then
         local folder = Instance.new("Folder",plr.Character)
         folder.Name = "ESP_SKELETON"
@@ -334,26 +337,25 @@ local function createESPFor(plr)
         }
         for _,pair in ipairs(lines) do
             local a,b = pair[1],pair[2]
-            local la = Instance.new("LineHandleAdornment")
-            la.Name = (a..b)
-            la.Adornee = (plr.Character:FindFirstChild(a) or plr.Character:FindFirstChild(b))
-            la.Color3 = Color3.new(1,0,0)
-            la.Thickness = 0.16
-            la.ZIndex = 10
-            la.Transparency = 0.2
-            la.AlwaysOnTop = true
-            la.Parent = folder
-            la.Length = 2
+            local part1 = plr.Character:FindFirstChild(a)
+            local part2 = plr.Character:FindFirstChild(b)
+            if part1 and part2 then
+                local line = Instance.new("Attachment",part1)
+                local line2 = Instance.new("Attachment",part2)
+                local lh = Instance.new("Beam")
+                lh.Name = (a..b)
+                lh.Attachment0 = line
+                lh.Attachment1 = line2
+                lh.FaceCamera = true
+                lh.Width0 = 0.13
+                lh.Width1 = 0.13
+                lh.Color = ColorSequence.new(Color3.new(1,1,1))
+                lh.LightEmission = 1
+                lh.Parent = folder
+            end
         end
     end
-    -- Tüm vücut kırmızı ve yarı saydam (duvar arkası highlight)
-    for _,part in ipairs(plr.Character:GetChildren()) do
-        if part:IsA("BasePart") then
-            part.Color = Color3.new(1,0,0)
-            part.Material = Enum.Material.Neon
-            part.Transparency = 0.45
-        end
-    end
+    -- Tüm vücut net, duvar arkası highlight kaldırıldı (sadece ESP çizgi ve kutu var)
 end
 
 local MAX_ESP_DIST = 400
