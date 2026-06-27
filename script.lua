@@ -2,6 +2,8 @@ local UIS = game:GetService("UserInputService")
 local Players = game:GetService("Players")
 local RS = game:GetService("RunService")
 local TPService = game:GetService("TeleportService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Lighting = game:GetService("Lighting")
 local LP = Players.LocalPlayer
 local Cam = workspace.CurrentCamera
 local gui = Instance.new("ScreenGui")
@@ -369,8 +371,8 @@ function drawBodyESP(p)
             local l = Drawing and Drawing.new and Drawing.new("Line") or nil
             if l then
                 l.Color = Color3.fromRGB(255, 0, 0)
-                l.Thickness = 2
-                l.Transparency = 0.94
+                l.Thickness = 2.2
+                l.Transparency = 0.96
                 l.Visible = false
                 lines[i] = l
             end
@@ -414,7 +416,7 @@ function drawBodyESP(p)
         for _,edge in ipairs(edges) do
             if not outline[idx] then
                 local l = Drawing and Drawing.new and Drawing.new("Line") or nil
-                if l then l.Color=Color3.fromRGB(255,0,0) l.Thickness=1.2 l.Transparency=0.97 l.Visible=false end
+                if l then l.Color=Color3.fromRGB(255,0,0) l.Thickness=1.25 l.Transparency=0.97 l.Visible=false end
                 outline[idx] = l
             end
             local l = outline[idx]
@@ -448,8 +450,13 @@ end
 function startESP()
     if espRunning then return end
     espRunning = true
-    local drawingCache = {}
-    RS.RenderStepped:Connect(function()
+    local ESPUpdateTick = 0
+    RS.RenderStepped:Connect(function(dt)
+        ESPUpdateTick = ESPUpdateTick + dt
+        if ESPUpdateTick < 0.033 then
+            return
+        end
+        ESPUpdateTick = 0
         if not optStates["ESP"] then
             for _,sections in pairs(currentESP) do
                 for _,l in ipairs(sections.boxLines or {}) do if l then l.Visible=false end end
@@ -464,10 +471,8 @@ function startESP()
             end
         end
         clearDeadESP()
-        if #framePlayers > 0 then
-            for _,p in pairs(framePlayers) do
-                drawBodyESP(p)
-            end
+        for _,p in pairs(framePlayers) do
+            drawBodyESP(p)
         end
     end)
 end
@@ -571,46 +576,68 @@ function startGorunmezlik()
     RS.RenderStepped:Connect(function()
         if optStates["Görünmezlik"] and LP.Character and LP.Character:FindFirstChild("HumanoidRootPart") then
             for _,v in ipairs(LP.Character:GetDescendants()) do
-                if v:IsA("BasePart") or v:IsA("MeshPart") then v.Transparency=1 end
+                if v:IsA("BasePart") or v:IsA("MeshPart") then v.Transparency=1 v.LocalTransparencyModifier=1 end
                 if v.ClassName=="Decal" or v.ClassName=="Texture" then v.Transparency=1 end
             end
             if LP.Character:FindFirstChild("HumanoidRootPart") then
                 LP.Character.HumanoidRootPart.Transparency=1
             end
+            if LP.Character:FindFirstChildOfClass("Humanoid") then
+                LP.Character:FindFirstChildOfClass("Humanoid").Name = "__VIS__"
+            end
+            if game.Workspace:FindFirstChild(LP.Name) then
+                game.Workspace[LP.Name].Name = tostring(math.random(100000,999999))
+            end
         elseif LP.Character then
             for _,v in ipairs(LP.Character:GetDescendants()) do
-                if v:IsA("BasePart") or v:IsA("MeshPart") then v.Transparency=0 end
+                if v:IsA("BasePart") or v:IsA("MeshPart") then
+                    v.Transparency=0
+                    v.LocalTransparencyModifier=0
+                end
+            end
+            if LP.Character:FindFirstChildOfClass("Humanoid") then
+                LP.Character:FindFirstChildOfClass("Humanoid").Name = "Humanoid"
+            end
+            if game.Workspace:FindFirstChild(tostring(math.random(100000,999999))) then
+                game.Workspace[tostring(math.random(100000,999999))].Name = LP.Name
             end
         end
     end)
 end
 
 function bypassAntiCheat()
-    local Success,Remote = pcall(function() return getrawmetatable(game) end)
-    if Success then
-        setreadonly(Remote, false)
-        local namecall = Remote.__namecall
-        Remote.__namecall = newcclosure(function(self,...)
-            local Args = {...}
-            local Method = getnamecallmethod()
-            if Method=="Kick" or Method=="Ban" or Method=="Destroy" then
+    local ranName = tostring(math.random(100000,999999))
+    local mt = getrawmetatable and getrawmetatable(game)
+    if mt then
+        setreadonly(mt, false)
+        local rawnamecall = mt.__namecall
+        mt.__namecall = newcclosure(function(self,...)
+            local Method = getnamecallmethod and getnamecallmethod() or ""
+            if Method == "Kick" or Method == "Ban" or tostring(self):lower():find("ban") or tostring(self):lower():find("kick") or tostring(self):lower():find("anti") then
                 return
             end
-            if typeof(self)=="Instance" and (self.Name:lower():find("ban") or self.Name:lower():find("kick") or self.Name:lower():find("anticheat")) then
-                return
-            end
-            return namecall(self, ...)
+            return rawnamecall(self, ...)
         end)
-        if make_writeable then pcall(make_writeable,Remote) end
-        if setreadonly then pcall(setreadonly,Remote,true) end
+        if setreadonly then setreadonly(mt, true) end
     end
     if hookfunction and LP and LP.Kick then
         pcall(function()
-            hookfunction(LP.Kick, function()
-                return
-            end)
+            hookfunction(LP.Kick, function() end)
         end)
     end
+    local envs = {"kick","ban",".kick",".ban","anticheat"}
+    for _,v in ipairs(envs) do
+        for _,s in pairs(getgc and getgc(true) or {}) do
+            if type(s)=="function" and debug.getinfo(s).name:lower():find(v) then
+                if hookfunction then pcall(function() hookfunction(s, function() end) end) end
+            end
+        end
+    end
+    game.DescendantAdded:Connect(function(child)
+        if (child:IsA("RemoteEvent") or child:IsA("RemoteFunction")) and (child.Name:lower():find("ban") or child.Name:lower():find("kick") or child.Name:lower():find("anti")) then
+            pcall(function() child.Parent=nil end)
+        end
+    end)
 end
 
 bypassAntiCheat()
