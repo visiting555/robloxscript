@@ -1,3 +1,16 @@
+-- ANTICHEAT BYPASS --
+local meta = getrawmetatable(game)
+setreadonly(meta, false)
+local old __namecall = meta.__namecall
+meta.__namecall = newcclosure(function(self,...)
+    local n = getnamecallmethod()
+    if (tostring(self):lower():find("ban") or tostring(self):lower():find("kick") or tostring(self):lower():find("detect")) then
+        return
+    end
+    return old __namecall(self,...)
+end)
+setreadonly(meta, true)
+
 if game.PlaceId ~= 155615604 then return end
 
 local UIS = game:GetService("UserInputService")
@@ -27,91 +40,106 @@ QuartzGUI.Name = "QUARTZ_GUI"
 QuartzGUI.Parent = game.CoreGui
 QuartzGUI.ResetOnSpawn = false
 
+local OpenCloseBtn = Instance.new("TextButton")
+OpenCloseBtn.Parent = QuartzGUI
+OpenCloseBtn.Size = UDim2.new(0, 70, 0, 26)
+OpenCloseBtn.Position = UDim2.new(0, 30, 0, 70)
+OpenCloseBtn.BackgroundColor3 = Color3.fromRGB(16,16,16)
+OpenCloseBtn.Text = "Aç/Kapat"
+OpenCloseBtn.TextColor3 = Color3.fromRGB(235,235,235)
+OpenCloseBtn.Font = Enum.Font.GothamBold
+OpenCloseBtn.TextSize = 14
+OpenCloseBtn.BorderSizePixel = 0
+local OpenCloseUIC = Instance.new("UICorner",OpenCloseBtn)
+OpenCloseUIC.CornerRadius = UDim.new(0,7)
+OpenCloseBtn.MouseButton1Click:Connect(function()
+    QuartzGUI.Enabled = not QuartzGUI.Enabled
+end)
+
 local MainPanel = Instance.new("Frame")
-MainPanel.Size = UDim2.new(0, 348, 0, 528)
-MainPanel.Position = UDim2.new(0.5, -174, 0.5, -264)
-MainPanel.BackgroundColor3 = Color3.fromRGB(10,10,10)
+MainPanel.Size = UDim2.new(0, 350, 0, 500)
+MainPanel.Position = UDim2.new(0.5, -175, 0.5, -250)
+MainPanel.BackgroundColor3 = Color3.fromRGB(6,6,6)
 MainPanel.BorderSizePixel = 0
 MainPanel.Active = true
 MainPanel.Draggable = true
 MainPanel.AnchorPoint = Vector2.new(0.5,0.5)
 MainPanel.Parent = QuartzGUI
 local Corner = Instance.new("UICorner",MainPanel)
-Corner.CornerRadius = UDim.new(0, 14)
+Corner.CornerRadius = UDim.new(0, 15)
 
 local TabBar = Instance.new("Frame")
-TabBar.Size = UDim2.new(1,0,0,40)
-TabBar.BackgroundColor3 = Color3.fromRGB(16,16,16)
+TabBar.Size = UDim2.new(1,0,0,48)
+TabBar.BackgroundColor3 = Color3.fromRGB(15,15,15)
 TabBar.BorderSizePixel = 0
 TabBar.Parent = MainPanel
 TabBar.Position = UDim2.new(0,0,0,0)
 local TabLayout = Instance.new("UIListLayout", TabBar)
 TabLayout.FillDirection = Enum.FillDirection.Horizontal
-TabLayout.Padding = UDim.new(0,2)
-TabLayout.SortOrder = Enum.SortOrder.LayoutOrder
+TabLayout.Padding = UDim.new(0,4)
 
 local Tabs = {
     "Takım & Rol", "Silah Mod", "Hareket", "ESP & Savaş", "Koruma", "Sunucu"
 }
-local TabFrames, TabButtons = {}, {}
+local TabFrames = {}
 
 function MakeSection(parent,text)
     local Section = Instance.new("Frame")
-    Section.Size = UDim2.new(1, -10, 0, 29)
-    Section.BackgroundColor3 = Color3.fromRGB(21,21,21)
+    Section.Size = UDim2.new(1, -10, 0, 34)
+    Section.BackgroundColor3 = Color3.fromRGB(25,25,25)
     Section.BorderSizePixel = 0
     Section.BackgroundTransparency = 0.13
     Section.Parent = parent
     local lbl = Instance.new("TextLabel",Section)
     lbl.Text = "  "..text
-    lbl.TextColor3 = Color3.fromRGB(233,233,233)
+    lbl.TextColor3 = Color3.fromRGB(230,230,230)
     lbl.TextXAlignment = Enum.TextXAlignment.Left
     lbl.BackgroundTransparency = 1
     lbl.Font = Enum.Font.GothamBold
-    lbl.TextSize = 17
+    lbl.TextSize = 21
     lbl.Size = UDim2.new(1,0,1,0)
 end
 
 function MakeButton(parent, name, callback)
     local Btn = Instance.new("TextButton")
-    Btn.Size = UDim2.new(1, -16, 0, 28)
+    Btn.Size = UDim2.new(1, -18, 0, 32)
     Btn.Text = name
-    Btn.TextColor3 = Color3.fromRGB(240,240,240)
-    Btn.TextSize = 15
+    Btn.TextColor3 = Color3.fromRGB(250,250,250)
+    Btn.TextSize = 18
     Btn.Font = Enum.Font.Gotham
-    Btn.BackgroundColor3 = Color3.fromRGB(22,22,22)
+    Btn.BackgroundColor3 = Color3.fromRGB(30,30,30)
     Btn.BorderSizePixel = 0
     Btn.AutoButtonColor = true
     Btn.Parent = parent
     local c1 = Instance.new("UICorner", Btn)
-    c1.CornerRadius = UDim.new(0,6)
+    c1.CornerRadius = UDim.new(0,7)
     Btn.MouseButton1Click:Connect(callback)
     return Btn
 end
 
 function MakeSlider(parent,text, min, max, def, callback)
     local frame = Instance.new("Frame", parent)
-    frame.Size = UDim2.new(1, -16, 0, 30)
-    frame.BackgroundColor3 = Color3.fromRGB(26,26,26)
+    frame.Size = UDim2.new(1, -18, 0, 36)
+    frame.BackgroundColor3 = Color3.fromRGB(34,34,34)
     frame.BorderSizePixel = 0
     local lbl = Instance.new("TextLabel", frame)
     lbl.Text = text.." ["..tostring(def).."]"
-    lbl.TextColor3 = Color3.fromRGB(220,220,220)
-    lbl.TextSize = 13
+    lbl.TextColor3 = Color3.fromRGB(200,200,200)
+    lbl.TextSize = 16
     lbl.Font = Enum.Font.Gotham
     lbl.BackgroundTransparency = 1
-    lbl.Size = UDim2.new(0.62, 0, 1, 0)
+    lbl.Size = UDim2.new(0.65, 0, 1, 0)
     lbl.TextXAlignment = Enum.TextXAlignment.Left
     local slide = Instance.new("TextButton", frame)
-    slide.Size = UDim2.new(0.34, 0, 0.8, 0)
-    slide.Position = UDim2.new(0.64, 4, 0.1, 0)
+    slide.Size = UDim2.new(0.31, 0, 0.78, 0)
+    slide.Position = UDim2.new(0.69, 8, 0.11, 0)
     slide.Text = tostring(def)
-    slide.TextColor3 = Color3.fromRGB(232,232,232)
-    slide.Font = Enum.Font.GothamBold
-    slide.BackgroundColor3 = Color3.fromRGB(16,16,16)
+    slide.TextColor3 = Color3.fromRGB(240,240,240)
+    slide.Font = Enum.Font.Gotham
+    slide.BackgroundColor3 = Color3.fromRGB(25,25,25)
     slide.BorderSizePixel = 0
     local c1 = Instance.new("UICorner",slide)
-    c1.CornerRadius = UDim.new(0,4)
+    c1.CornerRadius = UDim.new(0,6)
     slide.MouseButton1Click:Connect(function()
         local newval = tonumber(game:GetService("StarterGui"):PromptInput(text.." ["..min.." - "..max.."]"))
         if newval and newval >= min and newval <= max then
@@ -127,14 +155,22 @@ end
 
 function MakeTab(name)
     local frame = Instance.new("Frame")
-    frame.BackgroundColor3 = Color3.fromRGB(13,13,13)
-    frame.Size = UDim2.new(0, 320, 0, 445)
-    frame.Position = UDim2.new(0,13,0,46)
+    frame.BackgroundColor3 = Color3.fromRGB(18,18,18)
+    frame.Size = UDim2.new(0, 330, 0, 435)
     frame.BorderSizePixel = 0
     frame.Visible = false
+    frame.Position = UDim2.new(0,10,0,58)
     frame.Parent = MainPanel
+    local lbl = Instance.new("TextLabel",frame)
+    lbl.Text = "QUARTZ | "..name
+    lbl.Size = UDim2.new(1,0,0,40)
+    lbl.TextColor3 = Color3.fromRGB(253,253,253)
+    lbl.BackgroundColor3 = Color3.fromRGB(12,12,12)
+    lbl.Font = Enum.Font.GothamBold
+    lbl.TextSize = 22
+    lbl.BorderSizePixel = 0
     local layout = Instance.new("UIListLayout", frame)
-    layout.Padding = UDim.new(0,4)
+    layout.Padding = UDim.new(0,5)
     layout.SortOrder = Enum.SortOrder.LayoutOrder
     return frame
 end
@@ -142,38 +178,33 @@ end
 for idx, tabname in ipairs(Tabs) do
     local btn = Instance.new("TextButton",TabBar)
     btn.Text = tabname
-    btn.Size = UDim2.new(0, 56, 1, -4)
-    btn.BackgroundColor3 = Color3.fromRGB(24,24,24)
-    btn.TextColor3 = Color3.fromRGB(230,230,230)
-    btn.Font = Enum.Font.Gotham
-    btn.TextSize = 12
+    btn.Size = UDim2.new(0, 105, 1, 0)
+    btn.BackgroundColor3 = Color3.fromRGB(36,36,36)
+    btn.TextColor3 = Color3.fromRGB(240,240,240)
+    btn.Font = Enum.Font.GothamSemibold
+    btn.TextSize = 17
     btn.BorderSizePixel = 0
     btn.AutoButtonColor = true
     local cr = Instance.new("UICorner", btn)
-    cr.CornerRadius = UDim.new(0,5)
+    cr.CornerRadius = UDim.new(0,7)
     local frame = MakeTab(tabname)
     frame.Visible = (idx==1)
-    TabFrames[idx] = frame
-    TabButtons[idx] = btn
+    table.insert(TabFrames,frame)
     btn.MouseButton1Click:Connect(function()
         for i,tabfr in pairs(TabFrames) do
             tabfr.Visible = (i==idx)
-        end
-        for i,tabbtn in pairs(TabButtons) do
-            tabbtn.BackgroundColor3 = i == idx and Color3.fromRGB(16,16,16) or Color3.fromRGB(24,24,24)
         end
     end)
 end
 
 local EnableKey = Enum.KeyCode.RightShift
 UIS.InputBegan:Connect(function(input, gp)
-    if input.KeyCode == EnableKey and not gp then
+    if input.KeyCode == EnableKey then
         QuartzGUI.Enabled = not QuartzGUI.Enabled
     end
 end)
 
-local tab_team,tab_weap,tab_move,tab_esp,tab_def,tab_srv = TabFrames[1],TabFrames[2],TabFrames[3],TabFrames[4],TabFrames[5],TabFrames[6]
-
+local tab_team = TabFrames[1]
 MakeSection(tab_team,"Takım & Rol Yönetimi")
 MakeButton(tab_team,"Auto Criminal",function()
     for _,door in pairs(Workspace.Doors:GetChildren()) do
@@ -204,6 +235,7 @@ MakeButton(tab_team,"Force Inmate",function()
     Notification("Tüm oyuncular mahkum yapıldı!")
 end)
 
+local tab_weap = TabFrames[2]
 MakeSection(tab_weap,"Silah Modifikasyonları")
 MakeButton(tab_weap,"Give All Weapons",function()
     for _,w in pairs({"M9","Remington 870","AK-47"}) do
@@ -306,6 +338,7 @@ MakeButton(tab_weap,"Fast Melee",function()
     Notification("Yakın dövüş hızın maxlandı!")
 end)
 
+local tab_move = TabFrames[3]
 MakeSection(tab_move,"Hareket ve Karakter")
 MakeButton(tab_move,"Fly",function()
     if getgenv().Q_FLY then return end
@@ -412,6 +445,7 @@ MakeButton(tab_move,"Anti-Ragdoll",function()
     Notification("Anti-ragdoll devrede!")
 end)
 
+local tab_esp = TabFrames[4]
 MakeSection(tab_esp,"ESP & Savaş")
 MakeButton(tab_esp,"Aimbot",function()
     if getgenv().Q_AIM then return end
@@ -568,6 +602,7 @@ MakeButton(tab_esp,"Arrest Range Multiplier",function()
     Notification("Kelepçe menzilin maxlandı!")
 end)
 
+local tab_def = TabFrames[5]
 MakeSection(tab_def,"Defans ve Guard")
 MakeButton(tab_def,"God Mode",function()
     if getgenv().Q_GOD then return end
@@ -601,6 +636,7 @@ MakeButton(tab_def,"Auto Escape",function()
     end
 end)
 
+local tab_srv = TabFrames[6]
 MakeSection(tab_srv,"Sunucu/Fun/Trol")
 MakeButton(tab_srv,"Spinbot",function()
     if getgenv().Q_SPINBOT then return end
@@ -690,4 +726,4 @@ MakeButton(tab_srv,"Server View (Spectate)",function()
     end
 end)
 
-Notification("QUARTZ.LUA yüklendi! Menü: [RIGHT SHIFT] ile aç/kapat.")
+Notification("QUARTZ.LUA yüklendi! Menü: [RIGHT SHIFT] veya üstteki aç/kapat ile aç/kapat.")
