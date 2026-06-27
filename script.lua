@@ -1,611 +1,457 @@
-local UIS = game:GetService("UserInputService")
-local Players = game:GetService("Players")
-local RS = game:GetService("RunService")
-local TPService = game:GetService("TeleportService")
-local LP = Players.LocalPlayer
-local Cam = workspace.CurrentCamera
+local function RS(t,b)local d={}for i=1,t do d[i]=string.char(math.random(97,122)+(math.random(0,1)*32))end;return table.concat(d)end
+local HiddenGlobals=getgenv and getgenv() or _G
+local SCRIPT_ID=RS(24,true)
+HiddenGlobals["__CHEAT_"..SCRIPT_ID]=true
+local LP=game:GetService("Players").LocalPlayer;
+local PS=game:GetService("Players")
+local UIS=game:GetService("UserInputService")
+local RSrv=game:GetService("RunService")
+local TS=game:GetService("TeleportService")
+local WSP=workspace
+local CC=WSP.CurrentCamera
+math.randomseed(tick()*os.time())
+local function deepProtect(inst)pcall(function()if sethiddenproperty then sethiddenproperty(inst,"Archivable",false)end;if syn and syn.protect_gui then syn.protect_gui(inst)end end)return inst end
+local MenuGui=deepProtect(Instance.new("ScreenGui"))
+MenuGui.Name="CHEATHILE_MENU_"..SCRIPT_ID
+pcall(function()MenuGui.Parent=game:GetService("CoreGui")end)
+if not MenuGui.Parent then MenuGui.Parent=LP:FindFirstChildOfClass("PlayerGui")end
 
-local gui = Instance.new("ScreenGui")
-gui.Name = "VisitingMenu"
-pcall(function() gui.Parent = game:GetService("CoreGui") end)
-if not gui.Parent then gui.Parent = LP:FindFirstChildOfClass("PlayerGui") end
+local MainFrm=deepProtect(Instance.new("Frame"))
+MainFrm.Parent=MenuGui;
+MainFrm.Size=UDim2.new(0,720,0,590)
+MainFrm.Position=UDim2.new(0.21,0,0.13,0)
+MainFrm.BackgroundColor3=Color3.fromRGB(0,0,0)
+MainFrm.Draggable=true;MainFrm.Active=true;MainFrm.BorderSizePixel=0;MainFrm.Visible=true
+local Menu_IsVisible=true
 
-local menuOpen = true
-local frame = Instance.new("Frame")
-frame.Parent = gui
-frame.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-frame.Size = UDim2.new(0, 580, 0, 480)
-frame.Position = UDim2.new(0.5, -290, 0.5, -240)
-frame.BorderSizePixel = 0
-frame.Active = true
-frame.Draggable = true
-frame.Visible = true
-local mainUICorner = Instance.new("UICorner", frame)
-mainUICorner.CornerRadius = UDim.new(0, 13)
-local header = Instance.new("Frame", frame)
-header.Size = UDim2.new(1,0,0,54)
-header.Position = UDim2.new(0,0,0,0)
-header.BackgroundColor3 = Color3.fromRGB(16,16,16)
-header.BorderSizePixel = 0
-local hc = Instance.new("UICorner", header)
-hc.CornerRadius = UDim.new(0,13)
-local baslik = Instance.new("TextLabel", header)
-baslik.Text = "visitingmenu"
-baslik.Size = UDim2.new(1, 0, 1, 0)
-baslik.BackgroundTransparency = 1
-baslik.TextColor3 = Color3.fromRGB(255,83,83)
-baslik.TextStrokeTransparency = .4
-baslik.Font = Enum.Font.GothamBold
-baslik.TextSize = 33
-local kapat = Instance.new("TextButton", header)
-kapat.Size = UDim2.new(0,44,0,44)
-kapat.Position = UDim2.new(1,-52,0,6)
-kapat.BackgroundColor3 = Color3.fromRGB(40,0,0)
-local ccr = Instance.new("UICorner", kapat)
-ccr.CornerRadius = UDim.new(1,0)
-kapat.Text = "✕"
-kapat.TextColor3 = Color3.fromRGB(255,83,83)
-kapat.Font = Enum.Font.GothamBold
-kapat.TextSize = 26
-kapat.MouseButton1Click:Connect(function()
-    menuOpen = not menuOpen
-    frame.Visible = menuOpen
+local function setVis(v)MainFrm.Visible=v;Menu_IsVisible=v end
+UIS.InputBegan:Connect(function(k)if k.KeyCode==Enum.KeyCode.RightControl then setVis(not MainFrm.Visible)end end)
+
+local TITLE=deepProtect(Instance.new("TextLabel"))
+TITLE.Parent=MainFrm
+TITLE.Size=UDim2.new(1,0,0,47)
+TITLE.Position=UDim2.new(0,0,0,0)
+TITLE.BackgroundTransparency=1
+TITLE.Text="EĞİTİM AMAÇLI MODERN ROBLOX HİLE MENÜSÜ"
+TITLE.Font=Enum.Font.SourceSansBold
+TITLE.TextSize=37
+TITLE.TextColor3=Color3.fromRGB(255,36,60)
+
+local function Notify(msg,tm)
+    local old=MenuGui:FindFirstChild("NotifyMsg")
+    if old then old:Destroy()end
+    local n=deepProtect(Instance.new("TextLabel"));n.Name="NotifyMsg"
+    n.Parent=MainFrm;n.Size=UDim2.new(0.7,0,0,28)
+    n.Position=UDim2.new(0.15,0,0.92,0)
+    n.BackgroundColor3=Color3.fromRGB(33,33,33)
+    n.TextColor3=Color3.fromRGB(255,255,255)
+    n.TextSize=23;n.BackgroundTransparency=0.12
+    n.Font=Enum.Font.SourceSansBold;n.Text=" "..tostring(msg)
+    game.Debris:AddItem(n,tm or 2.3)
+end
+
+local CloseBtn=deepProtect(Instance.new("TextButton"))
+CloseBtn.Parent=MainFrm; CloseBtn.Position=UDim2.new(1,-56,0,6)
+CloseBtn.Size=UDim2.new(0,42,0,32)
+CloseBtn.Text="✖"
+CloseBtn.Font=Enum.Font.SourceSansBold
+CloseBtn.BackgroundTransparency=1;CloseBtn.TextSize=26
+CloseBtn.TextColor3=Color3.fromRGB(255,36,60)
+local IsClosing=false
+CloseBtn.MouseButton1Click:Connect(function()
+    if IsClosing then return end;IsClosing=true
+    MainFrm.Visible=false
+    wait(2)
+    MainFrm.Visible=true
+    IsClosing=false
 end)
-UIS.InputBegan:Connect(function(input,gpe)
-    if not gpe and input.KeyCode == Enum.KeyCode.RightControl then
-        menuOpen = not menuOpen
-        frame.Visible = menuOpen
+
+local SectionInfo={
+    ["Aim Hileleri"]={"Aimbot","SilentAim","Spinbot","Fov Changer"},
+    ["Görüş Hileleri"]={"ESP","Spectate Player"},
+    ["Troll Hileleri"]={"Explode","Fly","Teleport","Yanına Teleport","Noclip"},
+    ["Bireysel Hileler"]={"No Reload","Godmode","Rejoin","Reset Character"}
+}
+local AllOptsInOrder={}
+for _,cat in ipairs({"Aim Hileleri","Görüş Hileleri","Troll Hileleri","Bireysel Hileler"})do
+    for i,v in ipairs(SectionInfo[cat])do
+        table.insert(AllOptsInOrder,{cat,v})
     end
+end
+
+local SectionX=15
+local SectionOffsets={}
+do
+    local oy=57
+    for _,sec in ipairs({"Aim Hileleri","Görüş Hileleri","Troll Hileleri","Bireysel Hileler"})do
+        SectionOffsets[sec]=oy
+        oy=oy+#SectionInfo[sec]*39+60
+    end
+end
+
+local function CreateSection(title,oy)
+    local lbl=deepProtect(Instance.new("TextLabel"))
+    lbl.Name="SEC_"..title:gsub(" ","_")
+    lbl.Parent=MainFrm
+    lbl.Size=UDim2.new(0,140,0,34)
+    lbl.Position=UDim2.new(0,SectionX,0,oy)
+    lbl.BackgroundTransparency=1
+    lbl.Text=title
+    lbl.TextColor3=Color3.fromRGB(255,36,60)
+    lbl.TextSize=23
+    lbl.Font=Enum.Font.SourceSansBold
+end
+
+local function PickPlayerPopup(clb)
+    local fm=deepProtect(Instance.new("Frame"))
+    fm.Size=UDim2.new(0,240,0,225);fm.Position=UDim2.new(.60,0,.17,0)
+    fm.Name="Picker_"..RS(6);fm.BackgroundColor3=Color3.fromRGB(17,17,21);fm.BorderSizePixel=0;fm.ZIndex=78;fm.Parent=MainFrm
+    local close=deepProtect(Instance.new("TextButton"))
+    close.Parent=fm;close.Size=UDim2.new(0,38,0,28);close.Position=UDim2.new(1,-41,0,2)
+    close.Text="✖";close.BackgroundTransparency=1;close.TextColor3=Color3.fromRGB(255,36,60);close.ZIndex=81;close.TextSize=21
+    close.Font=Enum.Font.SourceSansBold
+    close.MouseButton1Click:Connect(function()fm:Destroy()end)
+    local lb=deepProtect(Instance.new("TextLabel"))
+    lb.Size=UDim2.new(1,0,0,25);lb.Position=UDim2.new(0,0,0,0);lb.Text="Oyuncu Seç";lb.TextColor3=Color3.fromRGB(255,255,255)
+    lb.TextSize=20;lb.Font=Enum.Font.SourceSansBold;lb.ZIndex=80;lb.BackgroundTransparency=1;lb.Parent=fm
+    local pList={}
+    for _,p in ipairs(PS:GetPlayers())do if p~=LP then table.insert(pList,p)end end
+    table.sort(pList,function(a,b)return a.Name:lower()<b.Name:lower()end)
+    for i,pl in ipairs(pList)do
+        local pp=deepProtect(Instance.new("TextButton"));pp.ZIndex=81
+        pp.Parent=fm;pp.Size=UDim2.new(1,-9,0,25);pp.Position=UDim2.new(0,5,0,31+(i-1)*25)
+        pp.Text=pl.DisplayName.." ["..pl.Name.."]";pp.Font=Enum.Font.SourceSans;pp.TextColor3=Color3.fromRGB(255,80,80)
+        pp.TextSize=19;pp.BackgroundColor3=Color3.fromRGB(45,24,24);pp.BackgroundTransparency=.09
+        pp.MouseButton1Click:Connect(function()clb(pl)fm:Destroy()end)
+    end
+end
+
+local Settings,BtnUI={},{}
+local function CreateButton(oy,txt,typ,callback)
+    local ff=deepProtect(Instance.new("Frame",MainFrm));
+    ff.Size=UDim2.new(0,145,0,31);ff.Position=UDim2.new(0,SectionX+7,0,oy)
+    ff.BackgroundColor3=Color3.fromRGB(20,19,20);ff.BorderSizePixel=0
+    local lbl=deepProtect(Instance.new("TextLabel",ff));lbl.Size=UDim2.new(0.62,0,1,0)
+    lbl.Text=txt;lbl.TextColor3=Color3.fromRGB(255,36,60);lbl.TextSize=18
+    lbl.BackgroundTransparency=1;lbl.Position=UDim2.new(0,7,0,0);lbl.Font=Enum.Font.Code
+    if typ=="Toggle" then
+        local tg=deepProtect(Instance.new("TextButton",ff))
+        tg.Size=UDim2.new(0,54,0,21);tg.Position=UDim2.new(1,-59,0,5)
+        tg.Text="Kapalı";tg.Font=Enum.Font.SourceSansBold
+        tg.TextColor3=Color3.fromRGB(255,255,255);tg.BackgroundColor3=Color3.fromRGB(60,60,60);tg.TextSize=15
+        tg.MouseButton1Click:Connect(function()
+            Settings[txt]=not Settings[txt]
+            tg.Text=Settings[txt] and "Açık" or "Kapalı"
+            tg.BackgroundColor3=Settings[txt] and Color3.fromRGB(255,36,60) or Color3.fromRGB(60,60,60)
+            callback(Settings[txt])
+        end)BtnUI[txt]=tg
+    elseif typ=="Button" then
+        local tv=deepProtect(Instance.new("TextButton",ff))
+        tv.Size=UDim2.new(0,60,0,21);tv.Position=UDim2.new(1,-64,0,5)
+        tv.Text=txt;tv.Font=Enum.Font.SourceSansBold;tv.BackgroundColor3=Color3.fromRGB(188,26,26);
+        tv.TextSize=15;tv.TextColor3=Color3.new(1,1,1);tv.MouseButton1Click:Connect(callback);
+        BtnUI[txt]=tv
+    elseif typ=="Input" then
+        local inp=deepProtect(Instance.new("TextBox",ff))
+        inp.Size=UDim2.new(0,42,0,19);inp.Position=UDim2.new(1,-44,0,6)
+        inp.Text=Settings[txt] or "85"
+        inp.TextColor3=Color3.fromRGB(255,255,255);inp.BackgroundColor3=Color3.fromRGB(60,60,60)
+        inp.Font=Enum.Font.SourceSansBold;inp.TextSize=13
+        inp.FocusLost:Connect(function()
+            local v=tonumber(inp.Text)
+            if v then
+                Settings[txt]=v
+                callback(v)
+            end
+        end)
+    end
+end
+
+local function DisconnectAll(t)
+    for k,v in pairs(t)do pcall(function()if typeof(v)=="RBXScriptConnection"then v:Disconnect()else v:remove()end end)t[k]=nil end
+end
+
+local globalCons,espTable,FlyB,SpecCon={}, {}, nil, nil
+
+local function isEnemyFunc(target)
+    if not target or target == LP then return false end
+    if LP.Team and target.Team then
+        return LP.Team ~= target.Team
+    end
+    return true
+end
+
+local function getClosestEnemy()
+    local trg,dist=nil,1/0
+    for _,p in ipairs(PS:GetPlayers()) do
+        if isEnemyFunc(p) and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
+            local pos,vis=CC:WorldToViewportPoint(p.Character.HumanoidRootPart.Position)
+            if vis then
+                local d=(Vector2.new(pos.X,pos.Y)-Vector2.new(CC.ViewportSize.X/2,CC.ViewportSize.Y/2)).Magnitude
+                if d<dist then dist, trg = d, p end
+            end
+        end
+    end
+    return trg
+end
+
+do
+    for sec in pairs(SectionInfo)do
+        CreateSection(sec,SectionOffsets[sec])
+        for j,opt in ipairs(SectionInfo[sec])do
+            local oy=SectionOffsets[sec]+39*j
+            if opt=="Aimbot" then
+                CreateButton(oy,opt,"Toggle",function(on)
+                    if on then
+                        DisconnectAll({globalCons.aimbot})
+                        globalCons.aimbot=RSrv.RenderStepped:Connect(function()
+                            if not Settings["Aimbot"] then return end
+                            local enemy=getClosestEnemy()
+                            if enemy and enemy.Character and enemy.Character:FindFirstChild("Head") then
+                                CC.CFrame=CFrame.new(CC.CFrame.Position,enemy.Character.Head.Position)
+                            end
+                        end)
+                        Notify("Aimbot Aktif")
+                    else
+                        DisconnectAll({globalCons.aimbot});Notify("Aimbot Kapalı")
+                    end
+                end)
+            elseif opt=="SilentAim" then
+                CreateButton(oy,opt,"Toggle",function(on)
+                    if on then
+                        if not globalCons.saimhook then
+                            globalCons.saimhook = hookmetamethod(game,"__namecall",function(self,...)
+                                local m=getnamecallmethod()local args={...}
+                                if m=="FireServer" and Settings["SilentAim"] and type(args[1])=="Vector3" then
+                                    local en=getClosestEnemy()
+                                    if en and en.Character and en.Character:FindFirstChild("Head") then
+                                        args[1]=en.Character.Head.Position
+                                    end
+                                end
+                                return globalCons.saimhook(self,unpack(args))
+                            end)
+                        end
+                        Notify("SilentAim Açık")
+                    else
+                        if globalCons.saimhook then
+                            globalCons.saimhook=nil
+                        end
+                        Notify("SilentAim Kapalı")
+                    end
+                end)
+            elseif opt=="Spinbot" then
+                CreateButton(oy,opt,"Toggle",function(on)
+                    if on then
+                        DisconnectAll({globalCons.spinloop})
+                        globalCons.spinloop=RSrv.RenderStepped:Connect(function(dt)
+                            if LP.Character and LP.Character:FindFirstChild("HumanoidRootPart") then
+                                LP.Character.HumanoidRootPart.CFrame=LP.Character.HumanoidRootPart.CFrame*CFrame.Angles(0,21*dt,0)
+                            end
+                        end)
+                        Notify("Spinbot Açık")
+                    else
+                        DisconnectAll({globalCons.spinloop});Notify("Spinbot Kapalı")
+                    end
+                end)
+            elseif opt=="Fov Changer" then
+                Settings[opt]=CC.FieldOfView
+                CreateButton(oy,opt,"Input",function(val)
+                    if type(val)=="number" then CC.FieldOfView=val Notify("FOV: "..val) end
+                end)
+            elseif opt=="ESP" then
+                CreateButton(oy,opt,"Toggle",function(on)
+                    if on then
+                        DisconnectAll({globalCons.esp})
+                        globalCons.esp=RSrv.RenderStepped:Connect(function()
+                            for _,v in pairs(espTable)do pcall(function()if typeof(v.Remove)=="function"then v:Remove()end end)end;espTable={}
+                            for _,p in ipairs(PS:GetPlayers()) do
+                                if p~=LP and isEnemyFunc(p) and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
+                                    local DrawingLib=Drawing and Drawing.new
+                                    if DrawingLib then
+                                        local sq=DrawingLib("Square")
+                                        sq.Color=Color3.fromRGB(255,36,60)
+                                        sq.Thickness=2;sq.Filled=false;sq.Transparency=1;sq.Visible=true
+                                        local pos,vis=CC:WorldToViewportPoint(p.Character.HumanoidRootPart.Position)
+                                        sq.Position=Vector2.new(pos.X-32,pos.Y-50)
+                                        sq.Size=Vector2.new(64,96);sq.Visible=vis and true or false
+                                        espTable[p]=sq
+                                    end
+                                end
+                            end
+                        end)
+                        Notify("ESP Açık")
+                    else
+                        DisconnectAll({globalCons.esp})
+                        for _,obj in pairs(espTable)do pcall(function()obj:Remove()end)end
+                        espTable={}
+                        Notify("ESP Kapatıldı")
+                    end
+                end)
+            elseif opt=="Spectate Player" then
+                CreateButton(oy,opt,"Button",function()
+                    PickPlayerPopup(function(plr)
+                        if plr and plr.Character and plr.Character:FindFirstChildOfClass("Humanoid") then
+                            local old=CC.CameraSubject
+                            CC.CameraSubject=plr.Character:FindFirstChildOfClass("Humanoid")
+                            Notify("İzleniyor: "..plr.Name)
+                            wait(8.5)
+                            CC.CameraSubject=LP.Character and LP.Character:FindFirstChildOfClass("Humanoid") or old
+                            Notify("Tekrar kendisine dönüldü")
+                        end
+                    end)
+                end)
+            elseif opt=="Explode" then
+                CreateButton(oy,opt,"Button",function()
+                    PickPlayerPopup(function(pl)
+                        if pl and pl.Character and pl.Character:FindFirstChild("HumanoidRootPart") then
+                            local ex=Instance.new("Explosion")
+                            ex.Position=pl.Character.HumanoidRootPart.Position
+                            ex.BlastRadius=8
+                            ex.BlastPressure=1.4e7
+                            ex.Parent=WSP
+                            Notify(pl.Name.." Patlatıldı")
+                        end
+                    end)
+                end)
+            elseif opt=="Fly" then
+                CreateButton(oy,opt,"Toggle",function(on)
+                    if on then
+                        if not FlyB then
+                            FlyB=deepProtect(Instance.new("BodyVelocity"))
+                            FlyB.MaxForce=Vector3.new(1e7,1e7,1e7)
+                            FlyB.Velocity=Vector3.new(0,0,0)
+                            local root=LP.Character and LP.Character:FindFirstChild("HumanoidRootPart")
+                            if root then FlyB.Parent=root end
+                        end
+                        if not globalCons.flymove then
+                            globalCons.flymove=UIS.InputBegan:Connect(function(i)
+                                if i.UserInputType==Enum.UserInputType.Keyboard and FlyB and FlyB.Parent then
+                                    if i.KeyCode==Enum.KeyCode.Space then FlyB.Velocity=Vector3.new(0,60,0)
+                                    elseif i.KeyCode==Enum.KeyCode.W then FlyB.Velocity=CC.CFrame.LookVector*52
+                                    elseif i.KeyCode==Enum.KeyCode.S then FlyB.Velocity=CC.CFrame.LookVector*-40 end
+                                end
+                            end)
+                            globalCons.flystop=UIS.InputEnded:Connect(function()if FlyB then FlyB.Velocity=Vector3.new(0,0,0)end end)
+                        end
+                        Notify("Fly Aktif")
+                    else
+                        if FlyB then FlyB:Destroy();FlyB=nil end
+                        if globalCons.flymove then globalCons.flymove:Disconnect()end
+                        if globalCons.flystop then globalCons.flystop:Disconnect()end
+                        Notify("Fly Kapatıldı")
+                    end
+                end)
+            elseif opt=="Teleport" then
+                CreateButton(oy,opt,"Button",function()
+                    PickPlayerPopup(function(pl)
+                        if pl and pl.Character and pl.Character:FindFirstChild("HumanoidRootPart") then
+                            LP.Character.HumanoidRootPart.CFrame=pl.Character.HumanoidRootPart.CFrame+Vector3.new(0,4,0)
+                            Notify("Işınlandın > "..pl.Name)
+                        end
+                    end)
+                end)
+            elseif opt=="Yanına Teleport" then
+                CreateButton(oy,opt,"Button",function()
+                    PickPlayerPopup(function(pl)
+                        if pl and pl.Character and pl.Character:FindFirstChild("HumanoidRootPart") and LP.Character and LP.Character:FindFirstChild("HumanoidRootPart") then
+                            pl.Character.HumanoidRootPart.CFrame=LP.Character.HumanoidRootPart.CFrame+Vector3.new(2,3,0)
+                            Notify(pl.Name.." yanınıza çekildi")
+                        end
+                    end)
+                end)
+            elseif opt=="Noclip" then
+                CreateButton(oy,opt,"Toggle",function(on)
+                    if on then
+                        DisconnectAll({globalCons.noclip})
+                        globalCons.noclip=RSrv.Stepped:Connect(function()
+                            if LP.Character then
+                                for _,v in ipairs(LP.Character:GetDescendants()) do
+                                    if v:IsA("BasePart") then v.CanCollide=false end
+                                end
+                            end
+                        end)
+                        Notify("Noclip Aktif")
+                    else
+                        DisconnectAll({globalCons.noclip})
+                        Notify("Noclip Kapalı")
+                    end
+                end)
+            elseif opt=="No Reload" then
+                CreateButton(oy,opt,"Toggle",function(on)
+                        for _,itm in pairs(LP.Backpack:GetChildren()) do
+                            if itm and itm:FindFirstChild("Ammo") and itm:FindFirstChild("Reload") then
+                                 itm.Ammo.Value=99999999
+                                 itm.Reload.Disabled=on
+                            end
+                        end
+                        Notify(on and "No Reload Açık" or "No Reload Kapalı")
+                    end)
+            elseif opt=="Godmode" then
+                CreateButton(oy,opt,"Toggle",function(on)
+                    if LP.Character and LP.Character:FindFirstChildOfClass("Humanoid") then
+                        if on then
+                            LP.Character:FindFirstChildOfClass("Humanoid").Name="God"
+                            LP.Character.God.MaxHealth=math.huge
+                            LP.Character.God.Health=math.huge
+                            for _,v in pairs(LP.Character:GetChildren()) do
+                                if v:IsA("Part") then v.Anchored=false;v.CanCollide=true end
+                            end
+                            Notify("Godmode Açık")
+                        else
+                            LP.Character.God.MaxHealth=100;LP.Character.God.Health=100;LP.Character.God.Name="Humanoid"
+                            Notify("Godmode Kapalı")
+                        end
+                    end
+                end)
+            elseif opt=="Rejoin" then
+                CreateButton(oy,opt,"Button",function()
+                    TS:Teleport(game.PlaceId)
+                end)
+            elseif opt=="Reset Character" then
+                CreateButton(oy,opt,"Button",function()
+                    if LP.Character and LP.Character:FindFirstChildOfClass("Humanoid") then
+                        LP.Character:BreakJoints()
+                        Notify("Resetlendi")
+                    end
+                end)
+            end
+        end
+    end
+end
+
+local SelectAll=deepProtect(Instance.new("TextButton",MainFrm))
+SelectAll.Size=UDim2.new(0,198,0,36)
+SelectAll.Position=UDim2.new(0.53,0,0.915,0)
+SelectAll.BackgroundColor3=Color3.fromRGB(77,25,25)
+SelectAll.TextColor3=Color3.fromRGB(255,255,255)
+SelectAll.TextSize=17;SelectAll.Font=Enum.Font.SourceSansBold
+SelectAll.Text="TÜM HİLELERİ AÇ / KAPAT"
+SelectAll.MouseButton1Click:Connect(function()
+    local allActive=true
+    for k,v in pairs(Settings)do if type(v)=="boolean" and not v then allActive=false break end end
+    for name,btn in pairs(BtnUI)do
+        if type(Settings[name])=="boolean" then
+            Settings[name]=not allActive
+            btn.Text=Settings[name] and "Açık" or "Kapalı"
+            btn.BackgroundColor3=Settings[name] and Color3.fromRGB(255,36,60) or Color3.fromRGB(60,60,60)
+        end
+    end
+    Notify("Tüm hile opsiyonları "..(allActive and "kapatıldı" or "açıldı"))
 end)
 
-local sideBar = Instance.new("Frame", frame)
-sideBar.Size = UDim2.new(0,160,1,-54)
-sideBar.Position = UDim2.new(0,0,0,54)
-sideBar.BackgroundColor3 = Color3.fromRGB(13,13,13)
-sideBar.BorderSizePixel = 0
-local sbc = Instance.new("UICorner", sideBar)
-sbc.CornerRadius = UDim.new(0,13)
-local menuSections = {
-    {Title="AIM HİLELERİ", Key="aim", Color=Color3.fromRGB(255,83,83)},
-    {Title="GÖRÜŞ HİLELERİ", Key="vision", Color=Color3.fromRGB(255,83,83)},
-    {Title="DÜNYA HİLELERİ", Key="world", Color=Color3.fromRGB(255,83,83)},
-    {Title="SERVİS", Key="servis", Color=Color3.fromRGB(255,83,83)},
-}
-local sectionContents = {
-    aim = {
-        {name="Aimbot", kind="Toggle"},
-        {name="SilentAim", kind="Toggle"},
-    },
-    vision = {
-        {name="ESP", kind="Toggle"},
-        {name="Görünmezlik", kind="Toggle"},
-    },
-    world = {
-        {name="Noclip", kind="Toggle"},
-        {name="Fly", kind="Toggle"},
-        {name="Teleport", kind="PickPlayer"},
-        {name="Yanına Çek", kind="PickPlayer"},
-        {name="Patlat", kind="PickPlayer"},
-    },
-    servis = {
-        {name="Yeniden Katıl", kind="Button"},
-    }
-}
-
-local sectionBtns = {}
-local optStates, btns, dropdownHandle = {}, {}, nil
-local currentSection = "aim"
-local contentHolder = Instance.new("Frame", frame)
-contentHolder.BackgroundTransparency = 1
-contentHolder.Size = UDim2.new(0, 420, 1, -64)
-contentHolder.Position = UDim2.new(0, 168, 0, 60)
-for i, sec in ipairs(menuSections) do
-    local b = Instance.new("TextButton", sideBar)
-    b.Size = UDim2.new(1, -19, 0, 48)
-    b.Position = UDim2.new(0, 9, 0, 10+(i-1)*54)
-    b.Text = sec.Title
-    b.Name = sec.Key
-    b.TextColor3 = sec.Color
-    b.Font = Enum.Font.GothamBold
-    b.TextSize = 18
-    b.BackgroundColor3 = Color3.fromRGB(28,28,28)
-    local secorner = Instance.new("UICorner",b)
-    secorner.CornerRadius = UDim.new(0,9)
-    sectionBtns[sec.Key] = b
-    b.MouseButton1Click:Connect(function()
-        currentSection = sec.Key
-        for k,v in pairs(sectionBtns) do
-            v.BackgroundColor3 = (k == sec.Key and Color3.fromRGB(255,83,83)) or Color3.fromRGB(28,28,28)
-            v.TextColor3 = (k == sec.Key and Color3.fromRGB(26,26,26)) or sec.Color
-        end
-        for _,v in ipairs(contentHolder:GetChildren()) do v:Destroy() end
-        renderSection(sec.Key)
-    end)
-end
-sectionBtns["aim"].BackgroundColor3 = Color3.fromRGB(255,83,83)
-sectionBtns["aim"].TextColor3 = Color3.fromRGB(26,26,26)
-function notify(txt)
-    local n = Instance.new("TextLabel")
-    n.Parent = frame
-    n.Text = tostring(txt)
-    n.Size = UDim2.new(1, 0, 0, 31)
-    n.Position = UDim2.new(0,0,1,-36)
-    n.BackgroundTransparency = 0.21
-    n.BackgroundColor3 = Color3.fromRGB(70,0,0)
-    n.TextColor3 = Color3.fromRGB(255,83,83)
-    n.Font = Enum.Font.GothamSemibold
-    n.TextSize = 20
-    n.ZIndex = 30
-    task.spawn(function()
-        task.wait(2.08)
-        pcall(function() n:Destroy() end)
-    end)
-end
-
-function playerDropdown(callback)
-    if dropdownHandle then pcall(function() dropdownHandle:Destroy() end) end
-    local panel = Instance.new("Frame")
-    panel.Size = UDim2.new(0, 320, 0, 238)
-    panel.Position = UDim2.new(0.5,-160,0.5,-120)
-    panel.BackgroundColor3 = Color3.fromRGB(0,0,0)
-    panel.BorderSizePixel = 0
-    local cr = Instance.new("UICorner", panel)
-    cr.CornerRadius = UDim.new(0,11)
-    panel.Parent = frame
-    local kapatDD = Instance.new("TextButton", panel)
-    kapatDD.Size = UDim2.new(0,34,0,34)
-    kapatDD.Position = UDim2.new(1,-36,0,3)
-    kapatDD.BackgroundTransparency = 1
-    kapatDD.Text = "✖"
-    kapatDD.TextColor3 = Color3.new(1,0.3,0.3)
-    kapatDD.TextSize = 27
-    kapatDD.Font = Enum.Font.GothamBold
-    kapatDD.MouseButton1Click:Connect(function() panel:Destroy() dropdownHandle = nil end)
-    local scroll = Instance.new("ScrollingFrame", panel)
-    scroll.Size = UDim2.new(1, 0, 1, -30)
-    scroll.Position = UDim2.new(0,0,0,29)
-    scroll.BackgroundTransparency = 1
-    scroll.ScrollBarThickness = 8
-    local numPlayers = 0
-    for _,player in pairs(Players:GetPlayers()) do if player ~= LP then numPlayers = numPlayers+1 end end
-    scroll.CanvasSize = UDim2.new(0,0,0, math.max(1,(numPlayers)*36+10))
-    scroll.BorderSizePixel = 0
-    local i = 0
-    for _,player in pairs(Players:GetPlayers()) do
-        if player ~= LP and player.Character and player.Character:FindFirstChild("HumanoidRootPart") then
-            i = i + 1
-            local b = Instance.new("TextButton")
-            b.Parent = scroll
-            b.Size = UDim2.new(1,-10,0,31)
-            b.Position = UDim2.new(0,6,0,6+(i-1)*36)
-            b.TextColor3 = Color3.fromRGB(255,64,64)
-            b.Font = Enum.Font.GothamBold
-            b.TextSize = 20
-            b.BackgroundColor3 = Color3.fromRGB(44,0,0)
-            b.Text = player.DisplayName.." ["..player.Name.."]"
-            local cr2 = Instance.new("UICorner", b)
-            cr2.CornerRadius = UDim.new(0,5)
-            b.MouseButton1Click:Connect(function()
-                if callback then callback(player) end
-                panel:Destroy()
-                dropdownHandle = nil
+local function blockAnticheat()
+    local block_hooks={"Kick","kick","BreakJoints"}
+    for _,obj in ipairs({LP,game:GetService("Players")})do
+        for _,nm in ipairs(block_hooks)do
+            pcall(function()
+                if not obj[nm] then return end
+                local old=obj[nm]
+                obj[nm]=function(...)return nil end
+                setreadonly(obj,false)
+                obj[nm]=function(...)return nil end
+                setreadonly(obj,true)
             end)
         end
     end
-    dropdownHandle = panel
-end
-
-function createOption(idx, name, typ)
-    local holder = Instance.new("Frame")
-    holder.Parent = contentHolder
-    holder.Size = UDim2.new(1, -20, 0, 41)
-    holder.Position = UDim2.new(0,10,0, 10+(idx-1)*48)
-    holder.BackgroundTransparency = 1
-    local label = Instance.new("TextLabel")
-    label.Parent = holder
-    label.Size = UDim2.new(0.45, 0, 1, 0)
-    label.Position = UDim2.new(0,1,0,0)
-    label.BackgroundTransparency = 1
-    label.Text = name
-    label.TextColor3 = Color3.fromRGB(255,64,64)
-    label.Font = Enum.Font.GothamMedium
-    label.TextSize = 19
-    label.TextXAlignment = Enum.TextXAlignment.Left
-
-    if typ == "Toggle" then
-        local tgl = Instance.new("TextButton")
-        tgl.Parent = holder
-        tgl.Size = UDim2.new(0,86,1,0)
-        tgl.Position = UDim2.new(1,-96,0,0)
-        tgl.Text = "KAPALI"
-        tgl.Font = Enum.Font.GothamBold
-        tgl.TextSize = 18
-        tgl.BackgroundColor3 = Color3.fromRGB(103,0,0)
-        tgl.TextColor3 = Color3.fromRGB(255,83,83)
-        local cr = Instance.new("UICorner", tgl)
-        cr.CornerRadius = UDim.new(0,6)
-        optStates[name] = false
-        tgl.MouseButton1Click:Connect(function()
-            optStates[name] = not optStates[name]
-            tgl.Text = optStates[name] and "AÇIK" or "KAPALI"
-            tgl.BackgroundColor3 = optStates[name] and Color3.fromRGB(255,83,83) or Color3.fromRGB(103,0,0)
-            tgl.TextColor3 = optStates[name] and Color3.new(0.13,0.13,0.13) or Color3.fromRGB(255,83,83)
-        end)
-        btns[name] = tgl
-    elseif typ == "PickPlayer" then
-        local openList = Instance.new("TextButton")
-        openList.Parent = holder
-        openList.Size = UDim2.new(0,110,1,0)
-        openList.Position = UDim2.new(1, -120, 0, 0)
-        openList.Text = name
-        openList.Font = Enum.Font.GothamBold
-        openList.TextSize = 17
-        openList.BackgroundColor3 = Color3.fromRGB(255,83,83)
-        openList.TextColor3 = Color3.new(0.07,0.07,0.07)
-        local cr = Instance.new("UICorner", openList)
-        cr.CornerRadius = UDim.new(0,6)
-        openList.MouseButton1Click:Connect(function()
-            if name=="Teleport" then
-                playerDropdown(function(plr)
-                    if plr and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
-                        LP.Character:MoveTo(plr.Character.HumanoidRootPart.Position + Vector3.new(0,7,0))
-                        notify(plr.Name.." yanına ışınlandın.")
-                    end
-                end)
-            elseif name=="Yanına Çek" then
-                playerDropdown(function(plr)
-                    if plr and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") and LP.Character and LP.Character:FindFirstChild("HumanoidRootPart") and plr.Character.PrimaryPart then
-                        plr.Character:SetPrimaryPartCFrame(LP.Character.HumanoidRootPart.CFrame + Vector3.new(0,3,0))
-                        notify(plr.Name.." sana çekildi!")
-                    end
-                end)
-            elseif name=="Patlat" then
-                playerDropdown(function(plr)
-                    if plr and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
-                        local hrp = plr.Character.HumanoidRootPart
-                        local boom = Instance.new("Explosion")
-                        boom.BlastRadius = 6
-                        boom.BlastPressure = 500000
-                        boom.DestroyJointRadiusPercent = 0.95
-                        boom.Position = hrp.Position + Vector3.new(0,2,0)
-                        boom.Parent = workspace
-                        task.wait(.08)
-                        if plr.Character and plr.Character:FindFirstChildOfClass("Humanoid") then
-                            plr.Character:FindFirstChildOfClass("Humanoid").Health = 0
-                        end
-                        notify(plr.Name.." patlatıldı!")
-                    end
-                end)
-            end
-        end)
-        btns[name] = openList
-    elseif typ == "Button" then
-        local btn = Instance.new("TextButton")
-        btn.Parent = holder
-        btn.Size = UDim2.new(0,114,1,0)
-        btn.Position = UDim2.new(1, -124, 0, 0)
-        btn.Text = name
-        btn.Font = Enum.Font.GothamBlack
-        btn.TextSize = 16
-        btn.BackgroundColor3 = Color3.fromRGB(255,83,83)
-        btn.TextColor3 = Color3.new(0.09,0.09,0.09)
-        local cr = Instance.new("UICorner", btn)
-        cr.CornerRadius = UDim.new(0,6)
-        btn.MouseButton1Click:Connect(function()
-            if name == "Yeniden Katıl" then
-                TPService:Teleport(game.PlaceId)
-            end
-        end)
-        btns[name]=btn
-    end
-end
-
-function renderSection(secKey)
-    for _,v in ipairs(contentHolder:GetChildren()) do v:Destroy() end
-    local arr = sectionContents[secKey]
-    for k,v in ipairs(arr) do
-        createOption(k, v.name, v.kind)
-    end
-end
-renderSection("aim")
-
-local currentESP = {}
-local DrawValid = pcall(function() return Drawing and Drawing.new and Drawing.new("Line") and true end)
-local ESP_DISTANCE = 175
-
-function get2DFrom3D(p)
-    local pos, onscreen = Cam:WorldToViewportPoint(p)
-    return Vector2.new(pos.X, pos.Y), onscreen
-end
-
-function getBodyParts(ch)
-    local tab = {}
-    for _,v in ipairs(ch:GetChildren()) do
-        if v:IsA("BasePart") and v.Name~="HumanoidRootPart" then
-            table.insert(tab, v)
-        end
-    end
-    return tab
-end
-
-function drawBodyESP(p)
-    local char = p.Character
-    if not char or not char:FindFirstChild("HumanoidRootPart") then return end
-    local lpChar = LP.Character
-    if not lpChar or not lpChar:FindFirstChild("HumanoidRootPart") then return end
-    local dist = (lpChar.HumanoidRootPart.Position - char.HumanoidRootPart.Position).Magnitude
-    if dist > ESP_DISTANCE then
-        if currentESP[p] then
-            for _,line in pairs(currentESP[p]) do if line then line.Visible = false end end
-        end
-        return
-    end
-    if not currentESP[p] then currentESP[p] = {} end
-    for _,v in pairs(currentESP[p]) do v.Visible = false end
-    local parts = getBodyParts(char)
-    local lines = {
-        {1,2},{1,3},{1,5},{2,4},{2,6},{3,4},{3,7},{4,8},
-        {5,6},{5,7},{6,8},{7,8}
-    }
-    for _,part in ipairs(parts) do
-        local size = part.Size
-        local cf = part.CFrame
-        local corners = {}
-        for x=-1,1,2 do
-            for y=-1,1,2 do
-                for z=-1,1,2 do
-                    local corner = (cf * Vector3.new(x*size.X/2, y*size.Y/2, z*size.Z/2))
-                    table.insert(corners, corner)
-                end
-            end
-        end
-        for idx,ln in ipairs(lines) do
-            local a2d,on1 = get2DFrom3D(corners[ln[1]])
-            local b2d,on2 = get2DFrom3D(corners[ln[2]])
-            if on1 and on2 then
-                if not currentESP[p][part.Name..idx] and DrawValid then
-                    local d = Drawing.new("Line")
-                    d.Thickness = 2
-                    d.Color = Color3.fromRGB(255,0,0)
-                    d.Transparency = 1
-                    d.Visible = true
-                    currentESP[p][part.Name..idx] = d
-                end
-                local e = currentESP[p][part.Name..idx]
-                if e then
-                    e.From = a2d
-                    e.To = b2d
-                    e.Visible = optStates.ESP
-                    e.Color = Color3.fromRGB(255,0,0)
-                end
-            elseif currentESP[p][part.Name..idx] then
-                currentESP[p][part.Name..idx].Visible = false
-            end
-        end
-    end
-end
-
-function clearDeadESP()
-    for p, stuff in pairs(currentESP) do
-        if not Players:FindFirstChild(p.Name) or not p.Character or not p.Character:FindFirstChild("HumanoidRootPart") or not p.Character:FindFirstChildOfClass("Humanoid") or p.Character:FindFirstChildOfClass("Humanoid").Health <= 0 then
-            for _,e in pairs(stuff) do if e and typeof(e.Remove)=="function" then e:Remove() end end
-            currentESP[p] = nil
-        end
-    end
-end
-
-local espConn = nil
-local espOptimTick = 0
-function startESP()
-    if espConn then pcall(function() espConn:Disconnect() end) end
-    espConn = RS.RenderStepped:Connect(function(dt)
-        if not optStates.ESP then
-            for k,t in pairs(currentESP) do for _,line in pairs(t) do if line then line.Visible = false end end end
-            return
-        end
-        espOptimTick = espOptimTick + dt
-        if espOptimTick < 0.033 then return end
-        espOptimTick = 0
-        clearDeadESP()
-        local list = {}
-        for _,p in pairs(Players:GetPlayers()) do
-            if p ~= LP and p.Character and p.Character:FindFirstChild("HumanoidRootPart") and p.Character:FindFirstChildOfClass("Humanoid") and p.Character:FindFirstChildOfClass("Humanoid").Health > 0 then
-                table.insert(list, p)
-            end
-        end
-        for _,p in ipairs(list) do
-            drawBodyESP(p)
-        end
-    end)
-end
-
-function startAimbot()
-    RS.RenderStepped:Connect(function()
-        if optStates["Aimbot"] then
-            local closest, mindist = nil, math.huge
-            for _,v in pairs(Players:GetPlayers()) do
-                if v ~= LP and v.Character and v.Character:FindFirstChild("Head") and v.Character:FindFirstChildOfClass("Humanoid") and v.Character:FindFirstChildOfClass("Humanoid").Health > 0 then
-                    local headPos, onscreen = Cam:WorldToViewportPoint(v.Character.Head.Position)
-                    if onscreen then
-                        local dist = (Vector2.new(headPos.X, headPos.Y) - Vector2.new(Cam.ViewportSize.X/2, Cam.ViewportSize.Y/2)).Magnitude
-                        if dist < mindist then
-                            mindist = dist
-                            closest = v
-                        end
-                    end
-                end
-            end
-            if closest and closest.Character and closest.Character:FindFirstChild("Head") then
-                Cam.CFrame = CFrame.new(Cam.CFrame.Position, closest.Character.Head.Position)
-            end
-        end
-    end)
-end
-
-function startSilentAim()
-    local mouse = LP:GetMouse()
-    local function getClosest()
-        local mindist, target, tarpos = math.huge, nil, nil
-        for _,v in pairs(Players:GetPlayers()) do
-            if v~=LP and v.Character and v.Character:FindFirstChild("Head") and v.Character:FindFirstChildOfClass("Humanoid") and v.Character:FindFirstChildOfClass("Humanoid").Health > 0 then
-                local pos,onscr = Cam:WorldToViewportPoint(v.Character.Head.Position)
-                local mpos = Vector2.new(mouse.X, mouse.Y)
-                local dist = (Vector2.new(pos.X, pos.Y)-mpos).Magnitude
-                if dist<mindist then
-                    mindist,target,tarpos = dist,v,v.Character.Head.Position
-                end
-            end
-        end
-        return target, tarpos
-    end
-    mouse.Button1Down:Connect(function()
-        if optStates["SilentAim"] then
-            local plr,pos = getClosest()
-            if plr and pos then
-                mouse.Target = plr.Character.Head
-                mouse.Hit = CFrame.new(pos)
-            end
-        end
-    end)
-end
-
-local flyBV
-function startFly()
-    local flying = false
-    RS.RenderStepped:Connect(function()
-        if optStates["Fly"] and LP.Character and LP.Character:FindFirstChild("HumanoidRootPart") then
-            if not flyBV then
-                flyBV = Instance.new("BodyVelocity")
-                flyBV.MaxForce = Vector3.new(1e6,1e6,1e6)
-                flyBV.Parent = LP.Character.HumanoidRootPart
-            end
-            local vel = Vector3.new()
-            local spd = 62
-            if UIS:IsKeyDown(Enum.KeyCode.W) then vel = vel + Cam.CFrame.LookVector end
-            if UIS:IsKeyDown(Enum.KeyCode.S) then vel = vel - Cam.CFrame.LookVector end
-            if UIS:IsKeyDown(Enum.KeyCode.A) then vel = vel - Cam.CFrame.RightVector end
-            if UIS:IsKeyDown(Enum.KeyCode.D) then vel = vel + Cam.CFrame.RightVector end
-            if UIS:IsKeyDown(Enum.KeyCode.E) then vel = vel + Cam.CFrame.UpVector end
-            if UIS:IsKeyDown(Enum.KeyCode.Q) then vel = vel - Cam.CFrame.UpVector end
-            if vel.Magnitude > 0 then vel = vel.Unit * spd end
-            flyBV.Velocity = vel
-            flying = true
-        else
-            if flyBV then flyBV:Destroy() flyBV = nil end
-            flying = false
-        end
-    end)
-end
-
-local noclipEnabled = false
-local noclipCon = nil
-function enableNoclip()
-    noclipEnabled = true
-    if not noclipCon then
-        noclipCon = RS.Stepped:Connect(function()
-            if noclipEnabled and LP.Character then
-                for _,v in pairs(LP.Character:GetDescendants()) do
-                    if v:IsA("BasePart") then
-                        v.CanCollide = false
-                    end
-                end
-            end
-        end)
-    end
-end
-function disableNoclip()
-    noclipEnabled = false
-    if noclipCon then pcall(function() noclipCon:Disconnect() end) noclipCon = nil end
-    if LP.Character then
-        for _,v in pairs(LP.Character:GetDescendants()) do
-            if v:IsA("BasePart") then
-                v.CanCollide = true
-            end
-        end
-    end
-end
-function noclipMonitor()
-    RS.RenderStepped:Connect(function()
-        if optStates["Noclip"] then
-            enableNoclip()
-        else
-            disableNoclip()
-        end
-    end)
-    Players.LocalPlayer.CharacterAdded:Connect(function()
-        wait(0.2)
-        if optStates["Noclip"] then
-            enableNoclip()
-        else
-            disableNoclip()
-        end
-    end)
-end
-noclipMonitor()
-
-function startGorunmezlik()
-    RS.RenderStepped:Connect(function()
-        if optStates["Görünmezlik"] and LP.Character and LP.Character:FindFirstChildOfClass("Humanoid") then
-            local char = LP.Character
-            for _,v in ipairs(char:GetDescendants()) do
-                if v:IsA("BasePart") or v:IsA("MeshPart") then v.Transparency = 1 end
-                if v.ClassName=="Decal" or v.ClassName=="Texture" then v.Transparency = 1 end
-            end
-            local hum = char:FindFirstChildOfClass("Humanoid")
-            if hum and hum.Health > 0 then
-                if hum.BodyTypeScale then hum.BodyTypeScale.Value = 0 end
-                if hum.HeadScale then hum.HeadScale.Value = 0 end
-            end
-            if char:FindFirstChild("Head") then char.Head.face.Transparency = 1 end
-            task.spawn(function()
-                for _,a in ipairs(char:GetChildren()) do
-                    if a:IsA("Accessory") then
-                        for _,h in ipairs(a:GetDescendants()) do
-                            if h:IsA("BasePart") or h:IsA("MeshPart") then h.Transparency = 1 end
-                        end
-                    end
-                end 
-            end)
-        else
-            if LP.Character then
-                for _,v in ipairs(LP.Character:GetDescendants()) do
-                    if v:IsA("BasePart") or v:IsA("MeshPart") then v.Transparency=0 end
-                    if v.ClassName=="Decal" or v.ClassName=="Texture" then v.Transparency=0 end
-                end
-                local char = LP.Character
-                local hum = char and char:FindFirstChildOfClass("Humanoid")
-                if hum then
-                    if hum.BodyTypeScale then hum.BodyTypeScale.Value = 1 end
-                    if hum.HeadScale then hum.HeadScale.Value = 1 end
-                end
-                if char and char:FindFirstChild("Head") and char.Head:FindFirstChild("face") then char.Head.face.Transparency = 0 end
-            end
-        end
-    end)
-end
-
-local function safeBypass()
-    local suc,err = pcall(function()
-        if setreadonly and getrawmetatable and hookfunction and typeof(getrawmetatable)== "function" then
-            local mt = getrawmetatable(game)
-            setreadonly(mt,false)
-            local old = mt.__namecall
-            mt.__namecall = newcclosure(function(self,...)
-                local m = getnamecallmethod and getnamecallmethod() or ""
-                if tostring(self):lower():find("anti") or tostring(self):lower():find("ban") or tostring(self):lower():find("kick") or m=="Kick" or m=="Ban" then return end
-                return old(self,...)
-            end)
-            setreadonly(mt,true)
-        end
-        if hookfunction and LP and LP.Kick then
-            pcall(function() hookfunction(LP.Kick,function() end) end)
-        end
-    end)
-end
-safeBypass()
-
-startESP()
-startAimbot()
-startSilentAim()
-startFly()
-startGorunmezlik()
+end; blockAnticheat()
+Notify("Menü Hazır! Sağ CTRL ile aç/kapat")
