@@ -1,42 +1,38 @@
--- DELTA executor ile uyumlu ve donma sorunu yaşamayan optimize sürüm:
-
+-- DELTA executor uyumlu, optimize (donmayı önleyici), tüm fonksiyonel özellikler:
 local plr = game:GetService("Players").LocalPlayer
-
--- PlayerGui yoksa CoreGui'ye ekle
 local parentGui = plr:FindFirstChildOfClass("PlayerGui") or game:GetService("CoreGui")
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "MultiHackMenu"
-ScreenGui.Parent = parentGui
+ScreenGui.Name = "DeltaHackMenu"
 ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+ScreenGui.IgnoreGuiInset = true
+ScreenGui.Parent = parentGui
 ScreenGui.ResetOnSpawn = false
 
-local MainFrame = Instance.new("Frame")
-MainFrame.Parent = ScreenGui
-MainFrame.Name = "MainFrame"
+local MainFrame = Instance.new("Frame", ScreenGui)
 MainFrame.AnchorPoint = Vector2.new(0.5,0.5)
-MainFrame.Position = UDim2.new(0.5,0,0.45,0)
+MainFrame.Position = UDim2.new(0.5,0,0.5,0)
 MainFrame.Size = UDim2.new(0, 320, 0, 520)
-MainFrame.BackgroundColor3 = Color3.fromRGB(29,29,29)
+MainFrame.BackgroundColor3 = Color3.fromRGB(33,33,33)
 MainFrame.BorderSizePixel = 0
-Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0,13)
+Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0,14)
 
-local Title = Instance.new("TextLabel")
-Title.Parent = MainFrame
-Title.BackgroundTransparency = 1
+local Title = Instance.new("TextLabel", MainFrame)
 Title.Size = UDim2.new(1,0,0,44)
 Title.Position = UDim2.new(0,0,0,0)
+Title.BackgroundTransparency = 1
 Title.Font = Enum.Font.GothamBold
-Title.Text = "DELTA MENU"
-Title.TextColor3 = Color3.fromRGB(57,200,255)
+Title.Text = "DELTA ADVANCED MENU"
+Title.TextColor3 = Color3.fromRGB(0,210,255)
 Title.TextScaled = true
 
+-- Buton satırları
 local ButtonData = {
-    {Name="Aimbot",    TextOn="Aimbot Kapat",    TextOff="Aimbot Aç",    Y=56},
-    {Name="SilentAim", TextOn="SilentAim Kapat", TextOff="SilentAim Aç", Y=110},
-    {Name="ESP",       TextOn="ESP Kapat",       TextOff="ESP Aç",       Y=164},
-    {Name="Noclip",    TextOn="Noclip Kapat",    TextOff="Noclip Aç",    Y=218},
-    {Name="Fly",       TextOn="Fly Kapat",       TextOff="Fly Aç",       Y=272},
-    {Name="Spinbot",   TextOn="Spinbot Kapat",   TextOff="Spinbot Aç",   Y=326},
+    {Name="Aimbot",    TextOn="Aimbot Kapat",    TextOff="Aimbot Aç",    Y=54},
+    {Name="SilentAim", TextOn="SilentAim Kapat", TextOff="SilentAim Aç", Y=104},
+    {Name="ESP",       TextOn="ESP Kapat",       TextOff="ESP Aç",       Y=154},
+    {Name="Noclip",    TextOn="Noclip Kapat",    TextOff="Noclip Aç",    Y=204},
+    {Name="Fly",       TextOn="Fly Kapat",       TextOff="Fly Aç",       Y=254},
+    {Name="Spinbot",   TextOn="Spinbot Kapat",   TextOff="Spinbot Aç",   Y=304},
 }
 local Buttons = {}
 for i, d in ipairs(ButtonData) do
@@ -44,40 +40,37 @@ for i, d in ipairs(ButtonData) do
     btn.Parent = MainFrame
     btn.Name = d.Name.."Button"
     btn.Position = UDim2.new(0.5,-115,0, d.Y)
-    btn.Size = UDim2.new(0,230,0,44)
-    btn.BackgroundColor3 = Color3.fromRGB(43,43,42)
+    btn.Size = UDim2.new(0,230,0,38)
+    btn.BackgroundColor3 = Color3.fromRGB(54,54,56)
     btn.Text = d.TextOff
     btn.Font = Enum.Font.Gotham
     btn.TextScaled = true
-    btn.TextColor3 = Color3.fromRGB(235,235,235)
-    Instance.new("UICorner", btn).CornerRadius = UDim.new(0,10)
+    btn.TextColor3 = Color3.fromRGB(225,225,225)
+    Instance.new("UICorner", btn).CornerRadius = UDim.new(0,8)
     Buttons[d.Name] = {Button=btn, On=d.TextOn, Off=d.TextOff}
 end
 
-local TeleportLabel = Instance.new("TextLabel")
-TeleportLabel.Parent = MainFrame
+local TeleportLabel = Instance.new("TextLabel", MainFrame)
 TeleportLabel.Text = "Teleport: Oyuncu Seç"
 TeleportLabel.Font = Enum.Font.GothamBold
 TeleportLabel.TextColor3 = Color3.fromRGB(200, 226, 255)
 TeleportLabel.TextScaled = true
 TeleportLabel.BackgroundTransparency = 1
-TeleportLabel.Position = UDim2.new(0.5, -115, 0, 380)
-TeleportLabel.Size = UDim2.new(0, 230, 0, 26)
+TeleportLabel.Position = UDim2.new(0.5,-115,0,358)
+TeleportLabel.Size = UDim2.new(0, 230, 0, 24)
 
-local DropdownFrame = Instance.new("ScrollingFrame")
-DropdownFrame.Parent = MainFrame
-DropdownFrame.Position = UDim2.new(0.5,-115,0,408)
-DropdownFrame.Size = UDim2.new(0,230,0,60)
-DropdownFrame.BackgroundColor3 = Color3.fromRGB(40,40,47)
+local DropdownFrame = Instance.new("ScrollingFrame", MainFrame)
+DropdownFrame.Position = UDim2.new(0.5,-115,0,386)
+DropdownFrame.Size = UDim2.new(0,230,0,64)
+DropdownFrame.BackgroundColor3 = Color3.fromRGB(36,38,45)
 DropdownFrame.BorderSizePixel = 0
 DropdownFrame.CanvasSize = UDim2.new(0,0,0,0)
 DropdownFrame.AutomaticCanvasSize = Enum.AutomaticSize.Y
 DropdownFrame.ScrollBarThickness = 5
 Instance.new("UICorner", DropdownFrame).CornerRadius = UDim.new(0,8)
 
-local TeleportBtn = Instance.new("TextButton")
-TeleportBtn.Parent = MainFrame
-TeleportBtn.Position = UDim2.new(0.5,-55,0,470)
+local TeleportBtn = Instance.new("TextButton", MainFrame)
+TeleportBtn.Position = UDim2.new(0.5,-55,0,460)
 TeleportBtn.Size = UDim2.new(0,110,0,33)
 TeleportBtn.BackgroundColor3 = Color3.fromRGB(36,163,67)
 TeleportBtn.Text = "Seçeneğe TP"
@@ -86,51 +79,8 @@ TeleportBtn.TextScaled = true
 TeleportBtn.TextColor3 = Color3.fromRGB(255,255,255)
 Instance.new("UICorner", TeleportBtn).CornerRadius = UDim.new(0,9)
 
-local selectedPlayer=nil
-
-local function refreshPlayers()
-    for _,child in ipairs(DropdownFrame:GetChildren()) do
-        if child:IsA("TextButton") then child:Destroy() end
-    end
-    local y = 0
-    for _,ply in ipairs(game:GetService("Players"):GetPlayers()) do
-        if ply ~= plr and ply.Character and ply.Character:FindFirstChild("HumanoidRootPart") then
-            local pb = Instance.new("TextButton")
-            pb.Parent = DropdownFrame
-            pb.Size = UDim2.new(1,0,0,23)
-            pb.Position = UDim2.new(0,0,0,y)
-            y = y + 24
-            pb.Text = ply.DisplayName.." ("..ply.Name..")"
-            pb.Font = Enum.Font.Gotham
-            pb.BackgroundColor3 = Color3.fromRGB(48,48,68)
-            pb.TextColor3 = Color3.fromRGB(255,255,200)
-            pb.TextScaled = true
-            Instance.new("UICorner", pb).CornerRadius = UDim.new(0,6)
-            pb.MouseButton1Click:Connect(function()
-                selectedPlayer = ply
-                TeleportLabel.Text = "Teleport: "..(ply.DisplayName or ply.Name)
-            end)
-        end
-    end
-    DropdownFrame.CanvasSize = UDim2.new(0,0,0,y)
-    if not selectedPlayer then
-        TeleportLabel.Text = "Teleport: Oyuncu Seç"
-    end
-end
-
-game:GetService("Players").PlayerAdded:Connect(function() task.defer(refreshPlayers) end)
-game:GetService("Players").PlayerRemoving:Connect(function() task.defer(refreshPlayers) end)
-refreshPlayers()
-
-TeleportBtn.MouseButton1Click:Connect(function()
-    if selectedPlayer and selectedPlayer.Character and selectedPlayer.Character:FindFirstChild("HumanoidRootPart") and
-        plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
-        plr.Character.HumanoidRootPart.CFrame = selectedPlayer.Character.HumanoidRootPart.CFrame + Vector3.new(0,3,0)
-    end
-end)
-
-local Close = Instance.new("TextButton")
-Close.Parent = MainFrame
+-- Kapat
+local Close = Instance.new("TextButton", MainFrame)
 Close.Position = UDim2.new(1,-42,0,8)
 Close.Size = UDim2.new(0,32,0,32)
 Close.BackgroundColor3 = Color3.fromRGB(234,56,77)
@@ -139,16 +89,15 @@ Close.Font = Enum.Font.GothamBold
 Close.TextScaled = true
 Close.TextColor3 = Color3.fromRGB(240,240,240)
 Instance.new("UICorner", Close).CornerRadius = UDim.new(1,0)
+Close.MouseButton1Click:Connect(function() ScreenGui:Destroy() end)
 
--- Taşıma: Sürüklenebilir pencere
+-- Taşıma: Sürüklenebilir frame
 do
     local dragging = false
     local dragInput, dragStart, startPos
     MainFrame.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 then
-            dragging = true
-            dragStart = input.Position
-            startPos = MainFrame.Position
+            dragging, dragStart, startPos = true, input.Position, MainFrame.Position
             input.Changed:Connect(function()
                 if input.UserInputState == Enum.UserInputState.End then dragging = false end
             end)
@@ -165,238 +114,256 @@ do
     end)
 end
 
-Close.MouseButton1Click:Connect(function()
-    ScreenGui:Destroy()
+-- Teleport listesi, optimize (oyuncular değişince, frame yavaş yeniler)
+local selectedPlayer=nil
+local lastPlyRefresh = 0
+local function refreshPlayers()
+    -- yenileme limiti (donmayı önler)
+    if tick()-lastPlyRefresh < 0.75 then return end
+    lastPlyRefresh = tick()
+    for _,child in ipairs(DropdownFrame:GetChildren()) do
+        if child:IsA("TextButton") then child:Destroy() end
+    end
+    local y = 0
+    for _,ply in ipairs(game:GetService("Players"):GetPlayers()) do
+        if ply ~= plr and ply.Character and ply.Character:FindFirstChild("HumanoidRootPart") then
+            local pb = Instance.new("TextButton")
+            pb.Parent = DropdownFrame
+            pb.Size = UDim2.new(1,0,0,22)
+            pb.Position = UDim2.new(0,0,0,y)
+            y = y + 23
+            pb.Text = ply.DisplayName.." ("..ply.Name..")"
+            pb.Font = Enum.Font.Gotham
+            pb.BackgroundColor3 = Color3.fromRGB(58,62,72)
+            pb.TextColor3 = Color3.fromRGB(255,255,220)
+            pb.TextScaled = true
+            Instance.new("UICorner", pb).CornerRadius = UDim.new(0,5)
+            pb.MouseButton1Click:Connect(function()
+                selectedPlayer = ply
+                TeleportLabel.Text = "Teleport: "..(ply.DisplayName or ply.Name)
+            end)
+        end
+    end
+    DropdownFrame.CanvasSize = UDim2.new(0,0,0,math.max(1,y))
+    if not selectedPlayer then TeleportLabel.Text = "Teleport: Oyuncu Seç" end
+end
+game:GetService("Players").PlayerAdded:Connect(refreshPlayers)
+game:GetService("Players").PlayerRemoving:Connect(refreshPlayers)
+task.spawn(refreshPlayers)
+
+TeleportBtn.MouseButton1Click:Connect(function()
+    if selectedPlayer and selectedPlayer.Character and selectedPlayer.Character:FindFirstChild("HumanoidRootPart") and
+        plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
+        plr.Character.HumanoidRootPart.CFrame = selectedPlayer.Character.HumanoidRootPart.CFrame + Vector3.new(0,3,0)
+    end
 end)
 
 -------------------------
--- FONKSİYONLAR
+-- OPTİMİZE FONKSİYONLAR
 -------------------------
--- States & Connections
-local aimbotState, aimbotConn = false, nil
-local silentAimState = false
-local espState, espConn = false, nil
-local espBoxes = {}
-local noclipState, noclipConn = false, nil
-local flyState, flyConn = false, nil
-local flySpeed = 40
-local spinbotState, spinbotConn = false, nil
-local spinSpeed = 12
 local UserInputService = game:GetService("UserInputService")
+local runService = game:GetService("RunService")
+local mouse = plr:GetMouse()
 
--- En yakın oyuncu fonk (her frame çağrılmaz, throttled!)
-local cachedClosest = nil
-local cachedClosestTick = 0
+local State = {
+    Aimbot = false, SilentAim = false, ESP = false,
+    Noclip = false, Fly = false, Spinbot = false,
+}
+local Conns = {
+    Aimbot=nil, ESP=nil, Noclip=nil, Fly=nil, Spinbot=nil
+}
+local other = {
+    FlyVelocity = nil, FlyGyro = nil,
+    ESP_Boxes = {}, SilentAimHooked = false,
+}
 
-local function getClosestTarget()
-    local nowTick = tick()
-    if nowTick - cachedClosestTick < 0.08 and cachedClosest then
-        return cachedClosest
-    end
+-- Donma karşıtı throttle & cache
+local lastTarget, lastClosestTick = nil, 0
+local function getClosest()
+    local now = tick()
+    if now-lastClosestTick < 0.09 and lastTarget then return lastTarget end
+    lastClosestTick = now
     local cam = workspace.CurrentCamera
-    local mouse = plr:GetMouse()
     local closest, dist = nil, math.huge
+    local mouseX, mouseY = mouse.X, mouse.Y
     for _,v in ipairs(game:GetService("Players"):GetPlayers()) do
-        if v ~= plr and v.Character and v.Character:FindFirstChild("Head") then
+        if v~=plr and v.Character and v.Character:FindFirstChild("Head") then
             local succ,pos = pcall(function()
                 return cam:WorldToViewportPoint(v.Character.Head.Position)
             end)
-            if succ and pos then
-                if (typeof(pos) == "Vector3") and (pos.Z > 0) then
-                    local d = (Vector2.new(pos.X,pos.Y) - Vector2.new(mouse.X,mouse.Y)).Magnitude
-                    if d < dist then
-                        dist = d
-                        closest = v
-                    end
-                end
+            if succ and pos and pos.Z > 0 then
+                local d = (Vector2.new(pos.X,pos.Y) - Vector2.new(mouseX,mouseY)).Magnitude
+                if d < dist then dist = d closest = v end
             end
         end
     end
-    cachedClosest, cachedClosestTick = closest, nowTick
+    lastTarget = closest
     return closest
 end
 
--- AIMBOT
-local function updateAim()
-    local tgt = getClosestTarget()
+-- Aimbot
+local function aimbotUpdate()
+    local tgt = getClosest()
     if tgt and tgt.Character and tgt.Character:FindFirstChild("Head") then
         local cam = workspace.CurrentCamera
         cam.CFrame = CFrame.new(cam.CFrame.Position, tgt.Character.Head.Position)
     end
 end
 Buttons.Aimbot.Button.MouseButton1Click:Connect(function()
-    aimbotState = not aimbotState
-    Buttons.Aimbot.Button.Text = aimbotState and Buttons.Aimbot.On or Buttons.Aimbot.Off
-    if aimbotState then
-        if not aimbotConn then
-            aimbotConn = game:GetService("RunService").RenderStepped:Connect(function()
-                if aimbotState then updateAim() end
+    State.Aimbot = not State.Aimbot
+    Buttons.Aimbot.Button.Text = State.Aimbot and Buttons.Aimbot.On or Buttons.Aimbot.Off
+    if State.Aimbot then
+        if not Conns.Aimbot then
+            Conns.Aimbot = runService.RenderStepped:Connect(function()
+                if State.Aimbot then aimbotUpdate() end
             end)
         end
-    else
-        if aimbotConn then aimbotConn:Disconnect(); aimbotConn = nil end
-    end
+    elseif Conns.Aimbot then Conns.Aimbot:Disconnect() Conns.Aimbot=nil end
 end)
 
--- SILENTAIM (hooked metatable ile, throttled)
-local oldIndex
-local mouse = plr:GetMouse()
+-- SilentAim (low-impact, mt hook bir kez; donmaya sebep olmayan throttle içerir)
 Buttons.SilentAim.Button.MouseButton1Click:Connect(function()
-    silentAimState = not silentAimState
-    Buttons.SilentAim.Button.Text = silentAimState and Buttons.SilentAim.On or Buttons.SilentAim.Off
-    if silentAimState and not oldIndex then
-        if hookmetamethod then
-            oldIndex = hookmetamethod(game, "__index", function(self, k)
-                if self==mouse and (k == "Target" or k == "Hit") and silentAimState then
-                    local tgt = getClosestTarget()
-                    if tgt and tgt.Character and tgt.Character:FindFirstChild("Head") then
-                        if k=="Target" then return tgt.Character.Head end
-                        if k=="Hit" then return tgt.Character.Head.CFrame end
-                    end
-                end
-                return oldIndex(self, k)
-            end)
-        end
-    end
-end)
-
--- ESP: Sadece değişiklik olunca güncelle
-local function clearESP()
-    for _,b in pairs(espBoxes) do if b and b.Parent then b:Destroy() end end
-    espBoxes = {}
-end
-
-local function makeESP(char)
-    if not char:FindFirstChild("Head") then return end
-    local box = Instance.new("BoxHandleAdornment")
-    box.Name = "ESPAdornment"
-    box.Adornee = char
-    box.AlwaysOnTop = true
-    box.ZIndex = 12
-    box.Size = char:GetExtentsSize()
-    box.Color3 = Color3.new(1,0.9,0)
-    box.Transparency = 0.8
-    box.Parent = workspace
-    table.insert(espBoxes,box)
-end
-
-Buttons.ESP.Button.MouseButton1Click:Connect(function()
-    espState = not espState
-    Buttons.ESP.Button.Text = espState and Buttons.ESP.On or Buttons.ESP.Off
-    if espState then
-        local function updateESP()
-            clearESP()
-            for _,v in ipairs(game:GetService("Players"):GetPlayers()) do
-                if v ~= plr and v.Character and v.Character:FindFirstChild("Head") then
-                    makeESP(v.Character)
+    State.SilentAim = not State.SilentAim
+    Buttons.SilentAim.Button.Text = State.SilentAim and Buttons.SilentAim.On or Buttons.SilentAim.Off
+    if not other.SilentAimHooked and hookmetamethod then -- sadece 1 kez hookla!
+        local oldIndex = nil
+        oldIndex = hookmetamethod(game, "__index", function(self, k)
+            if self==mouse and (k=="Target" or k=="Hit") and State.SilentAim then
+                local tgt = getClosest()
+                if tgt and tgt.Character and tgt.Character:FindFirstChild("Head") then
+                    if k=="Target" then return tgt.Character.Head end
+                    if k=="Hit" then return tgt.Character.Head.CFrame end
                 end
             end
+            return oldIndex(self,k)
+        end)
+        other.SilentAimHooked = true
+    end
+end)
+
+-- ESP (Optimize: sadece önemli eventlerde güncellenir ve donmayı önler)
+local function clearESP()
+    for _,box in ipairs(other.ESP_Boxes) do if box and box.Parent then box:Destroy() end end
+    other.ESP_Boxes = {}
+end
+local function updateESP()
+    clearESP()
+    for _,v in ipairs(game:GetService("Players"):GetPlayers()) do
+        if v~=plr and v.Character and v.Character:FindFirstChild("Head") then
+            local c = Instance.new("BoxHandleAdornment")
+            c.Name = "ESPBox"
+            c.Adornee = v.Character
+            c.AlwaysOnTop = true
+            c.ZIndex = 10
+            c.Size = v.Character:GetExtentsSize()
+            c.Color3 = Color3.new(1,0.9,0)
+            c.Transparency = 0.75
+            c.Parent = workspace
+            table.insert(other.ESP_Boxes,c)
         end
+    end
+end
+Buttons.ESP.Button.MouseButton1Click:Connect(function()
+    State.ESP = not State.ESP
+    Buttons.ESP.Button.Text = State.ESP and Buttons.ESP.On or Buttons.ESP.Off
+    if State.ESP then
         updateESP()
-        espConn = game:GetService("Players").PlayerAdded:Connect(updateESP)
-        game:GetService("Players").PlayerRemoving:Connect(updateESP)
+        if not Conns.ESP then
+            -- Sadece oyuncularda değişiklik olduğunda
+            local function update() if State.ESP then updateESP() end end
+            Conns.ESP = {
+                Added = game:GetService("Players").PlayerAdded:Connect(update),
+                Removed = game:GetService("Players").PlayerRemoving:Connect(update),
+                Char = plr.CharacterAdded:Connect(update),
+            }
+        end
     else
-        if espConn then pcall(function() espConn:Disconnect() end) espConn=nil end
+        if Conns.ESP then
+            for _,c in pairs(Conns.ESP) do c:Disconnect() end
+            Conns.ESP = nil
+        end
         clearESP()
     end
 end)
 
--- NOCLIP
+-- Noclip
 Buttons.Noclip.Button.MouseButton1Click:Connect(function()
-    noclipState = not noclipState
-    Buttons.Noclip.Button.Text = noclipState and Buttons.Noclip.On or Buttons.Noclip.Off
-    if noclipState and not noclipConn then
-        noclipConn = game:GetService("RunService").Stepped:Connect(function()
+    State.Noclip = not State.Noclip
+    Buttons.Noclip.Button.Text = State.Noclip and Buttons.Noclip.On or Buttons.Noclip.Off
+    if State.Noclip and not Conns.Noclip then
+        Conns.Noclip = runService.Stepped:Connect(function()
             if plr.Character then
-                for _,part in pairs(plr.Character:GetDescendants()) do
+                for _,part in ipairs(plr.Character:GetDescendants()) do
                     if part:IsA("BasePart") then part.CanCollide = false end
                 end
             end
         end)
-    else
-        if noclipConn then noclipConn:Disconnect(); noclipConn = nil end
+    elseif Conns.Noclip then
+        Conns.Noclip:Disconnect(); Conns.Noclip = nil
         if plr.Character then
-            for _,part in pairs(plr.Character:GetDescendants()) do
+            for _,part in ipairs(plr.Character:GetDescendants()) do
                 if part:IsA("BasePart") then part.CanCollide = true end
             end
         end
     end
 end)
 
--- FLY (flyConn sadece bir tane aktif!)
-local function doFly(enable)
-    if enable then
-        local char = plr.Character
-        if not char or not char:FindFirstChild("HumanoidRootPart") then return end
-        local hrp = char.HumanoidRootPart
-        local velocity = Instance.new("BodyVelocity", hrp)
-        velocity.MaxForce = Vector3.new(1e5, 1e5, 1e5)
-        velocity.P = 9e4
-        local gyro = Instance.new("BodyGyro", hrp)
-        gyro.MaxTorque = Vector3.new(1e6, 1e6, 1e6)
-        local move = Vector3.new()
-        flyConn = game:GetService("RunService").Heartbeat:Connect(function()
-            if not flyState or not char or not char:FindFirstChild("HumanoidRootPart") then
-                pcall(function() velocity:Destroy() end)
-                pcall(function() gyro:Destroy() end)
-                if flyConn then flyConn:Disconnect(); flyConn=nil end
-                return
-            end
-            move = Vector3.new()
-            if UserInputService:IsKeyDown(Enum.KeyCode.W) then
-                move = move + (workspace.CurrentCamera.CFrame.LookVector)
-            end
-            if UserInputService:IsKeyDown(Enum.KeyCode.S) then
-                move = move - (workspace.CurrentCamera.CFrame.LookVector)
-            end
-            if UserInputService:IsKeyDown(Enum.KeyCode.A) then
-                move = move - (workspace.CurrentCamera.CFrame.RightVector)
-            end
-            if UserInputService:IsKeyDown(Enum.KeyCode.D) then
-                move = move + (workspace.CurrentCamera.CFrame.RightVector)
-            end
-            if UserInputService:IsKeyDown(Enum.KeyCode.Space) then
-                move = move + Vector3.new(0,1,0)
-            end
-            if UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) then
-                move = move - Vector3.new(0,1,0)
-            end
-            if move.Magnitude>0 then
-                velocity.Velocity = move.Unit * flySpeed
+-- Fly (donmayı önleyici tasarım, gyro ve velocity bir kez eklenir)
+local flySpeed = 40
+local function flyStart()
+    local char = plr.Character
+    if not char or not char:FindFirstChild("HumanoidRootPart") then return end
+    local hrp = char.HumanoidRootPart
+    other.FlyVelocity = Instance.new("BodyVelocity")
+    other.FlyVelocity.MaxForce = Vector3.new(1e5, 1e5, 1e5)
+    other.FlyVelocity.P = 5e4
+    other.FlyVelocity.Parent = hrp
+    other.FlyGyro = Instance.new("BodyGyro", hrp)
+    other.FlyGyro.MaxTorque = Vector3.new(1e6,1e6,1e6)
+    other.FlyGyro.Parent = hrp
+    if not Conns.Fly then
+        Conns.Fly = runService.RenderStepped:Connect(function()
+            if not State.Fly then return end
+            local move = Vector3.new()
+            if UserInputService:IsKeyDown(Enum.KeyCode.W) then move = move + workspace.CurrentCamera.CFrame.LookVector end
+            if UserInputService:IsKeyDown(Enum.KeyCode.S) then move = move - workspace.CurrentCamera.CFrame.LookVector end
+            if UserInputService:IsKeyDown(Enum.KeyCode.A) then move = move - workspace.CurrentCamera.CFrame.RightVector end
+            if UserInputService:IsKeyDown(Enum.KeyCode.D) then move = move + workspace.CurrentCamera.CFrame.RightVector end
+            if UserInputService:IsKeyDown(Enum.KeyCode.Space) then move = move + Vector3.new(0,1,0) end
+            if UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) then move = move - Vector3.new(0,1,0) end
+            if move.Magnitude > 0 then
+                other.FlyVelocity.Velocity = move.Unit * flySpeed
             else
-                velocity.Velocity = Vector3.new()
+                other.FlyVelocity.Velocity = Vector3.new()
             end
-            gyro.CFrame = workspace.CurrentCamera.CFrame
+            other.FlyGyro.CFrame = workspace.CurrentCamera.CFrame
         end)
-    else
-        if flyConn then flyConn:Disconnect(); flyConn=nil end
-        local hrp = plr.Character and plr.Character:FindFirstChild("HumanoidRootPart")
-        if hrp then
-            for _,v in ipairs(hrp:GetChildren()) do
-                if v:IsA("BodyVelocity") or v:IsA("BodyGyro") then v:Destroy() end
-            end
-        end
     end
 end
-
+local function flyStop()
+    if Conns.Fly then Conns.Fly:Disconnect() Conns.Fly=nil end
+    if other.FlyVelocity then pcall(function() other.FlyVelocity:Destroy() end) other.FlyVelocity=nil end
+    if other.FlyGyro then pcall(function() other.FlyGyro:Destroy() end) other.FlyGyro=nil end
+end
 Buttons.Fly.Button.MouseButton1Click:Connect(function()
-    flyState = not flyState
-    Buttons.Fly.Button.Text = flyState and Buttons.Fly.On or Buttons.Fly.Off
-    doFly(flyState)
+    State.Fly = not State.Fly
+    Buttons.Fly.Button.Text = State.Fly and Buttons.Fly.On or Buttons.Fly.Off
+    if State.Fly then flyStart() else flyStop() end
 end)
 
--- SPINBOT (Heartbeat ile, sadece döndürme - minimum iş)
+-- Spinbot (Fly ile birlikte de çalışır, RenderStepped tek loop!)
+local spinSpeed = 14
 Buttons.Spinbot.Button.MouseButton1Click:Connect(function()
-    spinbotState = not spinbotState
-    Buttons.Spinbot.Button.Text = spinbotState and Buttons.Spinbot.On or Buttons.Spinbot.Off
-    if spinbotState and not spinbotConn then
-        spinbotConn = game:GetService("RunService").Heartbeat:Connect(function()
-            if spinbotState and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
+    State.Spinbot = not State.Spinbot
+    Buttons.Spinbot.Button.Text = State.Spinbot and Buttons.Spinbot.On or Buttons.Spinbot.Off
+    if State.Spinbot and not Conns.Spinbot then
+        Conns.Spinbot = runService.RenderStepped:Connect(function()
+            if State.Spinbot and plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
                 local hrp = plr.Character.HumanoidRootPart
                 hrp.CFrame = hrp.CFrame * CFrame.Angles(0, math.rad(spinSpeed), 0)
             end
         end)
-    else
-        if spinbotConn then spinbotConn:Disconnect(); spinbotConn = nil end
+    elseif Conns.Spinbot then
+        Conns.Spinbot:Disconnect(); Conns.Spinbot = nil
     end
 end)
