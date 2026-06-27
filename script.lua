@@ -136,8 +136,10 @@ function notify(txt)
     n.Font = Enum.Font.GothamSemibold
     n.TextSize = 20
     n.ZIndex = 30
-    task.wait(2.08)
-    pcall(function() n:Destroy() end)
+    task.spawn(function()
+        task.wait(2.08)
+        pcall(function() n:Destroy() end)
+    end)
 end
 
 function playerDropdown(callback)
@@ -305,12 +307,22 @@ end
 renderSection("aim")
 
 local currentESP = {}
-local espConn = nil
+local DrawValid = pcall(function() return Drawing and Drawing.new and Drawing.new("Line") and true end)
 local ESP_DISTANCE = 350
 
 function get2DFrom3D(p)
     local pos, onscreen = Cam:WorldToViewportPoint(p)
     return Vector2.new(pos.X, pos.Y), onscreen
+end
+
+function getBodyParts(ch)
+    local tab = {}
+    for _,v in ipairs(ch:GetChildren()) do
+        if v:IsA("BasePart") and v.Name~="HumanoidRootPart" then
+            table.insert(tab, v)
+        end
+    end
+    return tab
 end
 
 function drawBodyESP(p)
@@ -321,21 +333,22 @@ function drawBodyESP(p)
     local dist = (lpChar.HumanoidRootPart.Position - char.HumanoidRootPart.Position).Magnitude
     if dist > ESP_DISTANCE then
         if currentESP[p] then
-            for _,line in pairs(currentESP[p]) do if line and line.Visible then line.Visible = false end end
+            for _,line in pairs(currentESP[p]) do if line then line.Visible = false end end
         end
         return
     end
     if not currentESP[p] then currentESP[p] = {} end
     for _,v in pairs(currentESP[p]) do v.Visible = false end
-    local function makeOutline(part)
-        if not part or not part:IsA("BasePart") then return end
+    local parts = getBodyParts(char)
+    for _,part in ipairs(parts) do
         local size = part.Size
         local cf = part.CFrame
         local corners = {}
         for x=-1,1,2 do
             for y=-1,1,2 do
                 for z=-1,1,2 do
-                    table.insert(corners, (cf * Vector3.new(x*size.X/2, y*size.Y/2, z*size.Z/2)))
+                    local corner = (cf * Vector3.new(x*size.X/2, y*size.Y/2, z*size.Z/2))
+                    table.insert(corners, corner)
                 end
             end
         end
@@ -343,60 +356,61 @@ function drawBodyESP(p)
             {1,2},{1,3},{1,5},{2,4},{2,6},{3,4},{3,7},{4,8},
             {5,6},{5,7},{6,8},{7,8}
         }
-        for i,l in ipairs(lines) do
-            local a2d,on1 = get2DFrom3D(corners[l[1]])
-            local b2d,on2 = get2DFrom3D(corners[l[2]])
+        for idx,ln in ipairs(lines) do
+            local a2d,on1 = get2DFrom3D(corners[ln[1]])
+            local b2d,on2 = get2DFrom3D(corners[ln[2]])
             if on1 and on2 then
-                if not currentESP[p][part.Name..i] then
-                    local e = Drawing and Drawing.new and Drawing.new("Line")
-                    if e then
-                        e.Thickness = 1.4
-                        e.Color = Color3.fromRGB(255,0,0)
-                        e.Transparency = 0.8
-                        e.Visible = true
-                        currentESP[p][part.Name..i] = e
-                    end
+                if not currentESP[p][part.Name..idx] and DrawValid then
+                    local d = Drawing.new("Line")
+                    d.Thickness = 1.05
+                    d.Color = Color3.fromRGB(255,0,0)
+                    d.Transparency = 0.84
+                    d.Visible = true
+                    currentESP[p][part.Name..idx] = d
                 end
-                local e = currentESP[p][part.Name..i]
+                local e = currentESP[p][part.Name..idx]
                 if e then
                     e.From = a2d
                     e.To = b2d
                     e.Visible = optStates.ESP
                     e.Color = Color3.fromRGB(255,0,0)
                 end
-            elseif currentESP[p][part.Name..i] then
-                currentESP[p][part.Name..i].Visible = false
+            elseif currentESP[p][part.Name..idx] then
+                currentESP[p][part.Name..idx].Visible = false
             end
-        end
-    end
-    for _,part in pairs(char:GetDescendants()) do
-        if (part:IsA("BasePart") or part:IsA("MeshPart")) and part.Name~="HumanoidRootPart" then
-            makeOutline(part)
         end
     end
 end
 
 function clearDeadESP()
     for p, stuff in pairs(currentESP) do
-        if not Players:FindFirstChild(p.Name) or not p.Character or not p.Character:FindFirstChild("HumanoidRootPart") then
+        if not Players:FindFirstChild(p.Name) or not p.Character or not p.Character:FindFirstChild("HumanoidRootPart") or not p.Character:FindFirstChildOfClass("Humanoid") or p.Character:FindFirstChildOfClass("Humanoid").Health <= 0 then
             for _,e in pairs(stuff) do if e and typeof(e.Remove)=="function" then e:Remove() end end
             currentESP[p] = nil
         end
     end
 end
 
+local espConn = nil
+local esptoggle = false
 function startESP()
     if espConn then pcall(function() espConn:Disconnect() end) end
     espConn = RS.RenderStepped:Connect(function()
         if not optStates.ESP then
             for k,t in pairs(currentESP) do for _,line in pairs(t) do if line then line.Visible = false end end end
+            esptoggle = false
             return
         end
+        if not esptoggle then esptoggle = true end
         clearDeadESP()
+        local list = {}
         for _,p in pairs(Players:GetPlayers()) do
             if p ~= LP and p.Character and p.Character:FindFirstChild("HumanoidRootPart") and p.Character:FindFirstChildOfClass("Humanoid") and p.Character:FindFirstChildOfClass("Humanoid").Health > 0 then
-                drawBodyESP(p)
+                table.insert(list, p)
             end
+        end
+        for _,p in ipairs(list) do
+            drawBodyESP(p)
         end
     end)
 end
@@ -488,20 +502,38 @@ end
 
 function startGorunmezlik()
     RS.RenderStepped:Connect(function()
-        if optStates["Görünmezlik"] and LP.Character and LP.Character:FindFirstChild("HumanoidRootPart") then
+        if optStates["Görünmezlik"] and LP.Character then
             for _,v in ipairs(LP.Character:GetDescendants()) do
-                if v:IsA("BasePart") or v:IsA("MeshPart") then
-                    v.Transparency=1 v.LocalTransparencyModifier=1
-                    if game:GetService("ReplicatedStorage"):FindFirstChild("Events") and v.Name~="HumanoidRootPart" then
-                        v:GetPropertyChangedSignal("Transparency"):Connect(function()
-                            if optStates["Görünmezlik"] then v.Transparency=1 v.LocalTransparencyModifier=1 end
-                        end)
+                if (v:IsA("BasePart") or v:IsA("MeshPart")) then
+                    if v.Name ~= "HumanoidRootPart" then
+                        v.Transparency=1
+                        v.LocalTransparencyModifier=1
                     end
                 end
-                if v.ClassName=="Decal" or v.ClassName=="Texture" then v.Transparency=1 end
+                if v.ClassName=="Decal" or v.ClassName=="Texture" then
+                    v.Transparency=1
+                end
             end
             if LP.Character:FindFirstChild("HumanoidRootPart") then
                 LP.Character.HumanoidRootPart.Transparency=1
+            end
+            -- Server-side invisibility (for FE games)
+            if _G.__invisRemoteCheckRan ~= true then
+                _G.__invisRemoteCheckRan = true
+                for _,val in pairs(LP.Character:GetDescendants()) do
+                    if val:IsA("BasePart") then
+                        local oldCF = val.CFrame
+                        val:BreakJoints()
+                        val.Anchored = true
+                        val.CFrame = oldCF
+                    end
+                end
+                task.wait(0.3)
+                for _,val in pairs(LP.Character:GetDescendants()) do
+                    if val:IsA("BasePart") then
+                        val.Anchored = false
+                    end
+                end
             end
         elseif LP.Character then
             for _,v in ipairs(LP.Character:GetDescendants()) do
@@ -510,13 +542,14 @@ function startGorunmezlik()
             if LP.Character:FindFirstChild("HumanoidRootPart") then
                 LP.Character.HumanoidRootPart.Transparency=0
             end
+            _G.__invisRemoteCheckRan = false
         end
     end)
 end
 
 local function safeBypass()
     local suc,err = pcall(function()
-        if setreadonly and getrawmetatable and hookfunction then
+        if setreadonly and getrawmetatable and hookfunction and typeof(getrawmetatable)== "function" then
             local mt = getrawmetatable(game)
             setreadonly(mt,false)
             local old = mt.__namecall
