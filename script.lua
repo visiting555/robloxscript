@@ -24,7 +24,7 @@ uiCorner.CornerRadius = UDim.new(0, 12)
 
 local title = Instance.new("TextLabel")
 title.Parent = frame
-title.Text = "Roblox Modern Menü"
+title.Text = "visitingmenu"
 title.Size = UDim2.new(1, 0, 0, 54)
 title.BackgroundTransparency = 1
 title.TextColor3 = Color3.fromRGB(222,245,255)
@@ -190,43 +190,140 @@ end
 
 local Drawing = Drawing
 local currentESP = {}
-local currentESPTracers = {}
+local espConnections = {}
 local espRunning = false
 
 local function get2DFrom3D(p)
     local pos, onscreen = Cam:WorldToViewportPoint(p)
     return Vector2.new(pos.X, pos.Y), onscreen
 end
-local function getBodyCorners(char)
-    local cfs = {}
+
+local function getBoxVertsFromParts(char)
     local hrp = char:FindFirstChild("HumanoidRootPart")
-    if not hrp then return cfs end
+    if not hrp then return nil end
+
     local size = hrp.Size
-    local right = hrp.CFrame.RightVector
-    local up = hrp.CFrame.UpVector
-    local look = hrp.CFrame.LookVector
-    local half = size/2
-    local points = {
-        (hrp.Position + right*half.X + up*half.Y + look*half.Z),
-        (hrp.Position - right*half.X + up*half.Y + look*half.Z),
-        (hrp.Position + right*half.X - up*half.Y + look*half.Z),
-        (hrp.Position - right*half.X - up*half.Y + look*half.Z),
-        (hrp.Position + right*half.X + up*half.Y - look*half.Z),
-        (hrp.Position - right*half.X + up*half.Y - look*half.Z),
-        (hrp.Position + right*half.X - up*half.Y - look*half.Z),
-        (hrp.Position - right*half.X - up*half.Y - look*half.Z)
+    local scale = 1.2
+    local offsetY = Vector3.new(0, size.Y*scale/2, 0)
+    local verts3d = {
+        (hrp.Position + hrp.CFrame.RightVector*size.X/2*scale + offsetY + hrp.CFrame.LookVector*size.Z/2*scale),
+        (hrp.Position - hrp.CFrame.RightVector*size.X/2*scale + offsetY + hrp.CFrame.LookVector*size.Z/2*scale),
+        (hrp.Position - hrp.CFrame.RightVector*size.X/2*scale + offsetY - hrp.CFrame.LookVector*size.Z/2*scale),
+        (hrp.Position + hrp.CFrame.RightVector*size.X/2*scale + offsetY - hrp.CFrame.LookVector*size.Z/2*scale),
+
+        (hrp.Position + hrp.CFrame.RightVector*size.X/2*scale - offsetY + hrp.CFrame.LookVector*size.Z/2*scale),
+        (hrp.Position - hrp.CFrame.RightVector*size.X/2*scale - offsetY + hrp.CFrame.LookVector*size.Z/2*scale),
+        (hrp.Position - hrp.CFrame.RightVector*size.X/2*scale - offsetY - hrp.CFrame.LookVector*size.Z/2*scale),
+        (hrp.Position + hrp.CFrame.RightVector*size.X/2*scale - offsetY - hrp.CFrame.LookVector*size.Z/2*scale),
     }
-    for _, pt in pairs(points) do
-        local vec, ons = get2DFrom3D(pt)
-        table.insert(cfs, {vec,ons})
+    local verts2d, onscreen = {}, true
+    for i,v in pairs(verts3d) do
+        local pt, scr = get2DFrom3D(v)
+        verts2d[i] = pt
+        onscreen = onscreen and scr
     end
-    return cfs
+    return verts2d, onscreen
+end
+
+local function getCharacterOutline(char)
+    local body = {}
+    for _, part in pairs(char:GetChildren()) do
+        if (part:IsA("BasePart") or part:IsA("MeshPart")) and part.Name~="HumanoidRootPart" then
+            table.insert(body, part)
+        end
+    end
+    return body
+end
+
+local function drawBodyESP(p)
+    if not p.Character then return end
+    if not currentESP[p] then currentESP[p] = {} end
+
+    -- 3D box
+    local corners, onscreen = getBoxVertsFromParts(p.Character)
+    local lines = currentESP[p].boxLines or {}
+    local edgeIndexes = {{1,2},{2,3},{3,4},{4,1},{5,6},{6,7},{7,8},{8,5},{1,5},{2,6},{3,7},{4,8}}
+    if not lines[1] then
+        for i=1,#edgeIndexes do
+            local l = Drawing and Drawing.new and Drawing.new("Line") or nil
+            if l then
+                l.Color = Color3.fromRGB(255, 0, 0)
+                l.Thickness = 2.7
+                l.Transparency = 1
+                l.Visible = false
+                lines[i] = l
+            end
+        end
+        currentESP[p].boxLines = lines
+    end
+
+    if corners and onscreen then
+        for i,ij in ipairs(edgeIndexes) do
+            local l = lines[i]
+            if l then
+                l.From = corners[ij[1]]
+                l.To = corners[ij[2]]
+                l.Visible = optStates["ESP"] and true or false
+                l.Color = Color3.fromRGB(255, 0, 0)
+            end
+        end
+    else
+        for _,l in ipairs(lines) do if l then l.Visible = false end end
+    end
+
+    -- Body outline
+    local outline = currentESP[p].outlineParts or {}
+    local idx = 1
+    for _,part in pairs(getCharacterOutline(p.Character)) do
+        local size = part.Size
+        local corners3d = {
+            part.CFrame * Vector3.new( size.X/2,  size.Y/2,  size.Z/2),
+            part.CFrame * Vector3.new(-size.X/2,  size.Y/2,  size.Z/2),
+            part.CFrame * Vector3.new(-size.X/2, -size.Y/2,  size.Z/2),
+            part.CFrame * Vector3.new( size.X/2, -size.Y/2,  size.Z/2),
+            part.CFrame * Vector3.new( size.X/2,  size.Y/2, -size.Z/2),
+            part.CFrame * Vector3.new(-size.X/2,  size.Y/2, -size.Z/2),
+            part.CFrame * Vector3.new(-size.X/2, -size.Y/2, -size.Z/2),
+            part.CFrame * Vector3.new( size.X/2, -size.Y/2, -size.Z/2)
+        }
+        local c2d, visible = {}, true
+        for i=1,8 do
+            local pt, scr = get2DFrom3D(corners3d[i])
+            c2d[i] = pt
+            visible = visible and scr
+        end
+        local edges = {{1,2},{2,3},{3,4},{4,1},{5,6},{6,7},{7,8},{8,5},{1,5},{2,6},{3,7},{4,8}}
+        for _,edge in ipairs(edges) do
+            if not outline[idx] then
+                local l = Drawing and Drawing.new and Drawing.new("Line") or nil
+                if l then l.Color=Color3.fromRGB(255,0,0) l.Thickness=1.9 l.Transparency=1 l.Visible=false end
+                outline[idx] = l
+            end
+            local l = outline[idx]
+            if l and visible then
+                l.From = c2d[edge[1]]
+                l.To = c2d[edge[2]]
+                l.Color = Color3.fromRGB(255, 0, 0)
+                l.Thickness = 1.9
+                l.Visible = optStates["ESP"]
+            elseif l then
+                l.Visible = false
+            end
+            idx = idx + 1
+        end
+    end
+    -- Clear leftovers
+    for ci = idx, #(outline) do pcall(function() outline[ci].Visible = false end) end
+    currentESP[p].outlineParts = outline
 end
 
 local function updateESP()
-    for p, items in pairs(currentESP) do
-        if not p.Parent or not Players:FindFirstChild(p.Name) then
-            if items and #items > 0 then for _,o in pairs(items) do if o and typeof(o.Remove)=="function" then o:Remove() end end end
+    for p, sections in pairs(currentESP) do
+        if not Players:FindFirstChild(p.Name) or not p.Character then
+            local boxLines = sections.boxLines or {}
+            for _,l in ipairs(boxLines) do if l and typeof(l.Remove)=="function" then l:Remove() end end
+            local outlineParts = sections.outlineParts or {}
+            for _,l in ipairs(outlineParts) do if l and typeof(l.Remove)=="function" then l:Remove() end end
             currentESP[p] = nil
         end
     end
@@ -238,39 +335,19 @@ local function startESP()
     RS.RenderStepped:Connect(function()
         updateESP()
         if not optStates["ESP"] then
-            for _,items in pairs(currentESP) do for _,o in pairs(items) do pcall(function() if o and typeof(o.Remove)=="function" then o:Remove() end end) end end
-            currentESP = {}
+            for _,sections in pairs(currentESP) do
+                for _,l in ipairs(sections.boxLines or {}) do if l then l.Visible=false end end
+                for _,l in ipairs(sections.outlineParts or {}) do if l then l.Visible=false end end
+            end
             return
         end
         for _,p in pairs(Players:GetPlayers()) do
             if p ~= LP and p.Character and p.Character:FindFirstChild("HumanoidRootPart") and p.Character:FindFirstChildOfClass("Humanoid") and p.Character:FindFirstChildOfClass("Humanoid").Health > 0 then
-                local corners = getBodyCorners(p.Character)
-                if not currentESP[p] then currentESP[p] = {} end
-                -- Outline
-                if p.Character and #corners >= 8 then
-                    if #currentESP[p]<12 then
-                        for i=1,12-#currentESP[p] do
-                            local l = Drawing and Drawing.new and Drawing.new("Line") or nil
-                            if l then l.Color=Color3.fromRGB(255,32,32) l.Thickness=2 l.Transparency=1 l.Visible=true end
-                            table.insert(currentESP[p], l)
-                        end
-                    end
-                    local boxIdx = 1
-                    local edges = {{1,2},{2,4},{4,3},{3,1},{5,6},{6,8},{8,7},{7,5},{1,5},{2,6},{3,7},{4,8}}
-                    for ei,edge in ipairs(edges) do
-                        local p1, on1 = corners[edge[1]][1], corners[edge[1]][2]
-                        local p2, on2 = corners[edge[2]][1], corners[edge[2]][2]
-                        if on1 and on2 then
-                            local l = currentESP[p][boxIdx]
-                            if l then l.From=l.To and l.From or p1 l.From=p1 l.To=p2 l.Color = Color3.fromRGB(255,32,32) l.Visible=true end
-                        else
-                            if currentESP[p][boxIdx] then currentESP[p][boxIdx].Visible=false end
-                        end
-                        boxIdx = boxIdx + 1
-                    end
-                end
+                drawBodyESP(p)
             elseif currentESP[p] then
-                for _,o in pairs(currentESP[p]) do if o then o.Visible=false end end
+                local sec = currentESP[p]
+                for _,l in ipairs(sec.boxLines or {}) do if l then l.Visible=false end end
+                for _,l in ipairs(sec.outlineParts or {}) do if l then l.Visible=false end end
             end
         end
     end)
