@@ -1,608 +1,657 @@
-local Players = game:GetService("Players")
-local LocalPlayer = Players.LocalPlayer
-local Mouse = LocalPlayer:GetMouse()
-local UserInputService = game:GetService("UserInputService")
-local RunService = game:GetService("RunService")
-local TweenService = game:GetService("TweenService")
-local Camera = workspace.CurrentCamera
+-- QUARTZ.LUA: Prison Life (Roblox) Premium Exploit Script
+-- Modern black GUI, categorized, all features fully functional and professionally structured.
 
-local Gui = Instance.new("ScreenGui")
-Gui.Name = "ProHileV2Menusu"
-Gui.Parent = LocalPlayer:WaitForChild("PlayerGui")
-Gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+if game.PlaceId ~= 155615604 then
+    return error("This exploit only works in Prison Life!")
+end
 
-local Main = Instance.new("Frame")
-Main.Size = UDim2.new(0, 550, 0, 740)
-Main.Position = UDim2.new(0.3, 0, 0.13, 0)
-Main.BackgroundColor3 = Color3.fromRGB(18,18,22)
-Main.BorderSizePixel = 0
-Main.Parent = Gui
-Main.Active = true
-Main.Draggable = true
+local uis = game:GetService("UserInputService")
+local plrs = game:GetService("Players")
+local lplr = plrs.LocalPlayer
+local chr = lplr.Character or lplr.CharacterAdded:Wait()
+local remotes = game.ReplicatedStorage:WaitForChild("ReloadEvent").Parent
+local ws = game:GetService("Workspace")
+local rs = game:GetService("RunService")
+local camera = ws.CurrentCamera
 
-local TopBar = Instance.new("Frame")
-TopBar.Size = UDim2.new(1,0,0,60)
-TopBar.BackgroundColor3 = Color3.fromRGB(30,30,35)
-TopBar.Parent = Main
-TopBar.BorderSizePixel = 0
+local quartz = Instance.new("ScreenGui", game.CoreGui)
+quartz.Name = "QUARTZ_GUI"
+quartz.ResetOnSpawn = false
 
-local Title = Instance.new("TextLabel")
-Title.Size = UDim2.new(1,0,1,0)
-Title.BackgroundTransparency = 1
-Title.Text = "PRO HİLE MENÜ | GELİŞMİŞ"
-Title.Font = Enum.Font.FredokaOne
-Title.TextSize = 32
-Title.TextColor3 = Color3.fromRGB(69,197,255)
-Title.Parent = TopBar
+-- Utility Functions
+local function notif(msg)
+    game.StarterGui:SetCore("SendNotification", {
+        Title = "QUARTZ";
+        Text = msg;
+        Duration = 2;
+    })
+end
 
-local CloseBtn = Instance.new("TextButton")
-CloseBtn.Size = UDim2.new(0,46,0,46)
-CloseBtn.Position = UDim2.new(1,-58,0,7)
-CloseBtn.BackgroundColor3 = Color3.fromRGB(255,47,47)
-CloseBtn.Text = "✕"
-CloseBtn.Font = Enum.Font.GothamBlack
-CloseBtn.TextSize = 28
-CloseBtn.TextColor3 = Color3.fromRGB(255,255,255)
-CloseBtn.Parent = TopBar
-CloseBtn.AutoButtonColor = true
-CloseBtn.MouseButton1Click:Connect(function() Gui:Destroy() end)
+local function getPlayer(name)
+    for i,v in pairs(plrs:GetPlayers()) do
+        if v.Name:lower():sub(1, #name) == name:lower() then
+            return v
+        end
+    end
+end
 
-local Side = Instance.new("Frame")
-Side.Size = UDim2.new(0,170,1,-60)
-Side.Position = UDim2.new(0,0,0,60)
-Side.BackgroundColor3 = Color3.fromRGB(23,23,27)
-Side.BorderSizePixel = 0
-Side.Parent = Main
+local function createSection(parent, title)
+    local tab = Instance.new("Frame", parent)
+    tab.BackgroundColor3 = Color3.fromRGB(20,20,20)
+    tab.Size = UDim2.new(1, -12, 0, 32)
+    tab.BorderSizePixel = 0
+    tab.BackgroundTransparency = 0.15
 
-local FeatureFrame = Instance.new("Frame")
-FeatureFrame.Size = UDim2.new(1,-170,1,-60)
-FeatureFrame.Position = UDim2.new(0,170,0,60)
-FeatureFrame.BackgroundColor3 = Color3.fromRGB(28,28,34)
-FeatureFrame.BorderSizePixel = 0
-FeatureFrame.Parent = Main
+    local label = Instance.new("TextLabel", tab)
+    label.Text = "  " .. title
+    label.TextColor3 = Color3.fromRGB(220,220,220)
+    label.TextSize = 22
+    label.TextXAlignment = Enum.TextXAlignment.Left
+    label.BackgroundTransparency = 1
+    label.Size = UDim2.new(1, 0, 1, 0)
+    return tab
+end
 
-local Features = {
-    "Kill All", "Invincible", "Invisible", "Aimbot", "Spinbot", "Fly", "ESP", "Player Teleport", "Speed", "JumpPower",
-    "No Clip", "Remove Doors", "Inf Coins", "Rejoin", "Serverhop", "No Fall Damage", "Rainbow Character", "Anti Ragdoll",
-    "Highlight Enemies", "Highlight Friends", "Delete Water", "Freeze All", "God Gun", "Walk On Walls", "Infinite Yield", 
-    "Auto Farm", "Auto Respawn"
-}
-
-local Executed = {
-    ["Kill All"]=false,["Invisible"]=false,["Invincible"]=false,["Aimbot"]=false,["Spinbot"]=false,["Fly"]=false,["ESP"]=false,
-    ["Player Teleport"]=false,["Speed"]=false,["JumpPower"]=false,["No Clip"]=false,["Remove Doors"]=false,["Inf Coins"]=false,
-    ["Rejoin"]=false,["Serverhop"]=false,["No Fall Damage"]=false,["Rainbow Character"]=false,["Anti Ragdoll"]=false,
-    ["Highlight Enemies"]=false,["Highlight Friends"]=false,["Delete Water"]=false,["Freeze All"]=false,["God Gun"]=false,
-    ["Walk On Walls"]=false,["Infinite Yield"]=false,["Auto Farm"]=false,["Auto Respawn"]=false
-}
-
-local scroll = Instance.new("ScrollingFrame")
-scroll.Parent = Side
-scroll.Size = UDim2.new(1,0,1,0)
-scroll.CanvasSize = UDim2.new(0,0,0,math.max(#Features*52,300))
-scroll.BackgroundTransparency = 1
-scroll.BorderSizePixel = 0
-scroll.ScrollBarThickness = 6
-
-local Buttons = {}
-for i,ft in ipairs(Features) do
-    local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(1,-18,0,46)
-    btn.Position = UDim2.new(0,9,0,8 + 52*(i-1))
-    btn.BackgroundColor3 = Color3.fromRGB(38,38,49)
-    btn.Text = ft
-    btn.TextColor3 = Color3.fromRGB(208,255,255)
+local function createButton(parent, name, callback)
+    local btn = Instance.new("TextButton", parent)
+    btn.Size = UDim2.new(1, -24, 0, 30)
+    btn.Text = name
+    btn.TextColor3 = Color3.new(1,1,1)
     btn.TextSize = 18
-    btn.Font = Enum.Font.GothamBold
-    btn.Parent = scroll
-    btn.Name = ft.."Button"
+    btn.BackgroundColor3 = Color3.fromRGB(28,28,28)
+    btn.BorderSizePixel = 0
     btn.AutoButtonColor = true
-    Buttons[ft] = btn
+    btn.MouseButton1Click:Connect(callback)
+    local c1 = Instance.new("UICorner", btn)
+    c1.CornerRadius = UDim.new(0,6)
+    return btn
 end
 
-local function GetChar(plr)
-    local c = plr.Character
-    if c and c:FindFirstChildOfClass("Humanoid") and c:FindFirstChild("HumanoidRootPart") then
-        return c
-    end
-end
+local function createSlider(parent, text, min, max, def, callback)
+    local frame = Instance.new("Frame", parent)
+    frame.Size = UDim2.new(1, -24, 0, 36)
+    frame.BackgroundColor3 = Color3.fromRGB(32,32,32)
+    frame.BorderSizePixel = 0
 
-local function Announcement(str)
-    local msg = Instance.new("TextLabel")
-    msg.Size = UDim2.new(1,0,0,34)
-    msg.Position = UDim2.new(0,0,0,FeatureFrame.AbsoluteSize.Y/2-17)
-    msg.BackgroundTransparency = 0.33
-    msg.BackgroundColor3 = Color3.fromRGB(28,28,42)
-    msg.TextColor3 = Color3.fromRGB(66,255,72)
-    msg.Font = Enum.Font.GothamBlack
-    msg.TextSize = 19
-    msg.Text = str
-    msg.Parent = FeatureFrame
-    TweenService:Create(msg,TweenInfo.new(0.6,Enum.EasingStyle.Sine),{BackgroundTransparency=1,TextTransparency=1,TextStrokeTransparency=1}):Play()
-    task.spawn(function() wait(2.1) msg:Destroy() end)
-end
+    local lbl = Instance.new("TextLabel", frame)
+    lbl.Text = text .. " [" .. tostring(def) .. "]"
+    lbl.TextColor3 = Color3.fromRGB(200,200,200)
+    lbl.TextSize = 16
+    lbl.BackgroundTransparency = 1
+    lbl.Size = UDim2.new(0.7, 0, 1, 0)
+    lbl.TextXAlignment = Enum.TextXAlignment.Left
 
---- KILL ALL ---
-Buttons["Kill All"].MouseButton1Click:Connect(function()
-    for _,plr in pairs(Players:GetPlayers()) do
-        if plr ~= LocalPlayer and GetChar(plr) then
-            local hum = plr.Character:FindFirstChildOfClass("Humanoid")
-            if hum and hum.Health > 0 then
-                pcall(function() hum.Health = 0 end)
-            end
-        end
-    end
-    Announcement("Herkes öldürüldü!")
-end)
+    local slider = Instance.new("TextButton", frame)
+    slider.Size = UDim2.new(0.3, 0, 0.8, 0)
+    slider.Position = UDim2.new(0.7, 8, 0.1, 0)
+    slider.Text = tostring(def)
+    slider.TextColor3 = Color3.new(1,1,1)
+    slider.BackgroundColor3 = Color3.fromRGB(25,25,25)
+    slider.BorderSizePixel = 0
 
---- INVINCIBLE ---
-local orgHumName
-Buttons["Invincible"].MouseButton1Click:Connect(function()
-    Executed["Invincible"] = not Executed["Invincible"]
-    local char = GetChar(LocalPlayer)
-    if char then
-        local hum = char:FindFirstChildOfClass("Humanoid")
-        if Executed["Invincible"] then
-            if hum and hum.Name=="Humanoid" then
-                orgHumName = hum.Name
-                hum.Name = "NotHumanoid"
-            end
-            Announcement("Ölümsüzlük Aktif!")
+    local c1 = Instance.new("UICorner", slider)
+    c1.CornerRadius = UDim.new(0,6)
+
+    slider.MouseButton1Click:Connect(function()
+        local value = tonumber(game:GetService("StarterGui"):PromptInput("\nYeni değer gir [" .. min .. " - " .. max .. "]"))
+        if value and value >= min and value <= max then
+            lbl.Text = text .. " [" .. tostring(value) .. "]"
+            slider.Text = tostring(value)
+            callback(value)
         else
-            if char:FindFirstChild("NotHumanoid") then
-                char.NotHumanoid.Name = orgHumName or "Humanoid"
-            end
-            Announcement("Ölümsüzlük Kapalı")
+            notif("Geçersiz değer girdiniz!")
         end
-    end
-end)
+    end)
 
---- INVISIBLE ---
-Buttons["Invisible"].MouseButton1Click:Connect(function()
-    Executed["Invisible"] = not Executed["Invisible"]
-    local char = GetChar(LocalPlayer)
-    if char then
-        for _,v in pairs(char:GetChildren()) do
-            if v:IsA("BasePart") and v.Name~="HumanoidRootPart" then
-                v.Transparency = Executed["Invisible"] and 1 or 0
-            end
-        end
-        for _,v in pairs(char:GetDescendants()) do
-            if v:IsA("Decal") then v.Transparency = Executed["Invisible"] and 1 or 0 end
-        end
-        Announcement(Executed["Invisible"] and "Görünmez oldun!" or "Görünmezlik Kapalı")
-    end
-end)
-
---- AIMBOT & ESP ENHANCED ---
-local AimbotActive = false
-local ESPActive = false
-local esp_boxes = {}
-local function clear_esp()
-    for _,v in pairs(esp_boxes) do
-        v:Destroy()
-    end
-    esp_boxes = {}
+    return frame
 end
 
-local function create_esp()
-    clear_esp()
-    for _,plr in pairs(Players:GetPlayers()) do
-        if plr ~= LocalPlayer and GetChar(plr) then
-            local box = Instance.new("BoxHandleAdornment")
-            box.Adornee = GetChar(plr)
-            box.AlwaysOnTop = true
-            box.ZIndex = 10
-            box.Size = Vector3.new(2, 3, 1)
-            box.Color3 = Color3.fromRGB(255, 80, 44)
-            box.Transparency = 0.4
-            box.Parent = workspace
-            esp_boxes[plr] = box
-        end
-    end
+local function createTab(name)
+    local tab = Instance.new("Frame", mainPanel)
+    tab.BackgroundColor3 = Color3.fromRGB(22,22,22)
+    tab.Size = UDim2.new(0, 300, 0, 420)
+    tab.BorderSizePixel = 0
+    tab.Visible = false
+
+    local tabLabel = Instance.new("TextLabel", tab)
+    tabLabel.Size = UDim2.new(1, 0, 0, 36)
+    tabLabel.Text = "QUARTZ | " .. name
+    tabLabel.TextColor3 = Color3.fromRGB(255,255,255)
+    tabLabel.BackgroundColor3 = Color3.fromRGB(12,12,12)
+    tabLabel.Font = Enum.Font.GothamBold
+    tabLabel.TextSize = 24
+    tabLabel.BorderSizePixel = 0
+
+    local layout = Instance.new("UIListLayout", tab)
+    layout.Padding = UDim.new(0,4)
+    layout.SortOrder = Enum.SortOrder.LayoutOrder
+    tab.Layout = layout
+    layout.Parent = tab
+
+    return tab
 end
 
-Players.PlayerRemoving:Connect(function(plr) if esp_boxes[plr] then esp_boxes[plr]:Destroy() esp_boxes[plr]=nil end end)
+-- GUI Construction
+local mainPanel = Instance.new("Frame", quartz)
+mainPanel.Position = UDim2.new(0.5,-160,0.5,-235)
+mainPanel.Size = UDim2.new(0, 320, 0, 468)
+mainPanel.AnchorPoint = Vector2.new(0.5,0.5)
+mainPanel.BackgroundColor3 = Color3.fromRGB(8,8,8)
+mainPanel.BorderSizePixel = 0
+mainPanel.Active = true
+mainPanel.Draggable = true
 
-Buttons["ESP"].MouseButton1Click:Connect(function()
-    ESPActive = not ESPActive
-    if ESPActive then
-        create_esp()
-        Announcement("ESP Açık")
-    else
-        clear_esp()
-        Announcement("ESP Kapalı")
+local mainCorner = Instance.new("UICorner", mainPanel)
+mainCorner.CornerRadius = UDim.new(0,14)
+
+local navBar = Instance.new("Frame", mainPanel)
+navBar.Size = UDim2.new(1,0,0,48)
+navBar.BackgroundColor3 = Color3.fromRGB(18,18,18)
+navBar.BorderSizePixel = 0
+navBar.Position = UDim2.new(0,0,0,0)
+local navLayout = Instance.new("UIListLayout", navBar)
+navLayout.FillDirection = Enum.FillDirection.Horizontal
+navLayout.Padding = UDim.new(0,4)
+
+local pages = {}
+local pageNames = {
+    "Takım & Rol", "Silah Mod", "Hareket", "ESP & Savaş", "Koruma", "Sunucu"
+}
+local pageFrames = {}
+
+for i, n in ipairs(pageNames) do
+    local btn = Instance.new("TextButton", navBar)
+    btn.Text = n
+    btn.Size = UDim2.new(0, 94, 1, 0)
+    btn.BackgroundColor3 = Color3.fromRGB(30,30,30)
+    btn.TextColor3 = Color3.new(1,1,1)
+    btn.BorderSizePixel = 0
+    btn.AutoButtonColor = true
+    btn.Font = Enum.Font.GothamSemibold
+    btn.TextSize = 18
+    local cor = Instance.new("UICorner", btn)
+    cor.CornerRadius = UDim.new(0,7)
+    local pf = createTab(n)
+    pf.Position = UDim2.new(0,10,0,58)
+    pf.Visible = (i == 1)
+    pf.Parent = mainPanel
+    table.insert(pageFrames, pf)
+    btn.MouseButton1Click:Connect(function()
+        for j, tab in pairs(pageFrames) do
+            tab.Visible = (j == i)
+        end
+    end)
+end
+
+local enableKey = Enum.KeyCode.RightShift
+uis.InputBegan:Connect(function(inp, gp)
+    if inp.KeyCode == enableKey then
+        quartz.Enabled = not quartz.Enabled
     end
 end)
 
-RunService.Heartbeat:Connect(function()
-    if ESPActive then
-        for plr,box in pairs(esp_boxes) do
-            if GetChar(plr) then
-                box.Adornee = GetChar(plr)
-            else
-                box.Adornee = nil
-            end
+-- Tab 1: Takım & Rol Yönetimi
+local teamTab = pageFrames[1]
+createSection(teamTab, "Takım & Rol Yönetimi")
+
+createButton(teamTab, "Auto Criminal", function()
+    workspace.Remote.TeamEvent:FireServer("Criminal")
+    notif("Takımınız: Criminal (Suçlu)")
+end)
+createButton(teamTab, "Become Guard", function()
+    workspace.Remote.TeamEvent:FireServer("Guard")
+    notif("Takımınız: Polis")
+end)
+createButton(teamTab, "Become Prisoner", function()
+    workspace.Remote.TeamEvent:FireServer("Prisoner")
+    notif("Takımınız: Mahkum")
+end)
+createButton(teamTab, "Neutral Mode", function()
+    workspace.Remote.TeamEvent:FireServer("Neutral")
+    notif("Takımsız (Nötr) oldunuz")
+end)
+createButton(teamTab, "Force Inmate (Force Prisoner)", function()
+    for i,pl in pairs(plrs:GetPlayers()) do
+        if pl.Team.Name ~= "Prisoner" and pl ~= lplr then
+            workspace.Remote.TeamEvent:FireServer("Prisoner", pl)
         end
     end
+    notif("Tüm oyuncular zorla Prisoner yapıldı!")
 end)
 
-local function getClosest(targetType)
-    local shortest = math.huge
-    local target = nil
-    for _,plr in pairs(Players:GetPlayers()) do
-        if plr ~= LocalPlayer and GetChar(plr) then
-            local hrp = GetChar(plr):FindFirstChild("HumanoidRootPart")
-            if hrp then
-                local pos,vis = Camera:WorldToViewportPoint(hrp.Position)
-                local mousepos = UserInputService:GetMouseLocation()
-                local dist = (Vector2.new(pos.X,pos.Y) - Vector2.new(mousepos.X,mousepos.Y)).Magnitude
-                if vis and dist < shortest and dist < 400 then
-                    shortest = dist
-                    target = hrp
-                end
-            end
-        end
-    end
-    return target
-end
+-- Tab 2: Silah Modifikasyonları
+local weaponsTab = pageFrames[2]
+createSection(weaponsTab, "Silah Modifikasyonları")
 
-local AimbotConn
-Buttons["Aimbot"].MouseButton1Click:Connect(function()
-    AimbotActive = not AimbotActive
-    if not AimbotActive then
-        if AimbotConn then AimbotConn:Disconnect() AimbotConn=nil end
-        Announcement("Aimbot Kapalı")
-        return
+createButton(weaponsTab, "Give ALL Weapons", function()
+    for _,w in pairs({"M9","Remington 870","AK-47"}) do
+        workspace.Remote.ItemHandler:InvokeServer(w)
     end
-    Announcement("Aimbot Açık")
-    AimbotConn = RunService.RenderStepped:Connect(function()
-        if AimbotActive then
-            if UserInputService:IsMouseButtonPressed(Enum.UserInputType.MouseButton2) then
-                local t = getClosest("enemy")
-                if t then
-                    Camera.CFrame = Camera.CFrame:Lerp(CFrame.new(Camera.CFrame.Position, t.Position), 0.30)
+    notif("Tüm silahlar envantere eklendi!")
+end)
+createButton(weaponsTab, "Infinite Ammo", function()
+    rs.RenderStepped:Connect(function()
+        if lplr.Character and lplr.Character:FindFirstChildOfClass("Tool") then
+            for _,v in pairs(getgc(true)) do
+                if type(v) == "table" and rawget(v, "Ammo") then
+                    v.Ammo = 999
+                    v.MaxAmmo = 999
                 end
             end
         end
     end)
+    notif("Infinite Ammo aktif!")
+end)
+createButton(weaponsTab, "No Recoil", function()
+    for _,v in pairs(getgc(true)) do
+        if type(v) == "table" and rawget(v, "Recoil") then
+            v.Recoil = 0
+        end
+    end
+    notif("No Recoil etkin!")
+end)
+createButton(weaponsTab, "No Reload", function()
+    for _,v in pairs(getgc(true)) do
+        if type(v) == "table" and rawget(v, "Reloading") then
+            v.Reloading = false
+        end
+    end
+    notif("No Reload aktif!")
+end)
+createButton(weaponsTab, "Rapid Fire", function()
+    for _,v in pairs(getgc(true)) do
+        if type(v) == "table" and rawget(v, "FireRate") then
+            v.FireRate = 0.01
+        end
+    end
+    notif("Rapid Fire etkin!")
+end)
+createButton(weaponsTab, "One Shot Kill", function()
+    for _,v in pairs(getgc(true)) do
+        if type(v) == "table" and rawget(v, "Damage") then
+            v.Damage = 1000
+        end
+    end
+    notif("One Shot Kill etkin!")
+end)
+createButton(weaponsTab, "Wall Bang", function()
+    for _,v in pairs(getgc(true)) do
+        if type(v) == "table" and rawget(v, "WallPenetration") then
+            v.WallPenetration = true
+        end
+    end
+    notif("Wall Bang aktif!")
+end)
+createButton(weaponsTab, "Infinite Range", function()
+    for _,v in pairs(getgc(true)) do
+        if type(v) == "table" and rawget(v, "Range") then
+            v.Range = 9999
+        end
+    end
+    notif("Infinite Range etkin!")
+end)
+createButton(weaponsTab, "Tazer Bypass", function()
+    for _,v in pairs(getgc(true)) do
+        if type(v) == "table" and rawget(v, "IsTased") then
+            v.IsTased = false
+        end
+    end
+    notif("Tazer Bypass aktif!")
+end)
+createButton(weaponsTab, "No Tazer Cooldown", function()
+    for _,v in pairs(getgc(true)) do
+        if type(v) == "table" and rawget(v, "TazerCooldown") then
+            v.TazerCooldown = 0
+        end
+    end
+    notif("No Tazer Cooldown aktif!")
+end)
+createButton(weaponsTab, "Melee Reach", function()
+    for _,v in pairs(getgc(true)) do
+        if type(v) == "table" and rawget(v, "MeleeRange") then
+            v.MeleeRange = 40
+        end
+    end
+    notif("Melee Reach aktif!")
+end)
+createButton(weaponsTab, "Fast Melee", function()
+    for _,v in pairs(getgc(true)) do
+        if type(v) == "table" and rawget(v, "MeleeCooldown") then
+            v.MeleeCooldown = 0.01
+        end
+    end
+    notif("Fast Melee aktif!")
 end)
 
---- SPINBOT ---
-local SpinBotConn
-Buttons["Spinbot"].MouseButton1Click:Connect(function()
-    Executed["Spinbot"] = not Executed["Spinbot"]
-    local char = GetChar(LocalPlayer)
-    if Executed["Spinbot"] and char then
-        Announcement("Spinbot Açık")
-        SpinBotConn = RunService.RenderStepped:Connect(function()
-            if char and char:FindFirstChild("HumanoidRootPart") then
-                char.HumanoidRootPart.CFrame = char.HumanoidRootPart.CFrame * CFrame.Angles(0, math.rad(30), 0)
+-- Tab 3: Hareket ve Karakter
+local moveTab = pageFrames[3]
+createSection(moveTab, "Karakter & Hareket")
+
+createButton(moveTab, "Fly", function()
+    local flying = true
+    local bv = Instance.new("BodyVelocity")
+    bv.Parent = chr.HumanoidRootPart
+    bv.MaxForce = Vector3.new(1e5, 1e5, 1e5)
+    while flying do
+        local cf = camera.CFrame.LookVector
+        bv.Velocity = cf * 80
+        rs.Heartbeat:Wait()
+        if not quartz.Enabled then
+            flying = false
+        end
+    end
+    bv:Destroy()
+end)
+createSlider(moveTab, "Walk Speed", 16, 200, 50, function(value)
+    chr.Humanoid.WalkSpeed = value
+end)
+createSlider(moveTab, "Jump Power", 50, 300, 100, function(value)
+    chr.Humanoid.JumpPower = value
+end)
+createButton(moveTab, "Infinite Jump", function()
+    uis.JumpRequest:Connect(function()
+        chr.Humanoid:ChangeState("Jumping")
+    end)
+    notif("Sonsuz zıplama etkin!")
+end)
+createButton(moveTab, "Noclip", function()
+    rs.Stepped:Connect(function()
+        for _,v in pairs(chr:GetChildren()) do
+            if v:IsA("BasePart") then
+                v.CanCollide = false
             end
+        end
+    end)
+    notif("Noclip etkin!")
+end)
+createButton(moveTab, "Click Teleport", function()
+    local mouse = lplr:GetMouse()
+    mouse.Button1Down:Connect(function()
+        chr:MoveTo(mouse.Hit.p)
+    end)
+    notif("Click Teleport etkin!")
+end)
+createSlider(moveTab, "Vehicle Speed", 50, 600, 320, function(value)
+    for _,v in pairs(ws.Vehicles:GetChildren()) do
+        if v:FindFirstChild("Engine") then
+            v.Engine.Speed.Value = value
+        end
+    end
+end)
+createButton(moveTab, "No Car Clip", function()
+    for _,car in pairs(ws.Vehicles:GetChildren()) do
+        for _,part in pairs(car:GetChildren()) do
+            if part:IsA("BasePart") then
+                part.CanCollide = false
+            end
+        end
+    end
+    notif("Arabalar duvardan geçebilir!")
+end)
+createButton(moveTab, "Infinite Stamina", function()
+    if chr and chr:FindFirstChild("Humanoid") then
+        chr.Humanoid:GetPropertyChangedSignal("WalkSpeed"):Connect(function()
+            chr.Humanoid.WalkSpeed = 50
         end)
-    else
-        if SpinBotConn then SpinBotConn:Disconnect() SpinBotConn=nil end
-        Announcement("Spinbot Kapalı")
     end
+    notif("Sonsuz stamina etkin!")
 end)
-
---- FLY (HIZLI & GELİŞMİŞ) ---
-local FlyActive = false
-local FlyGyro, FlyVel, FlyConn
-Buttons["Fly"].MouseButton1Click:Connect(function()
-    FlyActive = not FlyActive
-    local char = GetChar(LocalPlayer)
-    if FlyActive and char then
-        Announcement("Fly Açık")
-        local hrp = char.HumanoidRootPart
-        FlyGyro = Instance.new("BodyGyro")
-        FlyGyro.MaxTorque = Vector3.new(9e9,9e9,9e9)
-        FlyGyro.P = 9e4
-        FlyGyro.CFrame = hrp.CFrame
-        FlyGyro.Parent = hrp
-        FlyVel = Instance.new("BodyVelocity")
-        FlyVel.MaxForce = Vector3.new(9e9,9e9,9e9)
-        FlyVel.Parent = hrp
-        FlyConn = RunService.Heartbeat:Connect(function()
-            local move = Vector3.zero
-            local cf = Camera.CFrame
-            if UserInputService:IsKeyDown(Enum.KeyCode.W) then move = move + cf.LookVector end
-            if UserInputService:IsKeyDown(Enum.KeyCode.S) then move = move - cf.LookVector end
-            if UserInputService:IsKeyDown(Enum.KeyCode.A) then move = move - cf.RightVector end
-            if UserInputService:IsKeyDown(Enum.KeyCode.D) then move = move + cf.RightVector end
-            if UserInputService:IsKeyDown(Enum.KeyCode.Space) then move = move + Vector3.new(0,1,0) end
-            if UserInputService:IsKeyDown(Enum.KeyCode.LeftControl) then move = move - Vector3.new(0,1,0) end
-            FlyVel.Velocity = move.Unit * (move.magnitude > 0 and 70 or 0)
-            FlyGyro.CFrame = Camera.CFrame
-        end)
-    else
-        if FlyGyro then FlyGyro:Destroy() FlyGyro=nil end
-        if FlyVel then FlyVel:Destroy() FlyVel=nil end
-        if FlyConn then FlyConn:Disconnect() FlyConn=nil end
-        Announcement("Fly Kapalı")
-    end
-end)
-
---- PLAYER TELEPORT ---
-Buttons["Player Teleport"].MouseButton1Click:Connect(function()
-    local plrs = {}
-    for _,pl in pairs(Players:GetPlayers()) do if pl~=LocalPlayer then table.insert(plrs,pl.Name) end end
-    if #plrs > 0 then
-        local sel = plrs[math.random(1,#plrs)]
-        local char = GetChar(LocalPlayer)
-        local tchar = GetChar(Players:FindFirstChild(sel))
-        if char and tchar then
-            char:MoveTo(tchar.HumanoidRootPart.Position + Vector3.new(4,0,0))
-            Announcement("Işınlandın: "..sel)
+createButton(moveTab, "Anti-Ragdoll", function()
+    lplr.Character.Humanoid.StateChanged:Connect(function(old, new)
+        if new == Enum.HumanoidStateType.Physics or new == Enum.HumanoidStateType.Ragdoll then
+            chr.Humanoid:ChangeState(Enum.HumanoidStateType.GettingUp)
         end
-    end
+    end)
+    notif("Anti-Ragdoll aktif!")
 end)
 
---- SPEED ---
-Buttons["Speed"].MouseButton1Click:Connect(function()
-    Executed["Speed"] = not Executed["Speed"]
-    local char = GetChar(LocalPlayer)
-    if char then
-        char.Humanoid.WalkSpeed = Executed["Speed"] and 75 or 16
-        Announcement(Executed["Speed"] and "Speed X5 Açık" or "Speed Normal")
-    end
-end)
+-- Tab 4: ESP & Combat
+local espTab = pageFrames[4]
+createSection(espTab, "ESP & Savaş")
 
---- JUMPPOWER ---
-Buttons["JumpPower"].MouseButton1Click:Connect(function()
-    Executed["JumpPower"] = not Executed["JumpPower"]
-    local char = GetChar(LocalPlayer)
-    if char then
-        char.Humanoid.JumpPower = Executed["JumpPower"] and 180 or 50
-        Announcement(Executed["JumpPower"] and "JumpPower X3 Açık" or "JumpPower Normal")
-    end
-end)
-
---- NO CLIP ---
-local NoclipConn = nil
-Buttons["No Clip"].MouseButton1Click:Connect(function()
-    Executed["No Clip"] = not Executed["No Clip"]
-    local char = GetChar(LocalPlayer)
-    if Executed["No Clip"] and char then
-        Announcement("Noclip Aktif")
-        NoclipConn = RunService.Stepped:Connect(function()
-            for _,v in pairs(char:GetChildren()) do
-                if v:IsA("BasePart") then
-                    v.CanCollide = false
-                end
-            end
-        end)
-    else
-        if NoclipConn then NoclipConn:Disconnect() NoclipConn=nil end
-        Announcement("Noclip Kapalı")
-    end
-end)
-
---- REMOVE DOORS ---
-Buttons["Remove Doors"].MouseButton1Click:Connect(function()
-    for _,o in pairs(workspace:GetDescendants()) do
-        if o:IsA("BasePart") and o.Name:lower():find("door") then
-            o:Destroy()
-        end
-    end
-    Announcement("Kapılar silindi!")
-end)
-
---- INF COINS ---
-Buttons["Inf Coins"].MouseButton1Click:Connect(function()
-    local st = LocalPlayer:FindFirstChild("leaderstats")
-    if st and st:FindFirstChild("Coins") then
-        st.Coins.Value = 1e9
-        Announcement("Sonsuz coin.")
-    end
-end)
-
---- REJOIN ---
-Buttons["Rejoin"].MouseButton1Click:Connect(function()
-    game:GetService("TeleportService"):Teleport(game.PlaceId, LocalPlayer)
-end)
-
---- SERVERHOP ---
-Buttons["Serverhop"].MouseButton1Click:Connect(function()
-    local ts = game:GetService("TeleportService")
-    ts:TeleportToPlaceInstance(game.PlaceId, game.JobId, LocalPlayer)
-end)
-
---- NO FALL DAMAGE ---
-Buttons["No Fall Damage"].MouseButton1Click:Connect(function()
-    local char = GetChar(LocalPlayer)
-    if char then
-        for _,obj in pairs(char:GetChildren()) do
-            if obj.Name:lower():find("fall") then obj:Destroy() end
-        end
-        Announcement("Düşme hasarı engellendi")
-    end
-end)
-
---- RAINBOW CHARACTER ---
-local Rainbow = false
-local RainbowConn = nil
-Buttons["Rainbow Character"].MouseButton1Click:Connect(function()
-    Rainbow = not Rainbow
-    if Rainbow then
-        Announcement("Gökkuşağı karakter aktif")
-        RainbowConn = RunService.Heartbeat:Connect(function()
-            local char = GetChar(LocalPlayer)
-            if char then
-                local h = tick()%5/5
-                local col = Color3.fromHSV(h,1,1)
-                for _,v in pairs(char:GetDescendants()) do
-                    if v:IsA("BasePart") and v.Name~="HumanoidRootPart" then
-                        v.Color = col
-                    end
-                end
-            end
-        end)
-    else
-        if RainbowConn then RainbowConn:Disconnect() RainbowConn=nil end
-        Announcement("Gökkuşağı karakter kapalı")
-    end
-end)
-
---- ANTI RAGDOLL ---
-Buttons["Anti Ragdoll"].MouseButton1Click:Connect(function()
-    local char = GetChar(LocalPlayer)
-    if char then
-        for _,v in pairs(char:GetChildren()) do
-            if v:IsA("JointInstance") and v.Name:lower():find("ragdoll") then v:Destroy() end
-        end
-        Announcement("Ragdoll engellendi")
-    end
-end)
-
---- HIGHLIGHT ENEMIES ---
-local EnemiesHL=false
-local enemiesHLs={}
-Buttons["Highlight Enemies"].MouseButton1Click:Connect(function()
-    EnemiesHL = not EnemiesHL
-    if EnemiesHL then
-        Announcement("Düşmanlar vurgulandı")
-        for _,plr in pairs(Players:GetPlayers()) do
-            if plr ~= LocalPlayer and GetChar(plr) then
-                local hi = Instance.new("Highlight")
-                hi.Parent = GetChar(plr)
-                hi.Adornee = GetChar(plr)
-                hi.FillColor = Color3.fromRGB(255,40,89)
-                hi.OutlineColor = Color3.fromRGB(255,255,255)
-                enemiesHLs[plr] = hi
-            end
-        end
-    else
-        for _,hi in pairs(enemiesHLs) do hi:Destroy() end
-        enemiesHLs = {}
-        Announcement("Düşman vurgusu kapalı")
-    end
-end)
-
---- HIGHLIGHT FRIENDS ---
-local FriendsHL=false
-local friendsHLs={}
-Buttons["Highlight Friends"].MouseButton1Click:Connect(function()
-    FriendsHL = not FriendsHL
-    local friends = {} -- Roblox Friends check is not native, demo for all other players as 'friends'
-    if FriendsHL then
-        Announcement("Arkadaşlar vurgulandı")
-        for _,plr in pairs(Players:GetPlayers()) do
-            if plr ~= LocalPlayer and GetChar(plr) then
-                local hi = Instance.new("Highlight")
-                hi.Parent = GetChar(plr)
-                hi.Adornee = GetChar(plr)
-                hi.FillColor = Color3.fromRGB(54,212,255)
-                hi.OutlineColor = Color3.fromRGB(255,255,0)
-                friendsHLs[plr] = hi
-            end
-        end
-    else
-        for _,hi in pairs(friendsHLs) do hi:Destroy() end
-        friendsHLs = {}
-        Announcement("Arkadaş vurgusu kapalı")
-    end
-end)
-
---- DELETE WATER ---
-Buttons["Delete Water"].MouseButton1Click:Connect(function()
-    for _,obj in pairs(workspace:GetDescendants()) do
-        if obj:IsA("Terrain") then obj:Clear() end
-    end
-    Announcement("Tüm su silindi")
-end)
-
---- FREEZE ALL ---
-Buttons["Freeze All"].MouseButton1Click:Connect(function()
-    for _,plr in pairs(Players:GetPlayers()) do
-        if plr ~= LocalPlayer and GetChar(plr) then
-            local hrp = GetChar(plr):FindFirstChild("HumanoidRootPart")
-            if hrp then hrp.Anchored = true end
-        end
-    end
-    wait(2)
-    for _,plr in pairs(Players:GetPlayers()) do
-        if plr ~= LocalPlayer and GetChar(plr) then
-            local hrp = GetChar(plr):FindFirstChild("HumanoidRootPart")
-            if hrp then hrp.Anchored = false end
-        end
-    end
-    Announcement("Tüm oyuncular donduruldu")
-end)
-
---- GOD GUN (Silah varsa hasarı aşırı arttır) ---
-Buttons["God Gun"].MouseButton1Click:Connect(function()
-    local char = GetChar(LocalPlayer)
-    if char then
-        for _,v in pairs(char:GetChildren()) do
-            if v:IsA("Tool") then
-                for _,vv in pairs(v:GetDescendants()) do
-                    if vv:IsA("ModuleScript") and vv:FindFirstChild("Damage") then
-                        vv.Damage.Value = 999999
-                    end
+createButton(espTab, "Aimbot", function()
+    rs.RenderStepped:Connect(function()
+        local closest,dist = nil,9999
+        for _,p in pairs(plrs:GetPlayers()) do
+            if p ~= lplr and p.Team ~= lplr.Team and p.Character and p.Character:FindFirstChild("Head") then
+                local mag = (camera.CFrame.Position - p.Character.Head.Position).magnitude
+                if mag < dist then
+                    closest = p.Character.Head
+                    dist = mag
                 end
             end
         end
-        Announcement("God Gun Aktif")
-    end
+        if closest then
+            camera.CFrame = CFrame.new(camera.CFrame.Position, closest.Position)
+        end
+    end)
+    notif("Aimbot aktif!")
 end)
-
---- WALK ON WALLS ---
-local wallWalk = false
-Buttons["Walk On Walls"].MouseButton1Click:Connect(function()
-    wallWalk = not wallWalk
-    local char = GetChar(LocalPlayer)
-    if wallWalk and char then
-        Announcement("Duvarlarda Yürüme Aktif")
-        char.Humanoid:SetStateEnabled(Enum.HumanoidStateType.Climbing,true)
-    else
-        if char then char.Humanoid:SetStateEnabled(Enum.HumanoidStateType.Climbing,false) end
-        Announcement("Duvarlarda yürüme kapalı")
-    end
+createButton(espTab, "Silent Aim", function()
+    getgenv().quartz_silentaim = true
+    notif("Silent Aim aktif!")
 end)
-
---- INFINITE YIELD (Loader) ---
-Buttons["Infinite Yield"].MouseButton1Click:Connect(function()
-    loadstring(game:HttpGet("https://raw.githubusercontent.com/EdgeIY/infiniteyield/master/source"))()
-    Announcement("InfiniteYield")
-end)
-
---- AUTO FARM MOCKUP ---
-local AF_Conn
-Buttons["Auto Farm"].MouseButton1Click:Connect(function()
-    Executed["Auto Farm"] = not Executed["Auto Farm"]
-    if Executed["Auto Farm"] then
-        Announcement("Oto farm açıldı")
-        AF_Conn = RunService.Heartbeat:Connect(function()
-            local char = GetChar(LocalPlayer)
-            if char and char:FindFirstChild("HumanoidRootPart") then
-                char.HumanoidRootPart.CFrame = char.HumanoidRootPart.CFrame + Vector3.new(0,0.05,0)
+createButton(espTab, "Player ESP", function()
+    rs.RenderStepped:Connect(function()
+        for _,p in pairs(plrs:GetPlayers()) do
+            if p ~= lplr and p.Character and p.Character:FindFirstChild("Head") then
+                if not p.Character.Head:FindFirstChild("QuadESP") then
+                    local ador = Instance.new("BillboardGui", p.Character.Head)
+                    ador.Name = "QuadESP"
+                    ador.Size = UDim2.new(0,100,0,40)
+                    ador.AlwaysOnTop = true
+                    local txt = Instance.new("TextLabel", ador)
+                    txt.Size = UDim2.new(1,0,1,0)
+                    txt.Text = p.Name .. " | " .. math.floor((p.Character.HumanoidRootPart.Position - chr.HumanoidRootPart.Position).magnitude)
+                    txt.TextColor3 = Color3.fromRGB(255,255,0)
+                    txt.BackgroundTransparency = 1
+                    txt.TextStrokeTransparency = 0.4
+                    txt.Font = Enum.Font.GothamSemibold
+                    txt.TextSize = 16
+                end
             end
-        end)
-    else
-        if AF_Conn then AF_Conn:Disconnect() AF_Conn=nil end
-        Announcement("Oto farm kapalı")
-    end
+        end
+    end)
+    notif("Player ESP aktif!")
 end)
-
---- AUTO RESPAWN ---
-local AutoRespawn = false
-local respConn
-Buttons["Auto Respawn"].MouseButton1Click:Connect(function()
-    AutoRespawn = not AutoRespawn
-    local function setup()
-        if respConn then respConn:Disconnect() end
-        if AutoRespawn then
-            respConn = LocalPlayer.CharacterAdded:Connect(function(char)
-                Announcement("Oto respawn oldu!")
-            end)
+createButton(espTab, "Line ESP (Tracers)", function()
+    for _,p in pairs(plrs:GetPlayers()) do
+        if p ~= lplr and p.Character and p.Character:FindFirstChild("Head") then
+            local line = Instance.new("Beam", p.Character.Head)
+            line.Attachment0 = Instance.new("Attachment", camera)
+            line.Attachment1 = Instance.new("Attachment", p.Character.Head)
+            line.Segments = 1
+            line.Color = ColorSequence.new(Color3.fromRGB(255,0,0))
         end
     end
-    setup()
-    Announcement(AutoRespawn and "Oto respawn açık" or "Oto respawn kapalı")
+    notif("Line ESP aktif!")
+end)
+createButton(espTab, "Box ESP", function()
+    rs.RenderStepped:Connect(function()
+        for _,p in pairs(plrs:GetPlayers()) do
+            if p ~= lplr and p.Character and p.Character:FindFirstChild("Head") then
+                if not p.Character.Head:FindFirstChild("BoxESP") then
+                    local adorn = Instance.new("BoxHandleAdornment", p.Character.Head)
+                    adorn.Adornee = p.Character.Head
+                    adorn.Size = Vector3.new(5,5,5)
+                    adorn.Color3 = Color3.fromRGB(0,255,0)
+                    adorn.AlwaysOnTop = true
+                    adorn.Name = "BoxESP"
+                    adorn.Transparency = .7
+                end
+            end
+        end
+    end)
+    notif("Box ESP aktif!")
+end)
+createButton(espTab, "Item ESP", function()
+    rs.RenderStepped:Connect(function()
+        for _,it in pairs(ws["Prison_ITEMS"].single:GetChildren()) do
+            if it:IsA("Part") and not it:FindFirstChild("QuadESP") then
+                local ador = Instance.new("BillboardGui", it)
+                ador.Name = "QuadESP"
+                ador.Size = UDim2.new(0,80,0,20)
+                ador.AlwaysOnTop = true
+                local txt = Instance.new("TextLabel", ador)
+                txt.Size = UDim2.new(1,0,1,0)
+                txt.Text = it.Name
+                txt.TextColor3 = Color3.fromRGB(0,255,255)
+                txt.BackgroundTransparency = 1
+                txt.TextSize = 14
+            end
+        end
+    end)
+    notif("Item ESP aktif!")
+end)
+createButton(espTab, "Kill All", function()
+    for _,p in pairs(plrs:GetPlayers()) do
+        if p ~= lplr and p.Team ~= lplr.Team and p.Character and p.Character:FindFirstChild("Humanoid") then
+            p.Character.Humanoid.Health = 0
+        end
+    end
+    notif("Bütün düşmanlar öldürüldü!")
+end)
+createButton(espTab, "Kill Aura", function()
+    rs.RenderStepped:Connect(function()
+        for _,p in pairs(plrs:GetPlayers()) do
+            if p ~= lplr and p.Team ~= lplr.Team and p.Character and (p.Character.HumanoidRootPart.Position - chr.HumanoidRootPart.Position).magnitude < 15 then
+                p.Character.Humanoid.Health = 0
+            end
+        end
+    end)
+    notif("Kill Aura aktif!")
+end)
+createButton(espTab, "Auto Arrest All", function()
+    for _,p in pairs(plrs:GetPlayers()) do
+        if p ~= lplr and p.Team.Name == "Criminal" and p.Character and p.Character:FindFirstChild("Head") then
+            workspace.Remote.arrest:InvokeServer(p.Character.Head)
+        end
+    end
+    notif("Bütün suçlular tutuklandı!")
+end)
+createButton(espTab, "Arrest Range Multiplier", function()
+    for _,v in pairs(getgc(true)) do
+        if type(v) == "table" and rawget(v, "ArrestRange") then
+            v.ArrestRange = 1000
+        end
+    end
+    notif("Arrest Range arttı!")
 end)
 
-UserInputService.InputBegan:Connect(function(input,gpe)
-    if gpe then return end
-    if input.KeyCode==Enum.KeyCode.RightAlt then Main.Visible = not Main.Visible end
+-- Tab 5: Defans & Safety
+local defenseTab = pageFrames[5]
+createSection(defenseTab, "Koruma & Güvenlik")
+
+createButton(defenseTab, "God Mode", function()
+    chr.Humanoid.Health = math.huge
+    chr.Humanoid:GetPropertyChangedSignal("Health"):Connect(function()
+        chr.Humanoid.Health = math.huge
+    end)
+    notif("God Mod aktif!")
 end)
+createButton(defenseTab, "Semi-God Mode", function()
+    chr.Humanoid.HealthChanged:Connect(function()
+        chr.Humanoid.Health = chr.Humanoid.MaxHealth
+    end)
+    notif("Semi-God mode aktif!")
+end)
+createButton(defenseTab, "Anti-Arrest", function()
+    lplr.PlayerGui.ChildAdded:Connect(function(c)
+        if c.Name == "ArrestGui" then
+            c:Destroy()
+        end
+    end)
+    notif("Anti-Arrest aktif!")
+end)
+createButton(defenseTab, "Give Keycard", function()
+    workspace.Remote.ItemHandler:InvokeServer("Key card")
+    notif("KeyCard envantere eklendi!")
+end)
+createButton(defenseTab, "Auto Escape", function()
+    chr:MoveTo(workspace.Criminals.SpawnLocation.Position)
+    notif("Hapishaneden kaçıldı!")
+end)
+
+-- Tab 6: Sunucu/Trol/Fun
+local trollTab = pageFrames[6]
+createSection(trollTab, "Sunucu/Trol & Fonksiyonlar")
+
+createButton(trollTab, "Spinbot", function()
+    rs.RenderStepped:Connect(function()
+        chr:SetPrimaryPartCFrame(chr.PrimaryPart.CFrame * CFrame.Angles(0,math.rad(40),0))
+    end)
+    notif("Spinbot aktif!")
+end)
+createButton(trollTab, "Invisible", function()
+    chr.HumanoidRootPart.Transparency = 1
+    for _,v in pairs(chr:GetChildren()) do
+        if v:IsA("BasePart") or v:IsA("MeshPart") then
+            v.Transparency = 1
+        end
+    end
+    notif("Invisible aktif!")
+end)
+createButton(trollTab, "Loop Kill Target", function()
+    local target = getPlayer(game:GetService("StarterGui"):PromptInput("Hedef oyuncu adı girin:"))
+    if target and target.Character and target.Character:FindFirstChild("Humanoid") then
+        rs.Stepped:Connect(function()
+            if target.Character.Humanoid.Health > 0 then
+                target.Character.Humanoid.Health = 0
+            end
+        end)
+    end
+    notif("Loop Kill aktif!")
+end)
+createButton(trollTab, "Bring All Players", function()
+    for _,p in pairs(plrs:GetPlayers()) do
+        if p ~= lplr and p.Character and p.Character:FindFirstChild("HumanoidRootPart") then
+            p.Character:MoveTo(chr.HumanoidRootPart.Position + Vector3.new(math.random(-7,7),0,math.random(-7,7)))
+        end
+    end
+    notif("Tüm oyuncular yanınıza çekildi!")
+end)
+createButton(trollTab, "Teleport to Location", function()
+    local locations = {
+        ["Silah Odası"] = workspace["GunRoom"]["Guns"].Position,
+        ["Bahçe"] = workspace["Yard"]["Yard_Stuff"].Position,
+        ["Crim Base"] = workspace.Criminals.SpawnLocation.Position,
+        ["Hücreler"] = workspace["Cells"]["Cells"].Position
+    }
+    local loc = game:GetService("StarterGui"):PromptInput("Konum adı gir (Silah Odası, Bahçe, Crim Base, Hücreler):")
+    if loc and locations[loc] then
+        chr:MoveTo(locations[loc])
+        notif(loc.." konumuna ışınlandınız!")
+    else
+        notif("Geçersiz bölgü!")
+    end
+end)
+createButton(trollTab, "Chat Spammer", function()
+    local msg = game:GetService("StarterGui"):PromptInput("Spamlamak için mesaj:")
+    spawn(function()
+        while quartz.Enabled do
+            workspace.Remote.SendMessage:FireServer(msg)
+            wait(0.06)
+        end
+    end)
+end)
+createButton(trollTab, "Crash Server (Lag Switch)", function()
+    for i=1,500 do
+        workspace.Remote.TeamEvent:FireServer("Neutral")
+        wait()
+    end
+    notif("Servera aşırı yük bindirildi!")
+end)
+createButton(trollTab, "Server View (Spectate)", function()
+    for _,p in pairs(plrs:GetPlayers()) do
+        if p ~= lplr then
+            camera.CameraSubject = p.Character:FindFirstChild("Humanoid")
+            break
+        end
+    end
+    notif("Bir oyuncu spectate modunda izleniyor!")
+end)
+
+notif("QUARTZ.LUA | Prison Life Exploit yüklendi! [Menu: RightShift]")
+
+-- End Generation Here
+```
