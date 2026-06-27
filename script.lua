@@ -1,4 +1,4 @@
--- Roblox Gelişmiş Hile Menü: Spinbot (her zaman aktiftir), Noclip (tam duvar geçişi, Patchli)
+-- Gelişmiş Roblox Exploit Menü (Noclip kafa geçişli, spinbot koşarken/yürürken/flyda aktif, ESP yakın ve kutulu)
 local players = game:GetService("Players")
 local plr = players.LocalPlayer
 local uis = game:GetService("UserInputService")
@@ -7,7 +7,8 @@ local camera = workspace.CurrentCamera
 
 local Drawing = Drawing or getgenv().Drawing
 
--- Godmode Updater
+local MAX_ESP_DIST = 500 -- ESP en fazla bu uzaklıktakileri gösterir (studs)
+
 local godloop = nil
 local function setGodmode(state)
     if godloop then godloop:Disconnect() godloop = nil end
@@ -290,7 +291,7 @@ local function makeMenu()
         aimbotFunc()
     end)
 
-    -- ESP: Skelet/Kafatası Sistemi
+    -- ESP: iskelet+box+headcircle -- UZAKTA GÖRÜNMEZ
     local espObjs = {}
     local espConn
     local function clearESP()
@@ -307,6 +308,27 @@ local function makeMenu()
         {"LeftUpperLeg","LeftLowerLeg"}, {"LeftLowerLeg","LeftFoot"},
         {"RightUpperLeg","RightLowerLeg"}, {"RightLowerLeg","RightFoot"}
     }
+    local function getBodyCorners(model)
+        -- Returns {tl, tr, bl, br} on 2d
+        if not (model and model:FindFirstChild("HumanoidRootPart")) then return nil end
+        local c = model.HumanoidRootPart.Position
+        local size = Vector3.new(6, 11, 3)
+        local cf = model.HumanoidRootPart.CFrame
+        local points = {
+            cf * Vector3.new(-size.X/2, size.Y/2, -size.Z/2),
+            cf * Vector3.new(size.X/2, size.Y/2, -size.Z/2),
+            cf * Vector3.new(-size.X/2, -size.Y/2, -size.Z/2),
+            cf * Vector3.new(size.X/2, -size.Y/2, -size.Z/2),
+        }
+        local res, visibility = {}, true
+        for i,pt in ipairs(points) do
+            local p, vis = camera:WorldToViewportPoint(pt)
+            res[i] = Vector2.new(p.X, p.Y)
+            if not vis then visibility = false end
+        end
+        if not visibility then return nil end
+        return res
+    end
     local function espLoop()
         clearESP()
         if espConn then espConn:Disconnect() espConn = nil end
@@ -314,28 +336,65 @@ local function makeMenu()
         espConn = runS.RenderStepped:Connect(function()
             for _,v in ipairs(players:GetPlayers()) do
                 if v ~= plr and v.Character and v.Character:FindFirstChild("HumanoidRootPart") and v.Character:FindFirstChild("Head") then
+                    local char = v.Character
+                    local hrp = char.HumanoidRootPart
+                    local distance = (hrp.Position - camera.CFrame.Position).Magnitude
+                    if distance > MAX_ESP_DIST then
+                        if espObjs[v] then for _,o in pairs(espObjs[v]) do if o.Visible then o.Visible = false end end end
+                        goto continue
+                    end
+
                     if not espObjs[v] then
                         espObjs[v] = {}
+                        -- box 4 line, 1 skeleton set, 1 head circle
+                        for i=1,4 do
+                            local line = Drawing.new("Line")
+                            line.Color = Color3.new(1,0,0)
+                            line.Thickness = 2.5
+                            line.Transparency = 1
+                            line.Visible = false
+                            espObjs[v]["box"..i] = line
+                        end
                         for i=1,#skeleton do
                             local line = Drawing.new("Line")
                             line.Color = Color3.new(1,0,0)
-                            line.Thickness = 3
+                            line.Thickness = 2
                             line.Transparency = 1
                             line.Visible = false
                             espObjs[v]["line"..i] = line
                         end
                         local circle = Drawing.new("Circle")
                         circle.Color = Color3.new(1,0,0)
-                        circle.Thickness = 4
+                        circle.Thickness = 3
                         circle.Transparency = 1
                         circle.Visible = false
                         circle.Filled = false
                         espObjs[v].headcircle = circle
                     end
-                    local ch = v.Character
+
+                    -- box
+                    local boxpoints = getBodyCorners(char)
+                    if boxpoints then
+                        espObjs[v].box1.Visible = true
+                        espObjs[v].box1.From = boxpoints[1]
+                        espObjs[v].box1.To = boxpoints[2]
+                        espObjs[v].box2.Visible = true
+                        espObjs[v].box2.From = boxpoints[2]
+                        espObjs[v].box2.To = boxpoints[4]
+                        espObjs[v].box3.Visible = true
+                        espObjs[v].box3.From = boxpoints[4]
+                        espObjs[v].box3.To = boxpoints[3]
+                        espObjs[v].box4.Visible = true
+                        espObjs[v].box4.From = boxpoints[3]
+                        espObjs[v].box4.To = boxpoints[1]
+                    else
+                        for i=1,4 do espObjs[v]["box"..i].Visible = false end
+                    end
+
+                    -- skeleton
                     for i,pair in ipairs(skeleton) do
-                        local A = ch:FindFirstChild(pair[1])
-                        local B = ch:FindFirstChild(pair[2])
+                        local A = char:FindFirstChild(pair[1])
+                        local B = char:FindFirstChild(pair[2])
                         local line = espObjs[v]["line"..i]
                         if A and B then
                             local a,ona = camera:WorldToViewportPoint(A.Position)
@@ -351,20 +410,23 @@ local function makeMenu()
                             line.Visible = false
                         end
                     end
-                    local head = ch:FindFirstChild("Head")
+
+                    -- Head
+                    local head = char:FindFirstChild("Head")
                     local circ = espObjs[v].headcircle
                     if head then
                         local pos,onh = camera:WorldToViewportPoint(head.Position)
                         if onh then
                             circ.Position = Vector2.new(pos.X, pos.Y)
                             circ.Visible = true
-                            circ.Radius = 16
+                            circ.Radius = 16 * (MAX_ESP_DIST/(distance+1)) -- mesafeye göre ufalır
                         else
                             circ.Visible = false
                         end
                     else
                         circ.Visible = false
                     end
+                    ::continue::
                 elseif espObjs[v] then
                     for _,o in pairs(espObjs[v]) do if o.Visible then o.Visible = false end end
                 end
@@ -387,7 +449,7 @@ local function makeMenu()
         setGodmode(enabledHacks.Godmode)
     end)
 
-    -- NOCLIP: Tam Geçiş (Her base part disable, Humanoid collisions Off)
+    -- NOCLIP: Full Geçiş (Kafa ve Tüm BasePart)
     local noclipConn
     local function setNoclip()
         if noclipConn then noclipConn:Disconnect() end
@@ -398,6 +460,8 @@ local function makeMenu()
                         if part:IsA("BasePart") then
                             part.CanCollide = false
                             part.Massless = true
+                            -- Head da dahil. PlatformStand bir antiye girerse disable et:
+                            if part.Name == "Head" then part.CanCollide = false end
                         end
                     end
                     local hum = plr.Character:FindFirstChildWhichIsA("Humanoid")
@@ -480,15 +544,16 @@ local function makeMenu()
         setFly()
     end)
 
-    -- SPINBOT: Her zaman çalışır, fly/noclip/koşu/yürüme fark etmez
-    local spinConn
+    -- SPINBOT: Her zaman çalıştır (yürüme/koşu/fly dahil)
+    local spinConn, lastTick = nil, 0
     local function setSpinbot()
         if spinConn then spinConn:Disconnect() end
         if enabledHacks.Spinbot then
-            spinConn = runS.Stepped:Connect(function()
+            spinConn = runS.Stepped:Connect(function(dt)
                 if plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
                     local hrp = plr.Character.HumanoidRootPart
-                    hrp.CFrame = hrp.CFrame * CFrame.Angles(0, math.rad(15), 0)
+                    -- Koşma, yürüme, havada, fly, noclip her pozisyon için aktif olarak sürekli döner!
+                    hrp.CFrame = hrp.CFrame * CFrame.Angles(0, math.rad(20), 0)
                 end
             end)
         end
