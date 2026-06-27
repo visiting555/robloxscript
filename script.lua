@@ -29,14 +29,19 @@ local function setGodmode(state)
     end
 end
 
+-- MENU Yİ İKİ KERE OLUŞMASINI ENGELLE!
 local function makeMenu()
     if plr.PlayerGui:FindFirstChild("HileMenuGui") then
         plr.PlayerGui.HileMenuGui:Destroy()
     end
+
+    -- ScreenGui düzgün oluşturulmalı ve Parent doğru ayarlanmalı!
     local screenGui = Instance.new("ScreenGui")
     screenGui.Name = "HileMenuGui"
-    screenGui.Parent = plr.PlayerGui
+    screenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
     screenGui.ResetOnSpawn = false
+    screenGui.Parent = plr:FindFirstChildOfClass("PlayerGui") or plr.PlayerGui
+
     local mainFrame = Instance.new("Frame")
     mainFrame.Name = "MainFrame"
     mainFrame.Size = UDim2.new(0,350,0,540)
@@ -90,91 +95,32 @@ local function makeMenu()
     local gap = 12
     local btns = {}
 
-    -- AIMBOT
-    local aimbotBtn = Instance.new("TextButton")
-    aimbotBtn.Size = UDim2.new(1,-38,0,buttonH)
-    aimbotBtn.Position = UDim2.new(0,18,0,yOffset)
-    aimbotBtn.BackgroundColor3 = Color3.fromRGB(35,35,35)
-    aimbotBtn.TextColor3 = Color3.new(1,1,1)
-    aimbotBtn.TextStrokeTransparency = 0.7
-    aimbotBtn.Font = Enum.Font.Gotham
-    aimbotBtn.TextSize = 19
-    aimbotBtn.Text = hackText("Aimbot",false)
-    aimbotBtn.Parent = mainFrame
-    table.insert(btns, aimbotBtn)
-    yOffset = yOffset + buttonH + gap
+    -- Her bir butonu YENİDEN ve doğu parent ile oluştur!
+    local function createButton(name, btnVar)
+        local btn = Instance.new("TextButton")
+        btn.Size = UDim2.new(1,-38,0,buttonH)
+        btn.Position = UDim2.new(0,18,0,yOffset)
+        btn.BackgroundColor3 = Color3.fromRGB(35,35,35)
+        btn.TextColor3 = Color3.new(1,1,1)
+        btn.TextStrokeTransparency = 0.7
+        btn.Font = Enum.Font.Gotham
+        btn.TextSize = 19
+        btn.Text = hackText(name,false)
+        btn.Parent = mainFrame
+        table.insert(btns, btn)
+        yOffset = yOffset + buttonH + gap
+        return btn
+    end
 
-    -- ESP
-    local espBtn = Instance.new("TextButton")
-    espBtn.Size = UDim2.new(1,-38,0,buttonH)
-    espBtn.Position = UDim2.new(0,18,0,yOffset)
-    espBtn.BackgroundColor3 = Color3.fromRGB(35,35,35)
-    espBtn.TextColor3 = Color3.new(1,1,1)
-    espBtn.TextStrokeTransparency = 0.7
-    espBtn.Font = Enum.Font.Gotham
-    espBtn.TextSize = 19
-    espBtn.Text = hackText("ESP",false)
-    espBtn.Parent = mainFrame
-    table.insert(btns, espBtn)
-    yOffset = yOffset + buttonH + gap
+    local aimbotBtn = createButton("Aimbot")
+    local espBtn = createButton("ESP")
+    local godmodeBtn = createButton("Godmode")
+    local noclipBtn = createButton("Noclip")
+    local flyBtn = createButton("Fly")
+    local spinbotBtn = createButton("Spinbot")
+    yOffset = yOffset + 4
 
-    -- GODMODE
-    local godmodeBtn = Instance.new("TextButton")
-    godmodeBtn.Size = UDim2.new(1,-38,0,buttonH)
-    godmodeBtn.Position = UDim2.new(0,18,0,yOffset)
-    godmodeBtn.BackgroundColor3 = Color3.fromRGB(35,35,35)
-    godmodeBtn.TextColor3 = Color3.new(1,1,1)
-    godmodeBtn.TextStrokeTransparency = 0.7
-    godmodeBtn.Font = Enum.Font.Gotham
-    godmodeBtn.TextSize = 19
-    godmodeBtn.Text = hackText("Godmode",false)
-    godmodeBtn.Parent = mainFrame
-    table.insert(btns, godmodeBtn)
-    yOffset = yOffset + buttonH + gap
-
-    -- NOCLIP
-    local noclipBtn = Instance.new("TextButton")
-    noclipBtn.Size = UDim2.new(1,-38,0,buttonH)
-    noclipBtn.Position = UDim2.new(0,18,0,yOffset)
-    noclipBtn.BackgroundColor3 = Color3.fromRGB(35,35,35)
-    noclipBtn.TextColor3 = Color3.new(1,1,1)
-    noclipBtn.TextStrokeTransparency = 0.7
-    noclipBtn.Font = Enum.Font.Gotham
-    noclipBtn.TextSize = 19
-    noclipBtn.Text = hackText("Noclip",false)
-    noclipBtn.Parent = mainFrame
-    table.insert(btns, noclipBtn)
-    yOffset = yOffset + buttonH + gap
-
-    -- FLY
-    local flyBtn = Instance.new("TextButton")
-    flyBtn.Size = UDim2.new(1,-38,0,buttonH)
-    flyBtn.Position = UDim2.new(0,18,0,yOffset)
-    flyBtn.BackgroundColor3 = Color3.fromRGB(35,35,35)
-    flyBtn.TextColor3 = Color3.new(1,1,1)
-    flyBtn.TextStrokeTransparency = 0.7
-    flyBtn.Font = Enum.Font.Gotham
-    flyBtn.TextSize = 19
-    flyBtn.Text = hackText("Fly",false)
-    flyBtn.Parent = mainFrame
-    table.insert(btns, flyBtn)
-    yOffset = yOffset + buttonH + gap
-
-    -- SPINBOT (Her zaman, yani yürüken-koşarken-uçarken)
-    local spinbotBtn = Instance.new("TextButton")
-    spinbotBtn.Size = UDim2.new(1,-38,0,buttonH)
-    spinbotBtn.Position = UDim2.new(0,18,0,yOffset)
-    spinbotBtn.BackgroundColor3 = Color3.fromRGB(35,35,35)
-    spinbotBtn.TextColor3 = Color3.new(1,1,1)
-    spinbotBtn.TextStrokeTransparency = 0.7
-    spinbotBtn.Font = Enum.Font.Gotham
-    spinbotBtn.TextSize = 19
-    spinbotBtn.Text = hackText("Spinbot",false)
-    spinbotBtn.Parent = mainFrame
-    table.insert(btns, spinbotBtn)
-    yOffset = yOffset + buttonH + gap + 4
-
-    -- TP PLAYER
+    -- TP PLAYER TITLE
     local tpTitle = Instance.new("TextLabel")
     tpTitle.Text = "Oyuncuya Işınlan"
     tpTitle.Font = Enum.Font.GothamBold
@@ -460,8 +406,6 @@ local function makeMenu()
                         if part:IsA("BasePart") then
                             part.CanCollide = false
                             part.Massless = true
-                            -- Head da dahil. PlatformStand bir antiye girerse disable et:
-                            if part.Name == "Head" then part.CanCollide = false end
                         end
                     end
                     local hum = plr.Character:FindFirstChildWhichIsA("Humanoid")
@@ -545,14 +489,13 @@ local function makeMenu()
     end)
 
     -- SPINBOT: Her zaman çalıştır (yürüme/koşu/fly dahil)
-    local spinConn, lastTick = nil, 0
+    local spinConn
     local function setSpinbot()
         if spinConn then spinConn:Disconnect() end
         if enabledHacks.Spinbot then
-            spinConn = runS.Stepped:Connect(function(dt)
+            spinConn = runS.Stepped:Connect(function()
                 if plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") then
                     local hrp = plr.Character.HumanoidRootPart
-                    -- Koşma, yürüme, havada, fly, noclip her pozisyon için aktif olarak sürekli döner!
                     hrp.CFrame = hrp.CFrame * CFrame.Angles(0, math.rad(20), 0)
                 end
             end)
@@ -588,4 +531,13 @@ local function makeMenu()
     setGodmode(enabledHacks.Godmode)
 end
 
+-- Menü açmak için F4 tuşu:
+uis.InputBegan:Connect(function(input, gpe)
+    if gpe then return end
+    if input.KeyCode == Enum.KeyCode.F4 then
+        makeMenu()
+    end
+end)
+
+-- İlk başta da menüyü aç
 makeMenu()
