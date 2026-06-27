@@ -7,7 +7,6 @@ cbtn.MouseButton1Click:Connect(function()sg:Destroy()end)
 local left=Instance.new("Frame",mf)left.Size=UDim2.new(0,170,1,-55)left.Position=UDim2.new(0,0,0,55)left.BackgroundColor3=Color3.fromRGB(23,29,44)left.BorderSizePixel=0 local lcr=Instance.new("UICorner",left)lcr.CornerRadius=UDim.new(0,13)
 local right=Instance.new("Frame",mf)right.Size=UDim2.new(1,-170,1,-55)right.Position=UDim2.new(0,170,0,55)right.BackgroundTransparency=1
 local layout=Instance.new("UIListLayout",left)layout.SortOrder=Enum.SortOrder.LayoutOrder layout.Padding=UDim.new(0,12)layout.HorizontalAlignment=Enum.HorizontalAlignment.Center layout.VerticalAlignment=Enum.VerticalAlignment.Top
-left.ClipsDescendants=true right.ClipsDescendants=false
 local sp=Instance.new("Frame",left)sp.Size=UDim2.new(1,0,0,14)sp.BackgroundTransparency=1
 local function mkbtn(txt,icol,ht)
     local b=Instance.new("TextButton")b.Parent=left
@@ -28,39 +27,49 @@ local dlist=Instance.new("Frame",right)dlist.Size=UDim2.new(1,0,0,238)dlist.Posi
 local dcr=Instance.new("UICorner",dlist)dcr.CornerRadius=UDim.new(0,11)
 local lst=Instance.new("ScrollingFrame",dlist)lst.Size=UDim2.new(1,-3,1,0)lst.Position=UDim2.new(0,0,0,0)lst.CanvasSize=UDim2.new(0,0,0,0)lst.ScrollBarThickness=6 lst.BackgroundTransparency=1 lst.AutomaticCanvasSize=Enum.AutomaticSize.Y lst.BorderSizePixel=0
 local layout2=Instance.new("UIListLayout",lst)layout2.SortOrder=Enum.SortOrder.LayoutOrder layout2.Padding=UDim.new(0,8)
-lst.ChildAdded:Connect(function()lst.CanvasSize=UDim2.new(0,0,0,lst.UIListLayout.AbsoluteContentSize.Y)end)
-lst.ChildRemoved:Connect(function()lst.CanvasSize=UDim2.new(0,0,0,lst.UIListLayout.AbsoluteContentSize.Y)end)
 local tplbl=Instance.new("TextLabel",right)tplbl.Size=UDim2.new(1,0,0,24)tplbl.Position=UDim2.new(0,0,0,280)tplbl.BackgroundTransparency=1 tplbl.Font=Enum.Font.Gotham tplbl.TextScaled=true tplbl.TextColor3=Color3.fromRGB(255,223,57)tplbl.Text="Seçili: Yok"
 local tpb=Instance.new("TextButton",right)tpb.Size=UDim2.new(0.7,0,0,38)tpb.Position=UDim2.new(0.15,0,0,314)tpb.BackgroundColor3=Color3.fromRGB(49,82,255)
 tpb.Text="SEÇİLENİ TP AT" tpb.TextColor3=Color3.fromRGB(255,255,255)tpb.Font=Enum.Font.GothamBold tpb.TextScaled=true local tpcr=Instance.new("UICorner",tpb)tpcr.CornerRadius=UDim.new(0,11)
 local pl=game.Players.LocalPlayer
 local tplsel=nil
+
 local function mklist()
     for _,v in ipairs(lst:GetChildren())do if v:IsA("TextButton")then v:Destroy()end end
     tplsel=nil tplbl.Text="Seçili: Yok"
-    local ps={}
+    local function addPlayers(ps)
+        local added = {}
+        for _,v in ipairs(ps)do
+            if v and v:IsA("Player") and v ~= pl and not added[v.Name] then
+                added[v.Name]=true
+                local li=Instance.new("TextButton",lst)li.Size=UDim2.new(1,0,0,30)
+                li.BackgroundColor3=Color3.fromRGB(64,113,189)
+                li.Text=v.Name li.Font=Enum.Font.Gotham li.TextColor3=Color3.new(1,1,1)li.TextScaled=true li.AutoButtonColor=true
+                local lco=Instance.new("UICorner",li)lco.CornerRadius=UDim.new(0,8)
+                li.MouseButton1Click:Connect(function()
+                    tplsel=v
+                    for _,b in pairs(lst:GetChildren())do if b:IsA("TextButton")then b.BackgroundColor3=Color3.fromRGB(64,113,189)end end
+                    li.BackgroundColor3=Color3.fromRGB(255,195,85)
+                    tplbl.Text="Seçili: "..v.Name
+                end)
+            end
+        end
+    end
+    -- Sunucudaki tüm adamları göster, explorer triggers etc. fail olmasın diye de kararlı döngü
+    local allPlayers = {}
     for _,v in pairs(game.Players:GetPlayers())do
-        if v~=pl then table.insert(ps,v)end
+        table.insert(allPlayers, v)
     end
-    table.sort(ps,function(a,b)return a.Name:lower()<b.Name:lower()end)
-    for _,v in ipairs(ps)do
-        local li=Instance.new("TextButton",lst)li.Size=UDim2.new(1,0,0,30)
-        li.BackgroundColor3=Color3.fromRGB(64,113,189)
-        li.Text=v.Name li.Font=Enum.Font.Gotham li.TextColor3=Color3.new(1,1,1)li.TextScaled=true li.AutoButtonColor=true
-        local lco=Instance.new("UICorner",li)lco.CornerRadius=UDim.new(0,8)
-        li.MouseButton1Click:Connect(function()
-            tplsel=v
-            for _,b in pairs(lst:GetChildren())do if b:IsA("TextButton")then b.BackgroundColor3=Color3.fromRGB(64,113,189)end end
-            li.BackgroundColor3=Color3.fromRGB(255,195,85)
-            tplbl.Text="Seçili: "..v.Name
-        end)
-    end
+    table.sort(allPlayers, function(a,b)return tostring(a.Name):lower()<tostring(b.Name):lower()end)
+    addPlayers(allPlayers)
 end
 mklist()
 game.Players.PlayerAdded:Connect(function()mklist()end)
 game.Players.PlayerRemoving:Connect(function()mklist()end)
 game.Players.PlayerRemoving:Connect(function(rem)
     if tplsel==rem then tplsel=nil tplbl.Text="Seçili: Yok" end
+end)
+lst:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
+    lst.CanvasSize = UDim2.new(0,0,0,lst.UIListLayout and lst.UIListLayout.AbsoluteContentSize.Y or 0)
 end)
 local aimbotOn=false local abConn
 function closest()
@@ -112,10 +121,10 @@ function enableFly()
     if flyConn then flyConn:Disconnect()end flyOn=true
     local ch=pl.Character if not ch or not ch:FindFirstChild("HumanoidRootPart")then return end
     local hrp=ch.HumanoidRootPart
-    local bv=Instance.new("BodyVelocity",hrp)bv.MaxForce=Vector3.new(1e5,1e5,1e5)
+    local bv=hrp:FindFirstChildOfClass("BodyVelocity") or Instance.new("BodyVelocity",hrp)bv.MaxForce=Vector3.new(1e5,1e5,1e5)
     local uis=game:GetService("UserInputService")
     flyConn=game:GetService("RunService").Heartbeat:Connect(function()
-        if not flyOn or not ch:FindFirstChild("HumanoidRootPart")then bv:Destroy()flyConn:Disconnect()return end
+        if not flyOn or not ch:FindFirstChild("HumanoidRootPart")then if bv and bv.Parent then bv:Destroy()end flyConn:Disconnect()return end
         local f=Vector3.new()
         if uis:IsKeyDown(Enum.KeyCode.W)then f=f+workspace.CurrentCamera.CFrame.LookVector end
         if uis:IsKeyDown(Enum.KeyCode.S)then f=f-workspace.CurrentCamera.CFrame.LookVector end
@@ -135,11 +144,9 @@ function enableNoclip()
     ncOn=true
     if ncConn then ncConn:Disconnect()end
     ncConn=game:GetService("RunService").Stepped:Connect(function()
-        if ncOn then
-            local c=pl.Character;if c then
-                for _,p in pairs(c:GetDescendants())do
-                    if p:IsA("BasePart")then p.CanCollide=false p.Anchored=false end
-                end
+        if ncOn and pl.Character then
+            for _,p in pairs(pl.Character:GetDescendants())do
+                if p:IsA("BasePart")then p.CanCollide=false end
             end
         end
     end)
