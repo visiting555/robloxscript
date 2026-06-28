@@ -239,108 +239,137 @@ addSlider(tabAimbot,18,72,150,"FOV Açısı (50-150)",states.fov,50,150,1,functi
     Camera.FieldOfView=val
 end)
 
+
+-- ESP (Advanced, always same size, bypass & perfect rendering)
+local function clampVector2(vec, minVec, maxVec)
+    return Vector2.new(math.clamp(vec.X, minVec.X, maxVec.X), math.clamp(vec.Y, minVec.Y, maxVec.Y))
+end
+
 local espObjects = {}
+local HEAD_CIRCLE_RADIUS = 18
+local BOX_W, BOX_H = 60, 120 -- on-screen pixel size, fixed regardless of distance
+
 local function makeESP(player)
     if player == LocalPlayer or espObjects[player] then return end
-    espObjects[player] = {drawings={}}
-    RunService.RenderStepped:Connect(function()
-        if not states.esp or not player.Character or not Camera then return end
-        local head = player.Character:FindFirstChild("Head")
-        local hrp = player.Character:FindFirstChild("HumanoidRootPart")
-        local torso = player.Character:FindFirstChild("UpperTorso") or player.Character:FindFirstChild("Torso")
-        if not head or not hrp then return end
-        if not espObjects[player].box then
-            local box = Drawing.new("Square")
-            box.Color = Color3.new(0,0,0)
-            box.Thickness = 2
-            box.Filled = false
-            box.Transparency = 1
-            espObjects[player].box = box
+    local obj = {drawings = {}}
+    local function getCharacterData()
+        local char = player.Character
+        if not char then return nil end
+        local head = char:FindFirstChild("Head")
+        local hrp = char:FindFirstChild("HumanoidRootPart")
+        return head, hrp
+    end
+    obj.run = RunService.RenderStepped:Connect(function()
+        if not states.esp or not player or not player.Character or not Camera then return end
+        local head, hrp = getCharacterData()
+        if not head or not hrp then
+            if obj.drawings.box then obj.drawings.box.Visible = false end
+            if obj.drawings.circle then obj.drawings.circle.Visible = false end
+            if obj.drawings.lines then for _,l in ipairs(obj.drawings.lines) do l.Visible = false end end
+            return
         end
-        local minVec,maxVec = Vector2.new(math.huge,math.huge),Vector2.new(-math.huge,-math.huge)
-        for _,partName in ipairs({"Head", "Torso", "UpperTorso", "LowerTorso", "LeftUpperArm", "LeftLowerArm", "LeftHand", 
-            "RightUpperArm","RightLowerArm","RightHand","LeftUpperLeg","LeftLowerLeg","LeftFoot","RightUpperLeg","RightLowerLeg","RightFoot"}) do
-            local part = player.Character:FindFirstChild(partName)
-            if part then
-                local pos,onScreen = Camera:WorldToViewportPoint(part.Position)
-                if onScreen then
-                    minVec = Vector2.new(math.min(minVec.x, pos.X), math.min(minVec.y, pos.Y))
-                    maxVec = Vector2.new(math.max(maxVec.x, pos.X), math.max(maxVec.y, pos.Y))
-                end
-            end
-        end
-        local box = espObjects[player].box
-        box.Visible = states.esp
-        box.Position = minVec
-        box.Size = maxVec-minVec
-
-        if not espObjects[player].circle and head then
-            local circ = Drawing.new("Circle")
-            circ.Color = Color3.fromRGB(250,0,0)
-            circ.Thickness = 2
-            circ.NumSides = 18
-            circ.Radius = 13
-            circ.Filled = false
-            circ.Transparency = 1
-            espObjects[player].circle = circ
-        end
-        if espObjects[player].circle and head then
-            local pos,onScreen = Camera:WorldToViewportPoint(head.Position)
-            if onScreen then
-                espObjects[player].circle.Position = Vector2.new(pos.X,pos.Y)
-                espObjects[player].circle.Visible = states.esp
-            else
-                espObjects[player].circle.Visible = false
-            end
-            espObjects[player].circle.Radius = 13
+        local headScreen, onScreen = Camera:WorldToViewportPoint(head.Position)
+        if not onScreen then
+            if obj.drawings.box then obj.drawings.box.Visible = false end
+            if obj.drawings.circle then obj.drawings.circle.Visible = false end
+            if obj.drawings.lines then for _,l in ipairs(obj.drawings.lines) do l.Visible = false end end
+            return
         end
 
-        local skeletonParts = {
-            {"Head","Torso"},
-            {"Torso","LeftUpperArm"},{"LeftUpperArm","LeftLowerArm"},{"LeftLowerArm","LeftHand"},
-            {"Torso","RightUpperArm"},{"RightUpperArm","RightLowerArm"},{"RightLowerArm","RightHand"},
-            {"Torso","LeftUpperLeg"},{"LeftUpperLeg","LeftLowerLeg"},{"LeftLowerLeg","LeftFoot"},
-            {"Torso","RightUpperLeg"},{"RightUpperLeg","RightLowerLeg"},{"RightLowerLeg","RightFoot"}
+        -- Calculate 2D center for box/circle (fixed size)
+        local drawPos = Vector2.new(headScreen.X, headScreen.Y)
+        if not obj.drawings.box then
+            obj.drawings.box = Drawing.new("Square")
+            obj.drawings.box.Color = Color3.new(0,0,0)
+            obj.drawings.box.Thickness = 2
+            obj.drawings.box.Filled = false
+            obj.drawings.box.Transparency = 1
+        end
+        obj.drawings.box.Size = Vector2.new(BOX_W, BOX_H)
+        obj.drawings.box.Position = drawPos - Vector2.new(BOX_W/2, BOX_H/3)
+        obj.drawings.box.Visible = states.esp
+
+        if not obj.drawings.circle then
+            obj.drawings.circle = Drawing.new("Circle")
+            obj.drawings.circle.Color = Color3.fromRGB(220,78,27)
+            obj.drawings.circle.Thickness = 2
+            obj.drawings.circle.NumSides = 18
+            obj.drawings.circle.Radius = HEAD_CIRCLE_RADIUS
+            obj.drawings.circle.Filled = false
+            obj.drawings.circle.Transparency = 1
+        end
+        obj.drawings.circle.Position = drawPos
+        obj.drawings.circle.Radius = HEAD_CIRCLE_RADIUS
+        obj.drawings.circle.Visible = states.esp
+
+        -- Skeleton fixed size (draw main lines, head -> chest, chest->limbs)
+        local skeletonPoints = {
+            head = head,
+            neck = head,
+            torso = player.Character:FindFirstChild("UpperTorso") or player.Character:FindFirstChild("Torso") or hrp,
+            larmup = player.Character:FindFirstChild("LeftUpperArm"),
+            larmdn = player.Character:FindFirstChild("LeftLowerArm"),
+            lhand = player.Character:FindFirstChild("LeftHand"),
+            rarmup = player.Character:FindFirstChild("RightUpperArm"),
+            rarmdn = player.Character:FindFirstChild("RightLowerArm"),
+            rhand = player.Character:FindFirstChild("RightHand"),
+            llegup = player.Character:FindFirstChild("LeftUpperLeg"),
+            llegdn = player.Character:FindFirstChild("LeftLowerLeg"),
+            lfoot = player.Character:FindFirstChild("LeftFoot"),
+            rlegup = player.Character:FindFirstChild("RightUpperLeg"),
+            rlegdn = player.Character:FindFirstChild("RightLowerLeg"),
+            rfoot = player.Character:FindFirstChild("RightFoot"),
         }
-        if not espObjects[player].lines then
-            espObjects[player].lines = {}
-            for i=1,#skeletonParts do
+        -- 8 major bones
+        local lineset = {
+            {"head","torso"},
+            {"torso","larmup"},{"larmup","larmdn"},{"larmdn","lhand"},
+            {"torso","rarmup"},{"rarmup","rarmdn"},{"rarmdn","rhand"},
+            {"torso","llegup"},{"llegup","llegdn"},{"llegdn","lfoot"},
+            {"torso","rlegup"},{"rlegup","rlegdn"},{"rlegdn","rfoot"}
+        }
+        if not obj.drawings.lines then
+            obj.drawings.lines = {}
+            for i=1,#lineset do
                 local line = Drawing.new("Line")
                 line.Color = Color3.new(0,0,0)
                 line.Thickness = 2
                 line.Transparency = 1
-                table.insert(espObjects[player].lines, line)
+                obj.drawings.lines[i] = line
             end
         end
-        for i,conn in ipairs(skeletonParts) do
-            local a = player.Character:FindFirstChild(conn[1])
-            local b = player.Character:FindFirstChild(conn[2])
-            if espObjects[player].lines[i] then
+        for i,conn in ipairs(lineset) do
+            local a, b = skeletonPoints[conn[1]], skeletonPoints[conn[2]]
+            if obj.drawings.lines[i] then
                 if a and b then
-                    local posa,onA = Camera:WorldToViewportPoint(a.Position)
-                    local posb,onB = Camera:WorldToViewportPoint(b.Position)
+                    local ascr,onA = Camera:WorldToViewportPoint(a.Position)
+                    local bscr,onB = Camera:WorldToViewportPoint(b.Position)
+                    -- only draw lines if both visible
                     if onA and onB then
-                        espObjects[player].lines[i].Visible = states.esp
-                        espObjects[player].lines[i].From = Vector2.new(posa.X,posa.Y)
-                        espObjects[player].lines[i].To = Vector2.new(posb.X,posb.Y)
+                        local apos = Vector2.new(ascr.X, ascr.Y)
+                        local bpos = Vector2.new(bscr.X, bscr.Y)
+                        obj.drawings.lines[i].From = apos
+                        obj.drawings.lines[i].To = bpos
+                        obj.drawings.lines[i].Visible = states.esp
                     else
-                        espObjects[player].lines[i].Visible = false
+                        obj.drawings.lines[i].Visible = false
                     end
                 else
-                    espObjects[player].lines[i].Visible = false
+                    obj.drawings.lines[i].Visible = false
                 end
             end
         end
     end)
+    espObjects[player] = obj
 end
 
 local function removeESP(player)
-    if espObjects[player] then
-        if espObjects[player].box then espObjects[player].box:Remove() end
-        if espObjects[player].circle then espObjects[player].circle:Remove() end
-        if espObjects[player].lines then
-            for _,l in ipairs(espObjects[player].lines) do l:Remove() end
-        end
+    local obj = espObjects[player]
+    if obj then
+        if obj.run then obj.run:Disconnect() end
+        if obj.drawings.box then pcall(function() obj.drawings.box:Remove() end) end
+        if obj.drawings.circle then pcall(function() obj.drawings.circle:Remove() end) end
+        if obj.drawings.lines then for _,l in ipairs(obj.drawings.lines) do pcall(function() l:Remove() end) end end
         espObjects[player] = nil
     end
 end
@@ -349,21 +378,17 @@ addBtn(tabVisual,18,18,240,30,function() return "ESP ["..(states.esp and "AÇIK"
     states.esp = not states.esp
     if states.esp then
         for _,plr in ipairs(Players:GetPlayers()) do
-            if plr ~= LocalPlayer then
-                makeESP(plr)
-            end
+            if plr ~= LocalPlayer then makeESP(plr) end
         end
     else
-        for _,plr in ipairs(Players:GetPlayers()) do
-            if plr ~= LocalPlayer then
-                removeESP(plr)
-            end
-        end
+        for _,plr in pairs(espObjects) do removeESP(plr) end
     end
 end)
 
 Players.PlayerAdded:Connect(function(plr)
-    if states.esp then makeESP(plr) end
+    if states.esp and plr ~= LocalPlayer then
+        makeESP(plr)
+    end
 end)
 Players.PlayerRemoving:Connect(function(plr)
     removeESP(plr)
