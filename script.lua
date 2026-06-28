@@ -239,13 +239,12 @@ addSlider(tabAimbot,18,72,150,"FOV Açısı (50-150)",states.fov,50,150,1,functi
     Camera.FieldOfView=val
 end)
 
--- ESP (box and head: fixed, correct size and non-freezing, bacon proportions, box absolutely never changes by distance)
 local espObjects = {}
-local BACON_BOX_W, BACON_BOX_H = 38, 67 -- fixed to match full bacon; 2.5 studs width x 4.5 studs height -> scale
-local HEAD_RADIUS = 10 -- small and fixed
+local BACON_BOX_W, BACON_BOX_H = 38, 67
+local HEAD_RADIUS = 10
 
-local function getScreenFixed(x, y, z)
-    local v = Camera:WorldToViewportPoint(Vector3.new(x, y, z))
+local function getScreenFixed(v3)
+    local v = Camera:WorldToViewportPoint(v3)
     return Vector2.new(v.X, v.Y), v.Z>0 and v
 end
 
@@ -259,25 +258,28 @@ local function makeESP(player)
         local hrp = char:FindFirstChild("HumanoidRootPart")
         local lfoot = char:FindFirstChild("LeftFoot") or char:FindFirstChild("Left Leg")
         local rfoot = char:FindFirstChild("RightFoot") or char:FindFirstChild("Right Leg")
-        return head, hrp, lfoot, rfoot, char
+        local upper = char:FindFirstChild("UpperTorso") or char:FindFirstChild("Torso")
+        local lower = char:FindFirstChild("LowerTorso")
+        local lhand = char:FindFirstChild("LeftHand") or char:FindFirstChild("Left Arm")
+        local rhand = char:FindFirstChild("RightHand") or char:FindFirstChild("Right Arm")
+        return {
+            head=head, hrp=hrp, lfoot=lfoot, rfoot=rfoot, char=char,
+            upper=upper, lower=lower, lhand=lhand, rhand=rhand,
+        }
     end
     local stopped = false
     obj.run = RunService.RenderStepped:Connect(function()
-        if stopped or not states.esp or not player or not player.Character or not Camera then
+        local cdata = getCharacterData()
+        if stopped or not states.esp or not player or not Camera or not cdata or not cdata.char then
             for _, d in pairs(obj.drawings) do if d.Remove then pcall(function() d:Remove() end) end end
             return
         end
-        local head, hrp, lfoot, rfoot, char = getCharacterData()
+        local head, hrp, lfoot, rfoot, upper, lower, lhand, rhand = cdata.head, cdata.hrp, cdata.lfoot, cdata.rfoot, cdata.upper, cdata.lower, cdata.lhand, cdata.rhand
         if not head or not hrp then
             for _, d in pairs(obj.drawings) do if d.Visible~=nil then d.Visible = false end end
             return
         end
-        local hrpPos = hrp.Position
-        local headPos = head.Position
-        local fixedBoxHeight = 5   -- studs; standard bacon
-        local fixedBoxWidth = 2.2 -- studs (width shoulder-shoulder)
-        -- Get screen coords, not scaled by Z
-        local boxCenter, onScreen = getScreenFixed(hrpPos.X, hrpPos.Y+0.7, hrpPos.Z)
+        local boxCenter, onScreen = getScreenFixed(hrp.Position + Vector3.new(0,0.7,0))
         if not onScreen then
             for _, d in pairs(obj.drawings) do if d.Visible~=nil then d.Visible = false end end
             return
@@ -289,7 +291,6 @@ local function makeESP(player)
             obj.drawings.box.Filled = false
             obj.drawings.box.Transparency = 1
         end
-        -- Box is always a fixed screen size (not world size), so no distance division
         obj.drawings.box.Size = Vector2.new(BACON_BOX_W, BACON_BOX_H)
         obj.drawings.box.Position = Vector2.new(boxCenter.X - BACON_BOX_W/2, boxCenter.Y - BACON_BOX_H/2)
         obj.drawings.box.Visible = states.esp
@@ -302,7 +303,7 @@ local function makeESP(player)
             obj.drawings.circle.Filled = false
             obj.drawings.circle.Transparency = 1
         end
-        local headScreen, headV = getScreenFixed(headPos.X, headPos.Y, headPos.Z)
+        local headScreen, headV = getScreenFixed(head.Position)
         obj.drawings.circle.Position = Vector2.new(headScreen.X, headScreen.Y)
         obj.drawings.circle.Radius = HEAD_RADIUS
         obj.drawings.circle.Visible = states.esp
@@ -312,38 +313,59 @@ local function makeESP(player)
                 body = Drawing.new("Line"),
                 leftLeg = Drawing.new("Line"),
                 rightLeg = Drawing.new("Line"),
+                leftArm = Drawing.new("Line"),
+                rightArm = Drawing.new("Line"),
+                spine = Drawing.new("Line"),
             }
-            obj.drawings.skel.body.Color = Color3.fromRGB(200,200,200)
-            obj.drawings.skel.body.Thickness = 2
-            obj.drawings.skel.body.Transparency=1
-            obj.drawings.skel.leftLeg.Color = Color3.fromRGB(200,200,200)
-            obj.drawings.skel.leftLeg.Thickness = 2
-            obj.drawings.skel.leftLeg.Transparency=1
-            obj.drawings.skel.rightLeg.Color = Color3.fromRGB(200,200,200)
-            obj.drawings.skel.rightLeg.Thickness = 2
-            obj.drawings.skel.rightLeg.Transparency=1
+            local color = Color3.fromRGB(200,200,200)
+            for _,line in pairs(obj.drawings.skel) do
+                line.Color = color
+                line.Thickness = 2
+                line.Transparency=1
+            end
         end
 
-        -- Body skeleton
+        local function partScreen(part)
+            if part then return getScreenFixed(part.Position) else return false end
+        end
+
         local rootScreen = boxCenter
-        local headScreen2 = headScreen
-        obj.drawings.skel.body.From = Vector2.new(headScreen2.X, headScreen2.Y+HEAD_RADIUS)
-        obj.drawings.skel.body.To = Vector2.new(rootScreen.X, rootScreen.Y)
+        local headScreen2, _ = getScreenFixed(head.Position)
+        local upperScreen = upper and select(1, getScreenFixed(upper.Position)) or rootScreen
+        local lowerScreen = lower and select(1, getScreenFixed(lower.Position)) or rootScreen
+        local lfootScreen = lfoot and select(1, getScreenFixed(lfoot.Position)) or rootScreen
+        local rfootScreen = rfoot and select(1, getScreenFixed(rfoot.Position)) or rootScreen
+        local lhandScreen = lhand and select(1, getScreenFixed(lhand.Position)) or rootScreen
+        local rhandScreen = rhand and select(1, getScreenFixed(rhand.Position)) or rootScreen
+
+        -- Body line (head to upperTorso/Torso/rootpart)
+        obj.drawings.skel.body.From = Vector2.new(headScreen2.X, headScreen2.Y + HEAD_RADIUS)
+        obj.drawings.skel.body.To = upperScreen
         obj.drawings.skel.body.Visible = states.esp
 
-        if lfoot and rfoot then
-            local lfootScreen = getScreenFixed(lfoot.Position.X, lfoot.Position.Y, lfoot.Position.Z)
-            local rfootScreen = getScreenFixed(rfoot.Position.X, rfoot.Position.Y, rfoot.Position.Z)
-            obj.drawings.skel.leftLeg.From = Vector2.new(rootScreen.X, rootScreen.Y)
-            obj.drawings.skel.leftLeg.To = lfootScreen
-            obj.drawings.skel.leftLeg.Visible = states.esp
-            obj.drawings.skel.rightLeg.From = Vector2.new(rootScreen.X, rootScreen.Y)
-            obj.drawings.skel.rightLeg.To = rfootScreen
-            obj.drawings.skel.rightLeg.Visible = states.esp
-        else
-            obj.drawings.skel.leftLeg.Visible = false
-            obj.drawings.skel.rightLeg.Visible = false
-        end
+        -- Spine line (upper->lower/root)
+        obj.drawings.skel.spine.From = upperScreen
+        obj.drawings.skel.spine.To = lowerScreen
+        obj.drawings.skel.spine.Visible = states.esp
+
+        -- LowerTorso -> root
+        -- Legs
+        obj.drawings.skel.leftLeg.From = lowerScreen
+        obj.drawings.skel.leftLeg.To = lfootScreen
+        obj.drawings.skel.leftLeg.Visible = states.esp
+
+        obj.drawings.skel.rightLeg.From = lowerScreen
+        obj.drawings.skel.rightLeg.To = rfootScreen
+        obj.drawings.skel.rightLeg.Visible = states.esp
+
+        -- Arms (shoulders to hands)
+        obj.drawings.skel.leftArm.From = upperScreen
+        obj.drawings.skel.leftArm.To = lhandScreen
+        obj.drawings.skel.leftArm.Visible = states.esp
+
+        obj.drawings.skel.rightArm.From = upperScreen
+        obj.drawings.skel.rightArm.To = rhandScreen
+        obj.drawings.skel.rightArm.Visible = states.esp
     end)
     espObjects[player] = obj
 end
