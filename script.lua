@@ -1,10 +1,3 @@
---[[
-GENEL (HER OYUNDA ÇALIŞAN) GELİŞMİŞ HİLE MENÜSÜ
-Arka plan beyaz, seçenekler/isimler siyah. Tüm fonksiyonlar dolu ve çalışır, menü F ile aç/kapanır. 
-Aimbot (çeşit seçimi), ESP (kutu, kafa yuvarlak, vücut/bacak iskeleti), Fly (tam kontrollü), Noclip, Invisible, GodMode, SilentAim, Araba Fırlatma, 
-Oyuncu işlemleri (yak, patlat, git, çek), FOV, SpinBot. Anticheat bypass için low-level hooklar (özellikle ESP, aimbot ve silent aimde) kullanılmıştır.
-]]
-
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local Mouse = LocalPlayer:GetMouse()
@@ -16,7 +9,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Debris = game:GetService("Debris")
 
 local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "UniversalHackMenu"
+ScreenGui.Name = "UniversalHackMenuV2"
 pcall(function() ScreenGui.Parent = game.CoreGui end)
 if not ScreenGui.Parent then ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui") end
 
@@ -38,7 +31,7 @@ Title.Position = UDim2.new(0, 0, 0, 0)
 Title.Text = "UNIVERSAL HİLE MENÜSÜ (F ile Aç/Kapat)"
 Title.Font = Enum.Font.GothamBlack
 Title.TextSize = 20
-Title.TextColor3 = Color3.fromRGB(32,32,32)
+Title.TextColor3 = Color3.fromRGB(255,255,255)
 Title.BackgroundTransparency = 1
 Title.Parent = MainFrame
 
@@ -62,7 +55,7 @@ local function createTab(tabname)
     tabBtn.TextSize = 16
     tabBtn.Text = tabname
     tabBtn.AutoButtonColor = true
-    tabBtn.TextColor3 = Color3.fromRGB(243,243,243)
+    tabBtn.TextColor3 = Color3.fromRGB(255,255,255)
     tabBtn.BorderSizePixel = 0
     local cFrame = Instance.new("Frame", contentFrame)
     cFrame.Size = UDim2.new(1, 0, 1, 0)
@@ -119,11 +112,10 @@ local states = {
 local selectedTarget = nil
 local flyConn, spinConn, noclipConn, invisibleConn, godConn = nil, nil, nil, nil, nil
 
--- Butonlar ve label fonksiyonları
-local function blackBtn()
+local function whiteBtn()
     local b = Instance.new("TextButton")
-    b.BackgroundColor3 = Color3.fromRGB(19,19,19)
-    b.TextColor3 = Color3.fromRGB(27,27,27)
+    b.BackgroundColor3 = Color3.fromRGB(27,27,27)
+    b.TextColor3 = Color3.fromRGB(255,255,255)
     b.Font = Enum.Font.GothamBold
     b.BorderSizePixel = 0
     b.TextSize=17
@@ -131,7 +123,7 @@ local function blackBtn()
 end
 
 local function addBtn(tab,x,y,w,h,txtOrCB,cb)
-    local b = blackBtn()
+    local b = whiteBtn()
     b.Size = UDim2.new(0,w,0,h)
     b.Position = UDim2.new(0,x,0,y)
     b.Text = type(txtOrCB)=='function' and txtOrCB() or txtOrCB
@@ -154,7 +146,7 @@ local function addLabel(tab,x,y,w,txt)
     l.TextXAlignment = Enum.TextXAlignment.Left
     l.Font = Enum.Font.GothamBold
     l.TextSize = 17
-    l.TextColor3 = Color3.fromRGB(27,27,27)
+    l.TextColor3 = Color3.fromRGB(255,255,255)
     l.Parent = tab
 end
 
@@ -164,9 +156,9 @@ local function addSlider(tab, x, y, w, labelName, def, minv, maxv, step, changer
     s.Size = UDim2.new(0, w, 0, 26)
     s.Position = UDim2.new(0, x, 0, y+14)
     s.Text = tostring(def)
-    s.BackgroundColor3 = Color3.fromRGB(19,19,19)
+    s.BackgroundColor3 = Color3.fromRGB(27,27,27)
     s.Font = Enum.Font.GothamBold
-    s.TextColor3 = Color3.fromRGB(27,27,27)
+    s.TextColor3 = Color3.fromRGB(255,255,255)
     s.TextSize=17
     s.ClearTextOnFocus=false
     s.BorderSizePixel=0
@@ -183,12 +175,11 @@ local function addSlider(tab, x, y, w, labelName, def, minv, maxv, step, changer
     return s
 end
 
--- Oyuncu Dropdown
 local function updateDropdown(dropdown)
     dropdown.Text = "Seçili Hedef: " .. (selectedTarget and selectedTarget.Name or "Yok")
 end
 local function makePlayerDropdown(tab, x, y)
-    local ddBtn = blackBtn()
+    local ddBtn = whiteBtn()
     ddBtn.Size = UDim2.new(0,220,0,32)
     ddBtn.Position = UDim2.new(0,x,0,y)
     updateDropdown(ddBtn)
@@ -209,7 +200,7 @@ local function makePlayerDropdown(tab, x, y)
         local list = Instance.new("UIListLayout", popup)
         list.SortOrder = Enum.SortOrder.LayoutOrder
         for _,plr in ipairs(playerList) do
-            local pBtn = blackBtn()
+            local pBtn = whiteBtn()
             pBtn.Size = UDim2.new(1,0,0,31)
             pBtn.Text = plr.Name
             pBtn.ZIndex = 204
@@ -235,7 +226,6 @@ local function makePlayerDropdown(tab, x, y)
 end
 local playerDropdown = makePlayerDropdown(tabPlayer,18,10)
 
--- Aimbot TAB
 addLabel(tabAimbot,18,8,230,"Aimbot Tipi")
 local aimTypes = {"Başa", "Vücuda", "En Yakın Parça"}
 addBtn(tabAimbot,18,32,160,28,function() return "Tip: "..aimTypes[states.aimbotType] end,
@@ -249,7 +239,6 @@ addSlider(tabAimbot,18,72,150,"FOV Açısı (50-150)",states.fov,50,150,1,functi
     Camera.FieldOfView=val
 end)
 
--- ESP Variables
 local espObjects = {}
 local function makeESP(player)
     if player == LocalPlayer or espObjects[player] then return end
@@ -260,7 +249,6 @@ local function makeESP(player)
         local hrp = player.Character:FindFirstChild("HumanoidRootPart")
         local torso = player.Character:FindFirstChild("UpperTorso") or player.Character:FindFirstChild("Torso")
         if not head or not hrp then return end
-        -- Box ESP
         if not espObjects[player].box then
             local box = Drawing.new("Square")
             box.Color = Color3.new(0,0,0)
@@ -286,18 +274,17 @@ local function makeESP(player)
         box.Position = minVec
         box.Size = maxVec-minVec
 
-        -- Head Circle
         if not espObjects[player].circle and head then
             local circ = Drawing.new("Circle")
             circ.Color = Color3.fromRGB(250,0,0)
             circ.Thickness = 2
             circ.NumSides = 18
-            circ.Radius = 20
+            circ.Radius = 13
             circ.Filled = false
             circ.Transparency = 1
             espObjects[player].circle = circ
         end
-        if espObjects[player].circle then
+        if espObjects[player].circle and head then
             local pos,onScreen = Camera:WorldToViewportPoint(head.Position)
             if onScreen then
                 espObjects[player].circle.Position = Vector2.new(pos.X,pos.Y)
@@ -305,9 +292,9 @@ local function makeESP(player)
             else
                 espObjects[player].circle.Visible = false
             end
+            espObjects[player].circle.Radius = 13
         end
 
-        -- Skeleton ESP
         local skeletonParts = {
             {"Head","Torso"},
             {"Torso","LeftUpperArm"},{"LeftUpperArm","LeftLowerArm"},{"LeftLowerArm","LeftHand"},
@@ -396,7 +383,6 @@ addBtn(tabVisual,270,18,220,30,function() return "SpinBot ["..(states.spinbot an
     end
 end)
 
--- Movement TAB
 addBtn(tabMovement,18,18,160,30,function() return "Fly ["..(states.fly and "AÇIK" or "KAPALI").."]" end,function()
     states.fly = not states.fly
     if states.fly and not flyConn then
@@ -491,7 +477,6 @@ addBtn(tabMovement,350,65,120,30,function() return "GodMode ["..(states.godmode 
     elseif godConn then godConn:Disconnect() godConn=nil end
 end)
 
--- Oyuncu TAB
 addLabel(tabPlayer,18,55,225,"Seçili oyuncuya işlem")
 addBtn(tabPlayer,19,80,155,30,"Yak (Yanarak Öldür)",function()
     if selectedTarget and selectedTarget.Character then
@@ -540,7 +525,6 @@ addBtn(tabPlayer,19,120,155,30,"Yanına Çek",function()
     end
 end)
 
--- ARABA FIRLATMA
 addLabel(tabFun,22,10,250,"Baktığın yöne araba fırlat (her basışta)")
 addBtn(tabFun,22,32,190,30,"FIRLAT!",function()
     local cf = Camera.CFrame * CFrame.new(0,0,-8)
@@ -577,7 +561,6 @@ addBtn(tabFun,240,32,120,30,function() return "Spin ["..(states.funSpin and "AÇ
     end
 end)
 
--- Diğer TAB
 addBtn(tabOther,18,24,180,32,"Anti-AFK",function()
     LocalPlayer.Idled:Connect(function()
         game:GetService("VirtualUser"):Button2Down(Vector2.new())
@@ -594,7 +577,6 @@ addBtn(tabOther,440,24,140,32,"FOV ?" ,function()
     Camera.FieldOfView = states.fov
 end)
 
--- Fonksiyonel, her oyun çalışan Aimbot + SilentAim + FOV Circle (gizli hook ile ve anticheat bypass ile)
 local function getClosestEnemyToCursor(fov)
     local closest, dist = nil, fov or states.fov
     for _,p in ipairs(Players:GetPlayers()) do
@@ -615,7 +597,6 @@ local function getClosestEnemyToCursor(fov)
     return closest
 end
 
--- FOV circle (görsel ekleme)
 if not _FOVCIRCLE then
     local circ = Drawing.new("Circle")
     circ.Color = Color3.fromRGB(20, 170, 255)
@@ -636,16 +617,16 @@ RunService.RenderStepped:Connect(function()
     if states.aimbot then
         local target = getClosestEnemyToCursor(states.fov)
         if target and target.Character then
-            if states.aimbotType==1 then -- Kafa
+            if states.aimbotType==1 then
                 Camera.CFrame = CFrame.new(Camera.CFrame.Position, target.Character.Head.Position)
-            elseif states.aimbotType==2 then -- Vücut
+            elseif states.aimbotType==2 then
                 local hum = target.Character:FindFirstChildOfClass("Humanoid")
                 if hum and hum.RootPart then 
                     Camera.CFrame = CFrame.new(Camera.CFrame.Position, hum.RootPart.Position)
                 else 
                     Camera.CFrame = CFrame.new(Camera.CFrame.Position, target.Character.Head.Position)
                 end
-            else -- En yakın parça
+            else
                 local points={}
                 for _,v in pairs(target.Character:GetDescendants()) do
                     if v:IsA("BasePart") and v.Transparency<0.96 then table.insert(points,v) end
@@ -658,7 +639,6 @@ RunService.RenderStepped:Connect(function()
         end
     end
 end)
--- Silent Aim (bypass ile)
 local _oldNC; _oldNC = hookmetamethod(game, "__namecall", function(self, ...)
     local ncm = typeof(getnamecallmethod)=="function" and getnamecallmethod() or ""
     if states.silentaim and ncm=="FindPartOnRayWithIgnoreList" then
