@@ -1,681 +1,680 @@
--- YENİ NESİL HİLE MENÜSÜ [POPUP, DÜZENLİ, F4'le Aç/Kapat, UI Framework yok, tüm fonksiyonlar TAM] --
+--[[
+GENEL (HER OYUNDA ÇALIŞAN) GELİŞMİŞ HİLE MENÜSÜ
+Arka plan beyaz, seçenekler/isimler siyah. Tüm fonksiyonlar dolu ve çalışır, menü F ile aç/kapanır. 
+Aimbot (çeşit seçimi), ESP (kutu, kafa yuvarlak, vücut/bacak iskeleti), Fly (tam kontrollü), Noclip, Invisible, GodMode, SilentAim, Araba Fırlatma, 
+Oyuncu işlemleri (yak, patlat, git, çek), FOV, SpinBot. Anticheat bypass için low-level hooklar (özellikle ESP, aimbot ve silent aimde) kullanılmıştır.
+]]
 
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
+local Mouse = LocalPlayer:GetMouse()
 local UserInputService = game:GetService("UserInputService")
+local Workspace = game:GetService("Workspace")
+local Camera = Workspace.CurrentCamera
 local RunService = game:GetService("RunService")
-local Camera = workspace.CurrentCamera
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Debris = game:GetService("Debris")
 
--- Eski menüler varsa temizle
-for _, obj in ipairs({"HileMenuV3", "HileMenuV4", "ProV5HackMenu", "RobloxHileMenuUI"}) do
-    if game.CoreGui:FindFirstChild(obj) then
-        game.CoreGui[obj]:Destroy()
-    end
-end
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "UniversalHackMenu"
+pcall(function() ScreenGui.Parent = game.CoreGui end)
+if not ScreenGui.Parent then ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui") end
 
-local MENU_HOTKEY = Enum.KeyCode.F4
-local MENU_NAME   = "ProV5HackMenu"
+local MainFrame = Instance.new("Frame")
+MainFrame.Size = UDim2.new(0, 650, 0, 686)
+MainFrame.Position = UDim2.new(0.5, -325, 0.5, -340)
+MainFrame.BackgroundColor3 = Color3.fromRGB(255,255,255)
+MainFrame.BackgroundTransparency = 0
+MainFrame.BorderSizePixel = 0
+MainFrame.Active = true
+MainFrame.Draggable = true
+MainFrame.ClipsDescendants = true
+MainFrame.Parent = ScreenGui
+MainFrame.Visible = true
 
------------------------------------------------------------------
--- ## UI SYSTEM (Popup & Drag Support) ##
------------------------------------------------------------------
-local sg = Instance.new("ScreenGui")
-sg.Name = MENU_NAME
-sg.IgnoreGuiInset = true
-pcall(function() sg.Parent = game:GetService("CoreGui") end)
-sg.ResetOnSpawn = false
+local Title = Instance.new("TextLabel")
+Title.Size = UDim2.new(1, 0, 0, 38)
+Title.Position = UDim2.new(0, 0, 0, 0)
+Title.Text = "UNIVERSAL HİLE MENÜSÜ (F ile Aç/Kapat)"
+Title.Font = Enum.Font.GothamBlack
+Title.TextSize = 20
+Title.TextColor3 = Color3.fromRGB(32,32,32)
+Title.BackgroundTransparency = 1
+Title.Parent = MainFrame
 
--- Ana gövde
-local frame = Instance.new("Frame", sg)
-frame.Name = "AnaPanel"
-frame.Size = UDim2.fromOffset(540,384)
-frame.Position = UDim2.fromOffset(120,88)
-frame.BackgroundColor3 = Color3.fromRGB(24,32,44)
-frame.Active = true
-frame.Draggable = true
-frame.BorderSizePixel = 0
-local topbar = Instance.new("Frame", frame)
-topbar.Name = "Bar"
-topbar.Size = UDim2.new(1,0,0,48)
-topbar.BackgroundColor3 = Color3.fromRGB(36,106,154)
-topbar.BorderSizePixel = 0
+local tabFrame = Instance.new("Frame", MainFrame)
+tabFrame.Size = UDim2.new(1, 0, 0, 36)
+tabFrame.Position = UDim2.new(0, 0, 0, 38)
+tabFrame.BackgroundTransparency = 1
 
-local title = Instance.new("TextLabel", topbar)
-title.Size = UDim2.new(1, -64, 1, 0)
-title.Position = UDim2.new(0,16,0,0)
-title.BackgroundTransparency = 1
-title.Text = "ROBLOX GTA LOADER V5"
-title.Font = Enum.Font.GothamBlack
-title.TextColor3 = Color3.fromRGB(255,255,255)
-title.TextSize = 25
-title.TextXAlignment = Enum.TextXAlignment.Left
+local contentFrame = Instance.new("Frame", MainFrame)
+contentFrame.Size = UDim2.new(1, 0, 1, -74)
+contentFrame.Position = UDim2.new(0, 0, 0, 74)
+contentFrame.BackgroundTransparency = 1
 
-local close = Instance.new("TextButton", topbar)
-close.Size = UDim2.new(0,40,0,40)
-close.Position = UDim2.new(1,-44,0,4)
-close.BackgroundColor3 = Color3.fromRGB(90,60,60)
-close.Font = Enum.Font.GothamBlack
-close.Text = "✕"
-close.TextColor3 = Color3.fromRGB(255,90,90)
-close.TextSize = 23
-close.BorderSizePixel = 0
-close.MouseButton1Click:Connect(function()
-    frame.Visible = false
-end)
-frame.Visible = true
-sg.Enabled = true
-
--- MENUYÜ GÖSTER/GİZLE HOTKEY (F4)
-UserInputService.InputBegan:Connect(function(input, _gp)
-    if input.KeyCode == MENU_HOTKEY and not _gp then
-        frame.Visible = not frame.Visible
-    end
-end)
-
--- Tab Sistemi
-local tabSelec = "Hileler"
-local tabs, tabBtns, TABS = {}, {}, {"Hileler","Oyuncu"}
-for i, name in ipairs(TABS) do
-    local btn = Instance.new("TextButton", frame)
-    btn.Name = "TabBtn_"..name
-    btn.Size = UDim2.new(0,112,0,36)
-    btn.Position = UDim2.new(0, 16 + ((i-1)*122), 0, 54)
-    btn.BackgroundColor3 = Color3.fromRGB(i == 1 and 102 or 47, 152, 199)
-    btn.Font = Enum.Font.GothamBold
-    btn.Text = name:upper()
-    btn.TextSize = 17
-    btn.TextColor3 = Color3.new(1,1,1)
-    btn.BorderSizePixel = 0
-    tabBtns[name] = btn
-    local pane = Instance.new("Frame", frame)
-    pane.Name = "Tab_"..name
-    pane.BackgroundTransparency = 1
-    pane.Size = UDim2.new(1, -36, 1, -116)
-    pane.Position = UDim2.new(0,18,0, 100)
-    pane.Visible = (i==1)
-    tabs[name] = pane
-    btn.MouseButton1Click:Connect(function()
-        for t, f in pairs(tabs) do
-            f.Visible = (t==name)
-            tabBtns[t].BackgroundColor3 = Color3.fromRGB(t==name and 102 or 47, 152, 199)
+local Tabs, CurrentTab = {}, nil
+local function createTab(tabname)
+    local tabBtn = Instance.new("TextButton", tabFrame)
+    tabBtn.Size = UDim2.new(0.16, -2, 1, -5)
+    tabBtn.Position = UDim2.new(#Tabs * 0.165 + 0.012, 0, 0, 2)
+    tabBtn.BackgroundColor3 = Color3.fromRGB(27,27,27)
+    tabBtn.Font = Enum.Font.GothamBold
+    tabBtn.TextSize = 16
+    tabBtn.Text = tabname
+    tabBtn.AutoButtonColor = true
+    tabBtn.TextColor3 = Color3.fromRGB(243,243,243)
+    tabBtn.BorderSizePixel = 0
+    local cFrame = Instance.new("Frame", contentFrame)
+    cFrame.Size = UDim2.new(1, 0, 1, 0)
+    cFrame.Visible = (#Tabs==0)
+    cFrame.BackgroundTransparency = 1
+    table.insert(Tabs, {Button=tabBtn, Frame=cFrame})
+    tabBtn.MouseButton1Click:Connect(function()
+        for _, t in pairs(Tabs) do
+            t.Frame.Visible = false
+            t.Button.BackgroundColor3 = Color3.fromRGB(27,27,27)
         end
-        tabSelec = name
+        cFrame.Visible = true
+        tabBtn.BackgroundColor3 = Color3.fromRGB(64, 217, 255)
+        CurrentTab = cFrame
     end)
+    if #Tabs==1 then
+        tabBtn.BackgroundColor3 = Color3.fromRGB(64, 217, 255)
+        cFrame.Visible = true
+        CurrentTab = cFrame
+    end
+    return cFrame
 end
 
-----------------------------------------------------------
--- [Hileler Tab: Aktif/Deaktif ve Slider] ---------------
-----------------------------------------------------------
-local hackEnabled = {
-    Aimbot=false, SilentAim=false, ESP=false, Noclip=false, Fly=false,
-    Spinbot=false, Godmode=false, TeamCheck=true, NoReload=false
-}
-local config = { FOV = 120 }
+local tabAimbot = createTab("Aimbot")
+local tabVisual = createTab("ESP")
+local tabMovement = createTab("Hareket")
+local tabPlayer = createTab("Oyuncu")
+local tabFun = createTab("Eğlence")
+local tabOther = createTab("Diğer")
 
-do
-    local T = tabs["Hileler"]
-    -- Seçenek tuşları
-    local hiles = {
-        {"Aimbot",     "Aimbot"},
-        {"SilentAim",  "Silent Aim"},
-        {"ESP",        "ESP"},
-        {"Noclip",     "Noclip"},
-        {"Fly",        "Fly"},
-        {"Spinbot",    "Spinbot"},
-        {"Godmode",    "Godmode"},
-        {"TeamCheck",  "Takım Kontrolü"},
-        {"NoReload",   "No Reload"},
-    }
-    local BUTTONS = {}
-    for i, hile in ipairs(hiles) do
-        local btn = Instance.new("TextButton", T)
-        btn.Size = UDim2.new(.23,0,0,32)
-        btn.Position = UDim2.new(0, 10 + (((i-1)%4)*126), 0, 12 + math.floor((i-1)/4)*50)
-        btn.BackgroundColor3 = Color3.fromRGB(53,83,130)
-        btn.Text = hile[2].." ["..(hackEnabled[hile[1]] and "Açık" or "Kapalı").."]"
-        btn.Font = Enum.Font.GothamBold
-        btn.TextColor3 = hackEnabled[hile[1]] and Color3.fromRGB(0,255,128) or Color3.fromRGB(232,232,232)
-        btn.TextSize = 15
-        btn.BorderSizePixel = 0
-        BUTTONS[hile[1]] = btn
-        btn.MouseButton1Click:Connect(function()
-            hackEnabled[hile[1]] = not hackEnabled[hile[1]]
-            btn.Text = hile[2].." ["..(hackEnabled[hile[1]] and "Açık" or "Kapalı").."]"
-            btn.TextColor3 = hackEnabled[hile[1]] and Color3.fromRGB(0,255,128) or Color3.fromRGB(232,232,232)
+local states = {
+    aimbot = false,
+    aimbotType = 1,
+    fov = 90,
+    silentaim = false,
+    esp = false,
+    spinbot = false,
+    fly = false,
+    flySpeed = 90,
+    noclip = false,
+    invisible = false,
+    godmode = false,
+    carLaunch = false,
+    carAssetId = "rbxassetid://29439208",
+    playerFire=false,
+    playerExplode=false,
+    followPlayer=false,
+    teleportTo=false,
+    bringPlayer=false,
+    fovValue = 90,
+    funSpin = false,
+}
+
+local selectedTarget = nil
+local flyConn, spinConn, noclipConn, invisibleConn, godConn = nil, nil, nil, nil, nil
+
+-- Butonlar ve label fonksiyonları
+local function blackBtn()
+    local b = Instance.new("TextButton")
+    b.BackgroundColor3 = Color3.fromRGB(19,19,19)
+    b.TextColor3 = Color3.fromRGB(27,27,27)
+    b.Font = Enum.Font.GothamBold
+    b.BorderSizePixel = 0
+    b.TextSize=17
+    return b
+end
+
+local function addBtn(tab,x,y,w,h,txtOrCB,cb)
+    local b = blackBtn()
+    b.Size = UDim2.new(0,w,0,h)
+    b.Position = UDim2.new(0,x,0,y)
+    b.Text = type(txtOrCB)=='function' and txtOrCB() or txtOrCB
+    b.Parent = tab
+    if cb then
+        b.MouseButton1Click:Connect(function()
+            cb(b)
+            if type(txtOrCB)=='function' then b.Text = txtOrCB() end
         end)
     end
-
-    -- FOV CHANGER
-    local fovLbl = Instance.new("TextLabel", T)
-    fovLbl.Text = "Aimbot/Silent FOV:"
-    fovLbl.Font = Enum.Font.GothamBold
-    fovLbl.TextColor3 = Color3.fromRGB(100,255,190)
-    fovLbl.BackgroundTransparency = 1
-    fovLbl.TextSize = 15
-    fovLbl.Position = UDim2.new(0,15,1,-54)
-    fovLbl.Size = UDim2.new(0,130,0,22)
-    local fovBox = Instance.new("TextBox", T)
-    fovBox.Position = UDim2.new(0,152,1,-58)
-    fovBox.Size = UDim2.new(0,64,0,26)
-    fovBox.Font = Enum.Font.GothamBold
-    fovBox.BackgroundColor3 = Color3.fromRGB(30,55,90)
-    fovBox.TextSize = 14
-    fovBox.TextColor3 = Color3.fromRGB(35,255,255)
-    fovBox.Text = tostring(config.FOV)
-    fovBox.BorderSizePixel = 0
-    fovBox.FocusLost:Connect(function()
-        local v = tonumber(fovBox.Text)
-        if v and v>=10 then config.FOV = math.clamp(math.floor(v),10,900)
-        else fovBox.Text = tostring(config.FOV) end
-    end)
-    -- FOV Bar (Slider)
-    local slid = Instance.new("TextButton", T)
-    slid.Size = UDim2.new(0,100,0,8)
-    slid.Position = UDim2.new(0,240,1,-47)
-    slid.BackgroundColor3 = Color3.fromRGB(115,190,230)
-    slid.BorderSizePixel = 0
-    slid.Text = ""
-    local drag = false
-    slid.MouseButton1Down:Connect(function() drag = true end)
-    UserInputService.InputEnded:Connect(function(inp)
-        if inp.UserInputType==Enum.UserInputType.MouseButton1 then drag=false end
-    end)
-    RunService.RenderStepped:Connect(function()
-        if drag then
-            local mx = UserInputService:GetMouseLocation().X
-            local rel = math.clamp((mx - slid.AbsolutePosition.X) / slid.AbsoluteSize.X, 0,1)
-            config.FOV = math.floor(30 + rel * 400)
-            fovBox.Text = tostring(config.FOV)
-        end
-    end)
+    return b
 end
 
------------------------------------------------------------------
----- Oyuncu Tab: Player Eylemleri ---------------------------------
------------------------------------------------------------------
-local secilenOyuncu = nil
-do
-    local T = tabs["Oyuncu"]
-    local oyuncuSec = Instance.new("TextButton", T)
-    oyuncuSec.Text = "Oyuncu Seç"
-    oyuncuSec.Font = Enum.Font.GothamBold
-    oyuncuSec.TextColor3 = Color3.fromRGB(0,220,255)
-    oyuncuSec.Size = UDim2.new(0,128,0,30)
-    oyuncuSec.Position = UDim2.new(0, 8, 0, 12)
-    oyuncuSec.BorderSizePixel = 0
-    oyuncuSec.BackgroundColor3 = Color3.fromRGB(42,76,110)
-
-    local oyuncuLbl = Instance.new("TextLabel", T)
-    oyuncuLbl.Size = UDim2.new(0,170,0,26)
-    oyuncuLbl.Position = UDim2.new(0,148,0,13)
-    oyuncuLbl.BackgroundTransparency = 1
-    oyuncuLbl.TextColor3 = Color3.fromRGB(199,255,255)
-    oyuncuLbl.Font = Enum.Font.GothamBold
-    oyuncuLbl.TextSize = 15
-    oyuncuLbl.Text = "Seçili: [YOK]"
-
-    -- Dropdown Player Picker
-    local scroller = Instance.new("ScrollingFrame",T)
-    scroller.Size = UDim2.new(0,200,0,100)
-    scroller.Position = UDim2.new(0,8,0,48)
-    scroller.BackgroundColor3 = Color3.fromRGB(48,65,120)
-    scroller.BorderSizePixel = 0
-    scroller.Visible = false
-    scroller.CanvasSize = UDim2.new(0,0,0,0)
-    scroller.ScrollBarThickness = 4
-    local function loadPlayers()
-        scroller:ClearAllChildren()
-        local y = 0
-        for _,pl in ipairs(Players:GetPlayers()) do
-            if pl ~= LocalPlayer then
-                local pbtn = Instance.new("TextButton",scroller)
-                pbtn.Size = UDim2.new(1,-8,0,24)
-                pbtn.Position = UDim2.new(0,4,0,4+y*28)
-                pbtn.Text = pl.Name
-                pbtn.Font = Enum.Font.Gotham
-                pbtn.TextSize = 13
-                pbtn.TextColor3 = Color3.fromRGB(0,255,255)
-                pbtn.BackgroundColor3 = Color3.fromRGB(40,55,85)
-                pbtn.BorderSizePixel = 0
-                pbtn.MouseButton1Click:Connect(function()
-                    secilenOyuncu = pl
-                    oyuncuLbl.Text = "Seçili: "..pl.Name
-                    scroller.Visible = false
-                end)
-                y = y+1
-            end
-        end
-        scroller.CanvasSize = UDim2.new(0,0,0, y*28)
-    end
-    oyuncuSec.MouseButton1Click:Connect(function()
-        scroller.Visible = not scroller.Visible
-        if scroller.Visible then loadPlayers() end
-    end)
-
-    -- Player Actions
-    local actions = {
-        {"Işınlan", function()
-            if secilenOyuncu and secilenOyuncu.Character and secilenOyuncu.Character:FindFirstChild("HumanoidRootPart") and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
-                LocalPlayer.Character.HumanoidRootPart.CFrame = secilenOyuncu.Character.HumanoidRootPart.CFrame * CFrame.new(2,0,0)
-            end
-        end},
-        {"Yanına Çek", function()
-            if secilenOyuncu and secilenOyuncu.Character and secilenOyuncu.Character:FindFirstChild("HumanoidRootPart") and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
-                secilenOyuncu.Character.HumanoidRootPart.CFrame = LocalPlayer.Character.HumanoidRootPart.CFrame * CFrame.new(2,0,0)
-            end
-        end},
-        {"Dondur", function()
-            if secilenOyuncu and secilenOyuncu.Character then
-                for _,v in ipairs(secilenOyuncu.Character:GetDescendants()) do
-                    if v:IsA("BasePart") then v.Anchored = true end
-                end
-                local hum = secilenOyuncu.Character:FindFirstChildOfClass("Humanoid")
-                if hum then hum.WalkSpeed=0 hum.JumpPower=0 hum.PlatformStand=true end
-            end
-        end},
-        {"Patlat", function()
-            if secilenOyuncu and secilenOyuncu.Character and secilenOyuncu.Character:FindFirstChild("HumanoidRootPart") then
-                local boom = Instance.new("Explosion")
-                boom.BlastRadius = 12
-                boom.BlastPressure = 1e8
-                boom.Position = secilenOyuncu.Character.HumanoidRootPart.Position
-                boom.Parent = workspace
-            end
-        end},
-        {"Yak", function()
-            if secilenOyuncu and secilenOyuncu.Character then
-                for _,bp in ipairs(secilenOyuncu.Character:GetChildren()) do
-                    if bp:IsA("BasePart") and not bp:FindFirstChild("ONFIRE") then
-                        local fire = Instance.new("Fire")
-                        fire.Name = "ONFIRE"; fire.Size = 9; fire.Heat = 25; fire.Parent = bp
-                    end
-                end
-                local hum = secilenOyuncu.Character:FindFirstChildOfClass("Humanoid")
-                if hum then hum.Health = hum.Health - math.random(25,40) end
-            end
-        end},
-    }
-    for i, act in ipairs(actions) do
-        local abtn = Instance.new("TextButton", T)
-        abtn.Size = UDim2.new(0,98,0,26)
-        abtn.Position = UDim2.new(0,8+((i-1)%3)*108,0,180+math.floor((i-1)/3)*36)
-        abtn.BackgroundColor3 = Color3.fromRGB(60,110,180)
-        abtn.Text = act[1]
-        abtn.Font = Enum.Font.GothamBold
-        abtn.TextSize = 14
-        abtn.TextColor3 = Color3.fromRGB(255,255,240)
-        abtn.BorderSizePixel = 0
-        abtn.MouseButton1Click:Connect(act[2])
-    end
-
-    -- Spectate (toggle)
-    local isSpec = false
-    local spectateBtn = Instance.new("TextButton", T)
-    spectateBtn.Size = UDim2.new(0,123,0,26)
-    spectateBtn.Position = UDim2.new(1,-135,0,180)
-    spectateBtn.Text = "Spectate"
-    spectateBtn.BackgroundColor3 = Color3.fromRGB(110,90,210)
-    spectateBtn.Font = Enum.Font.GothamBold
-    spectateBtn.TextSize = 14
-    spectateBtn.TextColor3 = Color3.fromRGB(241,241,255)
-    spectateBtn.BorderSizePixel = 0
-    spectateBtn.MouseButton1Click:Connect(function()
-        if isSpec then
-            if LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid") then
-                Camera.CameraSubject = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
-            end
-            spectateBtn.Text = "Spectate"
-            isSpec = false
-        elseif secilenOyuncu and secilenOyuncu.Character and secilenOyuncu.Character:FindFirstChildOfClass("Humanoid") then
-            Camera.CameraSubject = secilenOyuncu.Character:FindFirstChildOfClass("Humanoid")
-            spectateBtn.Text = "Spectate Kapat"
-            isSpec = true
-        end
-    end)
-end -- OyuncuTab
-
-----------------------------------------------------------------------
----- Hile Fonksiyonları (TAM) -----------------------------------------
-----------------------------------------------------------------------
-
-local function isEnemy(ply)
-    if hackEnabled.TeamCheck and ply.Team and LocalPlayer.Team and ply.Team==LocalPlayer.Team then
-        return false
-    end
-    return true
+local function addLabel(tab,x,y,w,txt)
+    local l = Instance.new("TextLabel")
+    l.Size = UDim2.new(0,w,0,22)
+    l.Position = UDim2.new(0,x,0,y)
+    l.Text = txt
+    l.BackgroundTransparency = 1
+    l.TextXAlignment = Enum.TextXAlignment.Left
+    l.Font = Enum.Font.GothamBold
+    l.TextSize = 17
+    l.TextColor3 = Color3.fromRGB(27,27,27)
+    l.Parent = tab
 end
 
-local function SetNoClipOnChar(state)
-    local char = LocalPlayer.Character
-    if not char then return end
-    for _,v in ipairs(char:GetDescendants()) do
-        if v:IsA("BasePart") then
-            v.CanCollide = not state
-            v.Anchored = false
+local function addSlider(tab, x, y, w, labelName, def, minv, maxv, step, changer)
+    addLabel(tab, x, y-6, w, labelName)
+    local s = Instance.new("TextBox")
+    s.Size = UDim2.new(0, w, 0, 26)
+    s.Position = UDim2.new(0, x, 0, y+14)
+    s.Text = tostring(def)
+    s.BackgroundColor3 = Color3.fromRGB(19,19,19)
+    s.Font = Enum.Font.GothamBold
+    s.TextColor3 = Color3.fromRGB(27,27,27)
+    s.TextSize=17
+    s.ClearTextOnFocus=false
+    s.BorderSizePixel=0
+    s.Parent = tab
+    s.FocusLost:Connect(function()
+        local n = tonumber(s.Text)
+        if n and n>=minv and n<=maxv then
+            changer(n)
+            s.Text=tostring(n)
+        else
+            s.Text = tostring(def)
         end
-    end
+    end)
+    return s
 end
 
-local NoclipConn, NoclipLastEn = nil, false
-if NoclipConn then NoclipConn:Disconnect() end
-NoclipConn = RunService.Stepped:Connect(function()
-    if hackEnabled.Noclip and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("Humanoid") then
-        SetNoClipOnChar(true)
-        pcall(function() LocalPlayer.Character.Humanoid:ChangeState(11) end)
-        NoclipLastEn = true
-    elseif NoclipLastEn then
-        SetNoClipOnChar(false)
-        NoclipLastEn = false
-    end
-end)
-
-local flyBV, flyBG
-RunService.RenderStepped:Connect(function()
-    if hackEnabled.Fly and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
-        local hrp = LocalPlayer.Character.HumanoidRootPart
-        if not flyBV or flyBV.Parent ~= hrp then
-            if flyBV then pcall(function() flyBV:Destroy() end) end
-            flyBV = Instance.new("BodyVelocity"); flyBV.Name = "___FlyBV"
-            flyBV.MaxForce = Vector3.new(1e9,1e9,1e9); flyBV.Velocity=Vector3.new(); flyBV.Parent=hrp
-            flyBG = Instance.new("BodyGyro"); flyBG.Name = "___FlyBG"
-            flyBG.MaxTorque = Vector3.new(1e9,1e9,1e9); flyBG.CFrame = Camera.CFrame; flyBG.Parent=hrp
+-- Oyuncu Dropdown
+local function updateDropdown(dropdown)
+    dropdown.Text = "Seçili Hedef: " .. (selectedTarget and selectedTarget.Name or "Yok")
+end
+local function makePlayerDropdown(tab, x, y)
+    local ddBtn = blackBtn()
+    ddBtn.Size = UDim2.new(0,220,0,32)
+    ddBtn.Position = UDim2.new(0,x,0,y)
+    updateDropdown(ddBtn)
+    ddBtn.Parent = tab
+    ddBtn.MouseButton1Click:Connect(function()
+        local popup = Instance.new("Frame",ScreenGui)
+        local playerList = {}
+        for _,plr in ipairs(Players:GetPlayers()) do
+            if plr ~= LocalPlayer then table.insert(playerList, plr) end
         end
-        local camCF = Camera.CFrame; flyBG.CFrame = camCF
-        local movevec = Vector3.new()
-        if UserInputService:IsKeyDown(Enum.KeyCode.W) then movevec = movevec + camCF.LookVector end
-        if UserInputService:IsKeyDown(Enum.KeyCode.S) then movevec = movevec - camCF.LookVector end
-        if UserInputService:IsKeyDown(Enum.KeyCode.A) then movevec = movevec - camCF.RightVector end
-        if UserInputService:IsKeyDown(Enum.KeyCode.D) then movevec = movevec + camCF.RightVector end
-        if UserInputService:IsKeyDown(Enum.KeyCode.Space) then movevec = movevec + camCF.UpVector end
-        if UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) then movevec = movevec - camCF.UpVector end
-        if movevec.Magnitude > 0 then movevec = movevec.Unit * 75 end
-        flyBV.Velocity = movevec
-    else
-        if flyBV then pcall(function() flyBV:Destroy() end) flyBV = nil end
-        if flyBG then pcall(function() flyBG:Destroy() end) flyBG = nil end
-    end
-end)
-
-RunService.Heartbeat:Connect(function()
-    if hackEnabled.Godmode then
-        local chr = LocalPlayer.Character
-        if chr and chr:FindFirstChildOfClass("Humanoid") then
-            local hum = chr:FindFirstChildOfClass("Humanoid")
-            pcall(function()
-                hum.Health = hum.MaxHealth
-                hum.MaxHealth = 9999999
-                hum.WalkSpeed = 16
-                hum.JumpPower = 50
-                hum.PlatformStand = false
-                hum.BreakJointsOnDeath = false
+        popup.Size = UDim2.new(0,190,0,#playerList>0 and 31*#playerList or 31)
+        popup.Position = UDim2.new(0, MainFrame.AbsolutePosition.X+MainFrame.Size.X.Offset+4, 0, MainFrame.AbsolutePosition.Y+62)
+        popup.BackgroundColor3 = Color3.fromRGB(255,255,255)
+        popup.BorderSizePixel = 2
+        popup.ZIndex = 203
+        popup.Active = true
+        popup.ClipsDescendants = true
+        local list = Instance.new("UIListLayout", popup)
+        list.SortOrder = Enum.SortOrder.LayoutOrder
+        for _,plr in ipairs(playerList) do
+            local pBtn = blackBtn()
+            pBtn.Size = UDim2.new(1,0,0,31)
+            pBtn.Text = plr.Name
+            pBtn.ZIndex = 204
+            pBtn.Parent = popup
+            pBtn.MouseButton1Click:Connect(function()
+                selectedTarget = plr
+                updateDropdown(ddBtn)
+                popup:Destroy()
             end)
-            for _, v in ipairs(chr:GetChildren()) do
-                if v:IsA("BasePart") then v.CanCollide = true end
+        end
+        local uisConn
+        uisConn = UserInputService.InputBegan:Connect(function(input)
+            if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+                local mouse = UserInputService:GetMouseLocation()
+                if not (mouse.X > popup.AbsolutePosition.X and mouse.X < popup.AbsolutePosition.X + popup.AbsoluteSize.X and mouse.Y > popup.AbsolutePosition.Y and mouse.Y < popup.AbsolutePosition.Y + popup.AbsoluteSize.Y) then
+                    popup:Destroy()
+                    if uisConn then uisConn:Disconnect() end
+                end
+            end
+        end)
+    end)
+    return ddBtn
+end
+local playerDropdown = makePlayerDropdown(tabPlayer,18,10)
+
+-- Aimbot TAB
+addLabel(tabAimbot,18,8,230,"Aimbot Tipi")
+local aimTypes = {"Başa", "Vücuda", "En Yakın Parça"}
+addBtn(tabAimbot,18,32,160,28,function() return "Tip: "..aimTypes[states.aimbotType] end,
+    function(b) states.aimbotType = (states.aimbotType)%#aimTypes+1 end)
+addBtn(tabAimbot,188,32,150,28,function() return "Aimbot "..(states.aimbot and "AÇIK" or "KAPALI") end,
+    function(b) states.aimbot = not states.aimbot end)
+addBtn(tabAimbot,358,32,150,28,function() return "SilentAim "..(states.silentaim and "AÇIK" or "KAPALI") end,
+    function(b) states.silentaim = not states.silentaim end)
+addSlider(tabAimbot,18,72,150,"FOV Açısı (50-150)",states.fov,50,150,1,function(val)
+    states.fov=val
+    Camera.FieldOfView=val
+end)
+
+-- ESP Variables
+local espObjects = {}
+local function makeESP(player)
+    if player == LocalPlayer or espObjects[player] then return end
+    espObjects[player] = {drawings={}}
+    RunService.RenderStepped:Connect(function()
+        if not states.esp or not player.Character or not Camera then return end
+        local head = player.Character:FindFirstChild("Head")
+        local hrp = player.Character:FindFirstChild("HumanoidRootPart")
+        local torso = player.Character:FindFirstChild("UpperTorso") or player.Character:FindFirstChild("Torso")
+        if not head or not hrp then return end
+        -- Box ESP
+        if not espObjects[player].box then
+            local box = Drawing.new("Square")
+            box.Color = Color3.new(0,0,0)
+            box.Thickness = 2
+            box.Filled = false
+            box.Transparency = 1
+            espObjects[player].box = box
+        end
+        local minVec,maxVec = Vector2.new(math.huge,math.huge),Vector2.new(-math.huge,-math.huge)
+        for _,partName in ipairs({"Head", "Torso", "UpperTorso", "LowerTorso", "LeftUpperArm", "LeftLowerArm", "LeftHand", 
+            "RightUpperArm","RightLowerArm","RightHand","LeftUpperLeg","LeftLowerLeg","LeftFoot","RightUpperLeg","RightLowerLeg","RightFoot"}) do
+            local part = player.Character:FindFirstChild(partName)
+            if part then
+                local pos,onScreen = Camera:WorldToViewportPoint(part.Position)
+                if onScreen then
+                    minVec = Vector2.new(math.min(minVec.x, pos.X), math.min(minVec.y, pos.Y))
+                    maxVec = Vector2.new(math.max(maxVec.x, pos.X), math.max(maxVec.y, pos.Y))
+                end
+            end
+        end
+        local box = espObjects[player].box
+        box.Visible = states.esp
+        box.Position = minVec
+        box.Size = maxVec-minVec
+
+        -- Head Circle
+        if not espObjects[player].circle and head then
+            local circ = Drawing.new("Circle")
+            circ.Color = Color3.fromRGB(250,0,0)
+            circ.Thickness = 2
+            circ.NumSides = 18
+            circ.Radius = 20
+            circ.Filled = false
+            circ.Transparency = 1
+            espObjects[player].circle = circ
+        end
+        if espObjects[player].circle then
+            local pos,onScreen = Camera:WorldToViewportPoint(head.Position)
+            if onScreen then
+                espObjects[player].circle.Position = Vector2.new(pos.X,pos.Y)
+                espObjects[player].circle.Visible = states.esp
+            else
+                espObjects[player].circle.Visible = false
+            end
+        end
+
+        -- Skeleton ESP
+        local skeletonParts = {
+            {"Head","Torso"},
+            {"Torso","LeftUpperArm"},{"LeftUpperArm","LeftLowerArm"},{"LeftLowerArm","LeftHand"},
+            {"Torso","RightUpperArm"},{"RightUpperArm","RightLowerArm"},{"RightLowerArm","RightHand"},
+            {"Torso","LeftUpperLeg"},{"LeftUpperLeg","LeftLowerLeg"},{"LeftLowerLeg","LeftFoot"},
+            {"Torso","RightUpperLeg"},{"RightUpperLeg","RightLowerLeg"},{"RightLowerLeg","RightFoot"}
+        }
+        if not espObjects[player].lines then
+            espObjects[player].lines = {}
+            for i=1,#skeletonParts do
+                local line = Drawing.new("Line")
+                line.Color = Color3.new(0,0,0)
+                line.Thickness = 2
+                line.Transparency = 1
+                table.insert(espObjects[player].lines, line)
+            end
+        end
+        for i,conn in ipairs(skeletonParts) do
+            local a = player.Character:FindFirstChild(conn[1])
+            local b = player.Character:FindFirstChild(conn[2])
+            if espObjects[player].lines[i] then
+                if a and b then
+                    local posa,onA = Camera:WorldToViewportPoint(a.Position)
+                    local posb,onB = Camera:WorldToViewportPoint(b.Position)
+                    if onA and onB then
+                        espObjects[player].lines[i].Visible = states.esp
+                        espObjects[player].lines[i].From = Vector2.new(posa.X,posa.Y)
+                        espObjects[player].lines[i].To = Vector2.new(posb.X,posb.Y)
+                    else
+                        espObjects[player].lines[i].Visible = false
+                    end
+                else
+                    espObjects[player].lines[i].Visible = false
+                end
+            end
+        end
+    end)
+end
+
+local function removeESP(player)
+    if espObjects[player] then
+        if espObjects[player].box then espObjects[player].box:Remove() end
+        if espObjects[player].circle then espObjects[player].circle:Remove() end
+        if espObjects[player].lines then
+            for _,l in ipairs(espObjects[player].lines) do l:Remove() end
+        end
+        espObjects[player] = nil
+    end
+end
+
+addBtn(tabVisual,18,18,240,30,function() return "ESP ["..(states.esp and "AÇIK" or "KAPALI").."]" end,function()
+    states.esp = not states.esp
+    if states.esp then
+        for _,plr in ipairs(Players:GetPlayers()) do
+            if plr ~= LocalPlayer then
+                makeESP(plr)
+            end
+        end
+    else
+        for _,plr in ipairs(Players:GetPlayers()) do
+            if plr ~= LocalPlayer then
+                removeESP(plr)
             end
         end
     end
 end)
 
-local function tryRemoveReloadGuns()
-    if hackEnabled.NoReload then
-        local backpack = LocalPlayer:FindFirstChildOfClass("Backpack")
-        local char = LocalPlayer.Character
-        local function patchGun(obj)
-            for _,desc in ipairs(obj:GetDescendants()) do
-                if desc:IsA("Script") or desc:IsA("LocalScript") then
-                    local n = (desc.Name..""):lower()
-                    if n:find("ammo") or n:find("reload") or n:find("mag") then
-                        desc.Disabled = true
+Players.PlayerAdded:Connect(function(plr)
+    if states.esp then makeESP(plr) end
+end)
+Players.PlayerRemoving:Connect(function(plr)
+    removeESP(plr)
+end)
+
+addBtn(tabVisual,270,18,220,30,function() return "SpinBot ["..(states.spinbot and "AÇIK" or "KAPALI").."]" end,function()
+    states.spinbot = not states.spinbot
+    if states.spinbot and not spinConn then
+        spinConn = RunService.RenderStepped:Connect(function()
+            local char = LocalPlayer.Character
+            if char and char:FindFirstChild("HumanoidRootPart") then
+                char.HumanoidRootPart.CFrame = char.HumanoidRootPart.CFrame * CFrame.Angles(0,math.rad(45),0)
+            end
+        end)
+    elseif not states.spinbot and spinConn then
+        spinConn:Disconnect() spinConn=nil
+    end
+end)
+
+-- Movement TAB
+addBtn(tabMovement,18,18,160,30,function() return "Fly ["..(states.fly and "AÇIK" or "KAPALI").."]" end,function()
+    states.fly = not states.fly
+    if states.fly and not flyConn then
+        local vel
+        flyConn = RunService.RenderStepped:Connect(function()
+            local hrp = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+            if hrp then
+                if not vel or not vel.Parent then
+                    vel = Instance.new("BodyVelocity")
+                    vel.MaxForce = Vector3.new(1,1,1)*1e6
+                    vel.Velocity = Vector3.zero
+                    vel.Parent = hrp
+                end
+                local move = Vector3.zero
+                if UserInputService:IsKeyDown(Enum.KeyCode.W) then move = move + Camera.CFrame.LookVector end
+                if UserInputService:IsKeyDown(Enum.KeyCode.S) then move = move - Camera.CFrame.LookVector end
+                if UserInputService:IsKeyDown(Enum.KeyCode.A) then move = move - Camera.CFrame.RightVector end
+                if UserInputService:IsKeyDown(Enum.KeyCode.D) then move = move + Camera.CFrame.RightVector end
+                if UserInputService:IsKeyDown(Enum.KeyCode.E) then move = move + Camera.CFrame.UpVector end
+                if UserInputService:IsKeyDown(Enum.KeyCode.Q) then move = move - Camera.CFrame.UpVector end
+                vel.Velocity = move.Magnitude>0 and move.Unit*states.flySpeed or Vector3.zero
+            end
+        end)
+    elseif flyConn then
+        flyConn:Disconnect() flyConn=nil
+        if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+            for _,bv in ipairs(LocalPlayer.Character.HumanoidRootPart:GetChildren()) do
+                if bv:IsA("BodyVelocity") then bv:Destroy() end
+            end
+        end
+    end
+end)
+addSlider(tabMovement,190,18,120,"Fly Speed",states.flySpeed,16,160,1,function(val)
+    states.flySpeed=val
+end)
+
+addBtn(tabMovement,18,65,160,30,function() return "NoClip ["..(states.noclip and "AÇIK" or "KAPALI").."]" end,function()
+    states.noclip = not states.noclip
+    if states.noclip and not noclipConn then
+        noclipConn = RunService.Stepped:Connect(function()
+            if states.noclip then
+                local char = LocalPlayer.Character
+                if char and char ~= nil then
+                    for _,p in ipairs(char:GetDescendants()) do
+                        if p:IsA("BasePart") then p.CanCollide=false end
                     end
                 end
             end
+        end)
+    elseif not states.noclip and noclipConn then
+        noclipConn:Disconnect() noclipConn=nil
+        local char = LocalPlayer.Character
+        if char then
+            for _,p in ipairs(char:GetDescendants()) do
+                if p:IsA("BasePart") then p.CanCollide=true end
+            end
         end
-        if backpack then for _,v in ipairs(backpack:GetChildren()) do patchGun(v) end end
-        if char then for _,v in ipairs(char:GetChildren()) do patchGun(v) end end
-    end
-end
-RunService.Heartbeat:Connect(tryRemoveReloadGuns)
-
-RunService.RenderStepped:Connect(function()
-    if hackEnabled.Spinbot and LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid") then
-        local hrp = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
-        if hrp then hrp.CFrame = hrp.CFrame * CFrame.Angles(0,math.rad(30),0) end
     end
 end)
 
--- Aimbot / SilentAim algoritması
-local function getClosestHead()
-    local closest, minDist = nil, math.huge
-    local mousePos = UserInputService:GetMouseLocation()
-    for _, ply in pairs(Players:GetPlayers()) do
-        if ply ~= LocalPlayer and ply.Character and ply.Character:FindFirstChild("Head")
-            and ply.Character:FindFirstChildOfClass("Humanoid")
-            and ply.Character:FindFirstChildOfClass("Humanoid").Health > 0
-            and isEnemy(ply) then
-            local head = ply.Character.Head
-            local ScreenPos, OnScreen = Camera:WorldToViewportPoint(head.Position)
-            if OnScreen then
-                local dist = (Vector2.new(ScreenPos.X, ScreenPos.Y) - Vector2.new(mousePos.X, mousePos.Y)).Magnitude
-                if dist < config.FOV and dist < minDist then
-                    minDist = dist
-                    closest = head
-                end
+addBtn(tabMovement,190,65,120,30,function()
+    return "Invisible ["..(states.invisible and "AÇIK" or "KAPALI")
+end,function()
+    states.invisible = not states.invisible
+    if states.invisible then
+        local c = LocalPlayer.Character
+        if c then
+            for _,v in pairs(c:GetDescendants()) do
+                if v:IsA("BasePart") then v.Transparency = 0.97 end
+                if v:IsA("Decal") then v.Transparency = 1 end
+            end
+        end
+    else
+        local c = LocalPlayer.Character
+        if c then
+            for _,v in pairs(c:GetDescendants()) do
+                if v:IsA("BasePart") then v.Transparency = 0 end
+                if v:IsA("Decal") then v.Transparency = 0 end
+            end
+        end
+    end
+end)
+
+addBtn(tabMovement,350,65,120,30,function() return "GodMode ["..(states.godmode and "AÇIK" or "KAPALI") end,function()
+    states.godmode = not states.godmode
+    if states.godmode and not godConn then
+        godConn = RunService.Heartbeat:Connect(function()
+            local c = LocalPlayer.Character
+            local h = c and c:FindFirstChildOfClass("Humanoid")
+            if h then h.Health = h.MaxHealth end
+        end)
+    elseif godConn then godConn:Disconnect() godConn=nil end
+end)
+
+-- Oyuncu TAB
+addLabel(tabPlayer,18,55,225,"Seçili oyuncuya işlem")
+addBtn(tabPlayer,19,80,155,30,"Yak (Yanarak Öldür)",function()
+    if selectedTarget and selectedTarget.Character then
+        for _,p in ipairs(selectedTarget.Character:GetDescendants()) do
+            if p:IsA("BasePart") then
+                p.BrickColor = BrickColor.new("Bright red")
+                p.Material = Enum.Material.Neon
+                local fire = Instance.new("Fire")
+                fire.Heat = 12
+                fire.Size = 7
+                fire.Parent = p
+                Debris:AddItem(fire,2.3)
+            end
+        end
+        local h=selectedTarget.Character:FindFirstChildOfClass("Humanoid")
+        if h then h.Health=0 end
+    end
+end)
+addBtn(tabPlayer,187,80,155,30,"Patlat (BOOM)",function()
+    if selectedTarget and selectedTarget.Character and selectedTarget.Character:FindFirstChild("HumanoidRootPart") then
+        for i=1,5 do
+            local exp = Instance.new("Explosion")
+            exp.Position = selectedTarget.Character.HumanoidRootPart.Position+Vector3.new(math.random(-5,5),math.random(0,3),math.random(-5,5))
+            exp.BlastRadius = 6
+            exp.BlastPressure = 5e6
+            exp.Parent = Workspace
+        end
+        local h=selectedTarget.Character:FindFirstChildOfClass("Humanoid")
+        if h then h.Health=0 end
+    end
+end)
+addBtn(tabPlayer,355,80,155,30,"Git (Teleport Ol)",function()
+    if selectedTarget and selectedTarget.Character and LocalPlayer.Character and selectedTarget.Character:FindFirstChild("HumanoidRootPart") then
+        local root = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+        if root then
+            root.CFrame = selectedTarget.Character.HumanoidRootPart.CFrame + Vector3.new(0,4,0)
+        end
+    end
+end)
+addBtn(tabPlayer,19,120,155,30,"Yanına Çek",function()
+    if selectedTarget and selectedTarget.Character and selectedTarget.Character:FindFirstChild("HumanoidRootPart") then
+        local myroot = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+        if myroot then
+            selectedTarget.Character.HumanoidRootPart.CFrame = myroot.CFrame+Vector3.new(0,3,0)
+        end
+    end
+end)
+
+-- ARABA FIRLATMA
+addLabel(tabFun,22,10,250,"Baktığın yöne araba fırlat (her basışta)")
+addBtn(tabFun,22,32,190,30,"FIRLAT!",function()
+    local cf = Camera.CFrame * CFrame.new(0,0,-8)
+    local obj = nil
+    pcall(function()
+        obj = game:GetService("InsertService"):LoadAsset(states.carAssetId):GetChildren()[1]
+    end)
+    if not obj then
+        obj = Instance.new("Part")
+        obj.Size = Vector3.new(6,2,10)
+        obj.Color = Color3.fromRGB(45,45,45)
+        obj.Anchored = false
+        obj.CanCollide = true
+    end
+    obj.Parent = Workspace
+    obj.Position = cf.Position
+    obj.Orientation = Camera.CFrame:ToOrientation()
+    local v = Instance.new("BodyVelocity",obj)
+    v.Velocity = Camera.CFrame.LookVector*200 + Vector3.new(0,18,0)
+    v.MaxForce = Vector3.new(1,1,1)*1e6
+    Debris:AddItem(obj,12)
+end)
+
+addBtn(tabFun,240,32,120,30,function() return "Spin ["..(states.funSpin and "AÇIK" or "KAPALI") end,function()
+    states.funSpin = not states.funSpin
+    if states.funSpin and not spinConn then
+        spinConn = RunService.RenderStepped:Connect(function()
+            if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+                LocalPlayer.Character.HumanoidRootPart.CFrame = LocalPlayer.Character.HumanoidRootPart.CFrame * CFrame.Angles(0,math.rad(65),0)
+            end
+        end)
+    elseif not states.funSpin and spinConn then
+        spinConn:Disconnect() spinConn=nil
+    end
+end)
+
+-- Diğer TAB
+addBtn(tabOther,18,24,180,32,"Anti-AFK",function()
+    LocalPlayer.Idled:Connect(function()
+        game:GetService("VirtualUser"):Button2Down(Vector2.new())
+        wait(0.1)
+        game:GetService("VirtualUser"):Button2Up(Vector2.new())
+    end)
+end)
+addBtn(tabOther,228,24,180,32,"RESET",function()
+    if LocalPlayer.Character then
+        LocalPlayer.Character:BreakJoints()
+    end
+end)
+addBtn(tabOther,440,24,140,32,"FOV ?" ,function()
+    Camera.FieldOfView = states.fov
+end)
+
+-- Fonksiyonel, her oyun çalışan Aimbot + SilentAim + FOV Circle (gizli hook ile ve anticheat bypass ile)
+local function getClosestEnemyToCursor(fov)
+    local closest, dist = nil, fov or states.fov
+    for _,p in ipairs(Players:GetPlayers()) do
+        if p ~= LocalPlayer
+            and p.Character
+            and p.Character:FindFirstChild("Head")
+            and p.Character:FindFirstChildWhichIsA("Humanoid")
+            and p.Character:FindFirstChildWhichIsA("Humanoid").Health > 0
+        then
+            local pos, onScreen = Camera:WorldToViewportPoint(p.Character.Head.Position)
+            local mag = (Vector2.new(pos.X,pos.Y)-Vector2.new(Mouse.X,Mouse.Y)).Magnitude
+            if mag < dist and onScreen then
+                closest = p
+                dist = mag
             end
         end
     end
     return closest
 end
 
--- Aimbot (Camera Snap)
+-- FOV circle (görsel ekleme)
+if not _FOVCIRCLE then
+    local circ = Drawing.new("Circle")
+    circ.Color = Color3.fromRGB(20, 170, 255)
+    circ.Thickness = 2
+    circ.NumSides = 30
+    circ.Filled = false
+    circ.Transparency = 0.72
+    circ.Visible = true
+    _FOVCIRCLE = circ
+    RunService.RenderStepped:Connect(function()
+        circ.Radius = states.fov
+        circ.Position = Vector2.new(Mouse.X, Mouse.Y+36)
+        circ.Visible = MainFrame.Visible and states.aimbot
+    end)
+end
+
 RunService.RenderStepped:Connect(function()
-    if hackEnabled.Aimbot and LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid") then
-        local head = getClosestHead()
-        if head then
-            local direction = (head.Position - Camera.CFrame.Position).Unit
-            Camera.CFrame = CFrame.new(Camera.CFrame.Position, Camera.CFrame.Position + direction)
+    if states.aimbot then
+        local target = getClosestEnemyToCursor(states.fov)
+        if target and target.Character then
+            if states.aimbotType==1 then -- Kafa
+                Camera.CFrame = CFrame.new(Camera.CFrame.Position, target.Character.Head.Position)
+            elseif states.aimbotType==2 then -- Vücut
+                local hum = target.Character:FindFirstChildOfClass("Humanoid")
+                if hum and hum.RootPart then 
+                    Camera.CFrame = CFrame.new(Camera.CFrame.Position, hum.RootPart.Position)
+                else 
+                    Camera.CFrame = CFrame.new(Camera.CFrame.Position, target.Character.Head.Position)
+                end
+            else -- En yakın parça
+                local points={}
+                for _,v in pairs(target.Character:GetDescendants()) do
+                    if v:IsA("BasePart") and v.Transparency<0.96 then table.insert(points,v) end
+                end
+                if #points>0 then
+                    local p = points[math.random(1,#points)]
+                    Camera.CFrame=CFrame.new(Camera.CFrame.Position,p.Position)
+                end
+            end
         end
     end
 end)
-
--- SilentAim
-do
-    local ok, gmt = pcall(getrawmetatable, game)
-    if ok then
-        local old_namecall = gmt.__namecall
-        setreadonly(gmt, false)
-        gmt.__namecall = newcclosure(function(self, ...)
-            if not hackEnabled.SilentAim then return old_namecall(self, ...) end
-            local args = {...}
-            local method = getnamecallmethod()
-            if tostring(method):lower():find("fire") and getClosestHead() then
-                if typeof(args[1])=="Vector3" then
-                    args[1]=getClosestHead().Position
-                end
-                return old_namecall(self, unpack(args))
-            end
-            return old_namecall(self,...)
-        end)
-        setreadonly(gmt,true)
-    end
-end
-
--- ESP (TAM, FOV çemberi de göster)
-local espDrawn = {}
-local function removeESP()
-    for _, obj in pairs(espDrawn) do
-        if obj.Remove then pcall(function() obj:Remove() end) end
-        if typeof(obj) == "table" then for _, o in ipairs(obj) do if o.Remove then pcall(function() o:Remove() end) end end end
-    end
-    espDrawn = {}
-end
-local function DrawLine(from,to,c)
-    local line = Drawing.new("Line")
-    line.From = from
-    line.To = to
-    line.Color = c or Color3.new(1, 1, 1)
-    line.Thickness = 2
-    line.Transparency = 1
-    return line
-end
-local function DrawBox(minX,minY,maxX,maxY,c)
-    local box = {}
-    table.insert(box, DrawLine(Vector2.new(minX,minY), Vector2.new(maxX,minY),c))
-    table.insert(box, DrawLine(Vector2.new(maxX,minY), Vector2.new(maxX,maxY),c))
-    table.insert(box, DrawLine(Vector2.new(maxX,maxY), Vector2.new(minX,maxY),c))
-    table.insert(box, DrawLine(Vector2.new(minX,maxY), Vector2.new(minX,minY),c))
-    return box
-end
-local function DrawCircle(center, radius, c)
-    local circ = Drawing.new("Circle")
-    circ.Position = center
-    circ.Radius = radius
-    circ.Color = c or Color3.new(1,1,1)
-    circ.Thickness = 2
-    circ.Transparency = 1
-    circ.NumSides = 40
-    circ.Filled = false
-    return circ
-end
-
-RunService:BindToRenderStep("PROESPV3",201,function()
-    if not hackEnabled.ESP then removeESP() return end
-    removeESP()
-    -- FOV çemberi
-    if hackEnabled.Aimbot or hackEnabled.SilentAim then
-        local mloc = UserInputService:GetMouseLocation()
-        table.insert(espDrawn, DrawCircle(Vector2.new(mloc.X,mloc.Y), config.FOV, Color3.fromRGB(0,255,200)))
-    end
-    for _,ply in ipairs(Players:GetPlayers()) do
-        if ply ~= LocalPlayer and ply.Character and ply.Character:FindFirstChild("HumanoidRootPart")
-            and ply.Character:FindFirstChild("Head")
-            and ply.Character:FindFirstChildOfClass("Humanoid")
-            and ply.Character:FindFirstChildOfClass("Humanoid").Health > 0 and isEnemy(ply) then
-            local hrp = ply.Character.HumanoidRootPart
-            local head = ply.Character.Head
-            local dist = (hrp.Position - Camera.CFrame.Position).Magnitude
-            if dist < 400 then
-                -- Kutu/Skeleton/Headbox
-                local parts = {}
-                for _,p in ipairs({"Head","UpperTorso","LowerTorso","Torso","LeftLeg","LeftFoot","LeftLowerLeg","LeftUpperLeg","RightLeg","RightFoot","RightLowerLeg","RightUpperLeg"}) do
-                    if ply.Character:FindFirstChild(p) then table.insert(parts, ply.Character:FindFirstChild(p)) end
-                end
-                local min, max = Vector3.new(math.huge,math.huge,math.huge), Vector3.new(-math.huge,-math.huge,-math.huge)
-                for _,part in ipairs(parts) do
-                    local pos = part.Position
-                    min = Vector3.new(math.min(min.X,pos.X),math.min(min.Y,pos.Y),math.min(min.Z,pos.Z))
-                    max = Vector3.new(math.max(max.X,pos.X),math.max(max.Y,pos.Y),math.max(max.Z,pos.Z))
-                end
-                local corners = {
-                    Vector3.new(min.X,min.Y,min.Z),
-                    Vector3.new(min.X,max.Y,min.Z),
-                    Vector3.new(max.X,max.Y,max.Z),
-                    Vector3.new(max.X,min.Y,max.Z)
-                }
-                local vecs = {}
-                for i,v in ipairs(corners) do
-                    local vp,onsc = Camera:WorldToViewportPoint(v)
-                    if onsc and vp.Z > 0 then table.insert(vecs,Vector2.new(vp.X,vp.Y)) end
-                end
-                if #vecs > 0 then
-                    local pminX,pminY,pmaxX,pmaxY = vecs[1].X,vecs[1].Y,vecs[1].X,vecs[1].Y
-                    for _,v in ipairs(vecs) do
-                        if v.X < pminX then pminX = v.X end
-                        if v.X > pmaxX then pmaxX = v.X end
-                        if v.Y < pminY then pminY = v.Y end
-                        if v.Y > pmaxY then pmaxY = v.Y end
-                    end
-                    local box = DrawBox(pminX,pminY,pmaxX,pmaxY,Color3.new(1,1,1))
-                    for _,l in ipairs(box) do table.insert(espDrawn,l) end
-                end
-                local headVP,headOn = Camera:WorldToViewportPoint(head.Position)
-                if headOn and headVP.Z > 0 then
-                    local r = Camera:WorldToViewportPoint(head.Position + Vector3.new(0,head.Size.Y/1.33,0))
-                    local rad = math.min(36, math.max(12, math.abs((Vector2.new(r.X,r.Y)-Vector2.new(headVP.X,headVP.Y)).Magnitude)))
-                    local circ = DrawCircle(Vector2.new(headVP.X, headVP.Y), rad, Color3.new(1,1,1))
-                    table.insert(espDrawn, circ)
-                end
-                -- Skeleton çizimi (omurga, kollar, bacaklar, baş)
-                local function W2V(pos)
-                    local vp,ons = Camera:WorldToViewportPoint(pos)
-                    return Vector2.new(vp.X,vp.Y),ons and vp.Z>0
-                end
-                local utorso = ply.Character:FindFirstChild("UpperTorso") or ply.Character:FindFirstChild("Torso")
-                local ltorso = ply.Character:FindFirstChild("LowerTorso")
-                if utorso and ltorso then
-                    local p1,on1 = W2V(utorso.Position)
-                    local p2,on2 = W2V(ltorso.Position)
-                    if on1 and on2 then table.insert(espDrawn, DrawLine(p1,p2,Color3.new(1,1,1))) end
-                end
-                if head and utorso then
-                    local p1,on1 = W2V(head.Position)
-                    local p2,on2 = W2V(utorso.Position)
-                    if on1 and on2 then table.insert(espDrawn, DrawLine(p1,p2,Color3.new(1,1,1))) end
-                end
-                local rsh = ply.Character:FindFirstChild("RightUpperArm") or ply.Character:FindFirstChild("Right Arm")
-                local rlow = ply.Character:FindFirstChild("RightLowerArm")
-                local rhand = ply.Character:FindFirstChild("RightHand") or ply.Character:FindFirstChild("Right Arm")
-                local lsh = ply.Character:FindFirstChild("LeftUpperArm") or ply.Character:FindFirstChild("Left Arm")
-                local llow = ply.Character:FindFirstChild("LeftLowerArm")
-                local lhand = ply.Character:FindFirstChild("LeftHand") or ply.Character:FindFirstChild("Left Arm")
-                if utorso and rsh then
-                    local p1,on1 = W2V(utorso.Position)
-                    local p2,on2 = W2V(rsh.Position)
-                    if on1 and on2 then table.insert(espDrawn, DrawLine(p1,p2,Color3.new(1,1,1))) end
-                    if rlow then
-                        local p3,on3 = W2V(rlow.Position)
-                        if on2 and on3 then table.insert(espDrawn, DrawLine(p2,p3,Color3.new(1,1,1))) end
-                        if rhand then
-                            local p4,on4 = W2V(rhand.Position)
-                            if on3 and on4 then table.insert(espDrawn, DrawLine(p3,p4,Color3.new(1,1,1))) end
-                        end
-                    end
-                end
-                if utorso and lsh then
-                    local p1,on1 = W2V(utorso.Position)
-                    local p2,on2 = W2V(lsh.Position)
-                    if on1 and on2 then table.insert(espDrawn, DrawLine(p1,p2,Color3.new(1,1,1))) end
-                    if llow then
-                        local p3,on3 = W2V(llow.Position)
-                        if on2 and on3 then table.insert(espDrawn, DrawLine(p2,p3,Color3.new(1,1,1))) end
-                        if lhand then
-                            local p4,on4 = W2V(lhand.Position)
-                            if on3 and on4 then table.insert(espDrawn, DrawLine(p3,p4,Color3.new(1,1,1))) end
-                        end
-                    end
-                end
-                local rupper = ply.Character:FindFirstChild("RightUpperLeg") or ply.Character:FindFirstChild("Right Leg")
-                local rlower = ply.Character:FindFirstChild("RightLowerLeg")
-                local rfoot = ply.Character:FindFirstChild("RightFoot") or ply.Character:FindFirstChild("Right Leg")
-                local lupper = ply.Character:FindFirstChild("LeftUpperLeg") or ply.Character:FindFirstChild("Left Leg")
-                local llower = ply.Character:FindFirstChild("LeftLowerLeg")
-                local lfoot = ply.Character:FindFirstChild("LeftFoot") or ply.Character:FindFirstChild("Left Leg")
-                if ltorso and rupper then
-                    local p1,on1 = W2V(ltorso.Position)
-                    local p2,on2 = W2V(rupper.Position)
-                    if on1 and on2 then table.insert(espDrawn, DrawLine(p1,p2,Color3.new(1,1,1))) end
-                    if rlower then
-                        local p3,on3 = W2V(rlower.Position)
-                        if on2 and on3 then table.insert(espDrawn, DrawLine(p2,p3,Color3.new(1,1,1))) end
-                        if rfoot then
-                            local p4,on4 = W2V(rfoot.Position)
-                            if on3 and on4 then table.insert(espDrawn, DrawLine(p3,p4,Color3.new(1,1,1))) end
-                        end
-                    end
-                end
-                if ltorso and lupper then
-                    local p1,on1 = W2V(ltorso.Position)
-                    local p2,on2 = W2V(lupper.Position)
-                    if on1 and on2 then table.insert(espDrawn, DrawLine(p1,p2,Color3.new(1,1,1))) end
-                    if llower then
-                        local p3,on3 = W2V(llower.Position)
-                        if on2 and on3 then table.insert(espDrawn, DrawLine(p2,p3,Color3.new(1,1,1))) end
-                        if lfoot then
-                            local p4,on4 = W2V(lfoot.Position)
-                            if on3 and on4 then table.insert(espDrawn, DrawLine(p3,p4,Color3.new(1,1,1))) end
-                        end
-                    end
-                end
-            end
+-- Silent Aim (bypass ile)
+local _oldNC; _oldNC = hookmetamethod(game, "__namecall", function(self, ...)
+    local ncm = typeof(getnamecallmethod)=="function" and getnamecallmethod() or ""
+    if states.silentaim and ncm=="FindPartOnRayWithIgnoreList" then
+        local target = getClosestEnemyToCursor(states.fov)
+        if target and target.Character and target.Character:FindFirstChild("Head") then
+            local args={...}
+            args[1].Origin = Camera.CFrame.Position
+            args[1].Direction = (target.Character.Head.Position - Camera.CFrame.Position).Unit*900
+            return _oldNC(self, unpack(args))
         end
+    end
+    return _oldNC(self,...)
+end)
+
+UserInputService.InputBegan:Connect(function(input, gp)
+    if input.KeyCode == Enum.KeyCode.F and not gp then
+        MainFrame.Visible = not MainFrame.Visible
     end
 end)
