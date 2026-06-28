@@ -1,116 +1,125 @@
--- GELİŞTİRİLMİŞ FULL HİLE MENÜ (YENİ MENÜ SİSTEMİ & TAM FONKSİYONELLİK)
-// Kullanıcı için yeni, sabit menü ve fonksiyonlar
+-- GELİŞTİRİLMİŞ FULL HİLE MENÜ (YENİ KALICI MENÜ SİSTEMİ & FONKSİYONELLİK)
+// Menü gelmeme/fokus problemi fix: CoreGui kullanımı (her zaman görüntülenir, popup engeli yok)
 
 local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local UserInputService = game:GetService("UserInputService")
 local RunService = game:GetService("RunService")
 local Camera = workspace.CurrentCamera
-local Teams = game:GetService("Teams")
+local Teams = game:FindService("Teams") or nil
 
--- Hotkey (F4) ile menü göster/gizle
-local HOTKEY = Enum.KeyCode.F4
+-- HOTKEY DESTEĞİ (F4 ile aç/kapa)
+local MENU_HOTKEY = Enum.KeyCode.F4
 
-if LocalPlayer.PlayerGui:FindFirstChild("HileMenuV3") then
-    LocalPlayer.PlayerGui.HileMenuV3:Destroy()
+if game.CoreGui:FindFirstChild("HileMenuV3") then
+    game.CoreGui.HileMenuV3:Destroy()
 end
 
------------------ UI OLUŞTURMA -------------------
-
+------------------- UI OLUŞTUR ---------------------
 local UI = Instance.new("ScreenGui")
 UI.Name = "HileMenuV3"
-UI.Parent = LocalPlayer:FindFirstChildOfClass("PlayerGui") or LocalPlayer.PlayerGui
 UI.ResetOnSpawn = false
+pcall(function() syn.protect_gui(UI) end)
+UI.Parent = game.CoreGui
 
 local rootFrame = Instance.new("Frame")
-rootFrame.Parent = UI
-rootFrame.BackgroundColor3 = Color3.fromRGB(18,22,28)
-rootFrame.Size = UDim2.new(0,380,0,482)
-rootFrame.Position = UDim2.new(0,40,0,90)
+rootFrame.Name = "AnaFrame"
+rootFrame.BackgroundColor3 = Color3.fromRGB(23,26,33)
+rootFrame.Size = UDim2.new(0,400,0,500)
+rootFrame.Position = UDim2.new(0,60,0,90)
 rootFrame.Active = true
 rootFrame.Draggable = true
-rootFrame.Visible = true -- Hotkey ile aç/kapa yapılabilir
+rootFrame.Parent = UI
+rootFrame.Visible = true
+
+local UICornerMain = Instance.new("UICorner", rootFrame)
+UICornerMain.CornerRadius = UDim.new(0, 12)
 
 local titleLabel = Instance.new("TextLabel")
 titleLabel.Parent = rootFrame
 titleLabel.Text = "ROBLOX HİLE MENÜ V4"
 titleLabel.Font = Enum.Font.GothamBold
-titleLabel.TextColor3 = Color3.fromRGB(112,230,255)
+titleLabel.TextColor3 = Color3.fromRGB(110,230,255)
 titleLabel.BackgroundTransparency = 1
 titleLabel.TextScaled = true
-titleLabel.Size = UDim2.new(1,0,0,36)
+titleLabel.Size = UDim2.new(1,0,0,38)
 titleLabel.Position = UDim2.new(0,0,0,0)
+titleLabel.TextStrokeTransparency = 0.7
 
 local closeBtn = Instance.new("TextButton")
 closeBtn.Parent = rootFrame
 closeBtn.Text = "✕"
 closeBtn.Font = Enum.Font.GothamBold
-closeBtn.TextSize = 20
-closeBtn.TextColor3 = Color3.fromRGB(220,70,70)
-closeBtn.Size = UDim2.new(0,36,0,28)
-closeBtn.Position = UDim2.new(1,-38,0,6)
+closeBtn.TextScaled = true
+closeBtn.Size = UDim2.new(0,34,0,28)
+closeBtn.Position = UDim2.new(1,-40,0,6)
 closeBtn.BackgroundColor3 = Color3.fromRGB(40,40,60)
+closeBtn.TextColor3 = Color3.fromRGB(220,60,60)
 closeBtn.BorderSizePixel = 0
+local UIClose = Instance.new("UICorner", closeBtn)
+UIClose.CornerRadius = UDim.new(0,9)
 closeBtn.MouseButton1Click:Connect(function()
-    UI.Enabled = false
+    rootFrame.Visible = false
 end)
 
+-- Aç/Kapa hotkey (F4)
 UserInputService.InputBegan:Connect(function(input, gp)
-    if not gp and input.KeyCode == HOTKEY then
+    if not gp and input.KeyCode == MENU_HOTKEY then
         rootFrame.Visible = not rootFrame.Visible
     end
 end)
 
--- Sekmeler (Sayfa yapısı!)
-local tabs = {"Hileler", "Oyuncu"}
-local currentTab = "Hileler"
+-- Menü Basit Tab sistemi (Üstten)
+local tabNames = {"Hile", "Oyuncu"}
+local tabFrames, tabBtns, currentTab = {}, {}, nil
 
-local tabButtons = {}
-for i, tab in ipairs(tabs) do
+for i, tname in ipairs(tabNames) do
     local btn = Instance.new("TextButton")
     btn.Parent = rootFrame
-    btn.Text = tab
+    btn.Text = tname
+    btn.Name = tname.."TabBtn"
     btn.Font = Enum.Font.GothamBold
     btn.TextScaled = true
-    btn.TextColor3 = Color3.fromRGB(210,255,255)
-    btn.BackgroundColor3 = Color3.fromRGB(37,44,52)
-    btn.BorderSizePixel = 0
+    btn.BackgroundColor3 = i==1 and Color3.fromRGB(26,134,230) or Color3.fromRGB(45,55,65)
     btn.Size = UDim2.new(0.5,0,0,34)
-    btn.Position = UDim2.new((i-1)*0.5,0,0,36)
-    btn.Name = tab
-    btn.Activated:Connect(function()
-        currentTab = tab
-        for _,tbtn in pairs(tabButtons) do
-            tbtn.BackgroundColor3 = Color3.fromRGB(37,44,52)
-        end
-        btn.BackgroundColor3 = Color3.fromRGB(0,160,255)
-        updateTabVisibility()
+    btn.Position = UDim2.new((i-1)*0.5,0,0,37)
+    btn.TextColor3 = Color3.fromRGB(255,255,255)
+    btn.BorderSizePixel = 0
+    local UIC = Instance.new("UICorner", btn)
+    UIC.CornerRadius = UDim.new(0,7)
+
+    tabBtns[tname] = btn
+    btn.MouseButton1Click:Connect(function()
+        for j,t in pairs(tabFrames) do t.Visible = (j==tname) end
+        for k,bb in pairs(tabBtns) do bb.BackgroundColor3 = Color3.fromRGB(45,55,65) end
+        btn.BackgroundColor3 = Color3.fromRGB(26,134,230)
+        currentTab = tname
     end)
-    tabButtons[tab] = btn
 end
-tabButtons.Hileler.BackgroundColor3 = Color3.fromRGB(0,160,255)
 
-local hilelerFrame = Instance.new("Frame")
-hilelerFrame.Parent = rootFrame
-hilelerFrame.Name = "HilelerPage"
-hilelerFrame.BackgroundTransparency = 1
-hilelerFrame.Size = UDim2.new(1,0,1,-70)
-hilelerFrame.Position = UDim2.new(0,0,0,70)
+-- Tab 1: Hileler
+local hileTab = Instance.new("Frame")
+hileTab.Name = "Hile"
+hileTab.Parent = rootFrame
+hileTab.BackgroundTransparency = 1
+hileTab.Position = UDim2.new(0,0,0,75)
+hileTab.Size = UDim2.new(1,0,1,-75)
+hileTab.Visible = true
+tabFrames["Hile"] = hileTab
 
-local oyuncuFrame = Instance.new("Frame")
-oyuncuFrame.Parent = rootFrame
-oyuncuFrame.Name = "OyuncuPage"
-oyuncuFrame.BackgroundTransparency = 1
-oyuncuFrame.Size = UDim2.new(1,0,1,-70)
-oyuncuFrame.Position = UDim2.new(0,0,0,70)
+-- Tab 2: Oyuncu
+local oyuncuTab = Instance.new("Frame")
+oyuncuTab.Name = "Oyuncu"
+oyuncuTab.Parent = rootFrame
+oyuncuTab.BackgroundTransparency = 1
+oyuncuTab.Position = UDim2.new(0,0,0,75)
+oyuncuTab.Size = UDim2.new(1,0,1,-75)
+oyuncuTab.Visible = false
+tabFrames["Oyuncu"] = oyuncuTab
 
-local function updateTabVisibility()
-    hilelerFrame.Visible = currentTab == "Hileler"
-    oyuncuFrame.Visible = currentTab == "Oyuncu"
-end
-updateTabVisibility()
+currentTab = "Hile"
 
------------------ HİLELER -------------------
+----------- Hile Ayarları & Tuşlar ------------
 local hackEnabled = {
     Aimbot = false,
     SilentAim = false,
@@ -122,7 +131,9 @@ local hackEnabled = {
     TeamCheck = true,
     NoReload = false,
 }
-local optionsUI = {
+local config = { FOV = 120 }
+
+local options = {
     {Key="Aimbot",    Name="Aimbot"},
     {Key="SilentAim", Name="Silent Aim"},
     {Key="ESP",       Name="ESP"},
@@ -134,55 +145,52 @@ local optionsUI = {
     {Key="NoReload",  Name="NoReload"},
 }
 
-local config = { FOV = 120 }
-local labelY = 8
 local butRef = {}
 
-for i,data in ipairs(optionsUI) do
+for i,opt in ipairs(options) do
     local btn = Instance.new("TextButton")
-    btn.Parent = hilelerFrame
-    btn.Name = "h_"..data.Key
-    btn.Position = UDim2.new(0,18,0,8 + (i-1)*36)
-    btn.Size = UDim2.new(0.5, -24, 0,32)
-    btn.BackgroundColor3 = Color3.fromRGB(45,54,70)
+    btn.Parent = hileTab
+    btn.Name = "Opt"..opt.Key
+    btn.Position = UDim2.new(0,15,0,12 + (i-1)*36)
+    btn.Size = UDim2.new(0.49, -24, 0,32)
+    btn.BackgroundColor3 = Color3.fromRGB(43,48,66)
     btn.Font = Enum.Font.GothamBold
-    btn.TextSize = 16
+    btn.TextSize = 15
     btn.BorderSizePixel = 0
-    local function updateTxt()
-        btn.Text = data.Name .. " [" .. (hackEnabled[data.Key] and "Açık" or "Kapalı") .. "]"
-        btn.TextColor3 = hackEnabled[data.Key] and Color3.fromRGB(0,255,185) or Color3.fromRGB(240,230,230)
-    end
-    updateTxt()
-    btn.MouseButton1Click:Connect(function()
-        hackEnabled[data.Key] = not hackEnabled[data.Key]
-        updateTxt()
+    btn.Text = opt.Name .. " [" .. (hackEnabled[opt.Key] and "Açık" or "Kapalı") .. "]"
+    btn.TextColor3 = hackEnabled[opt.Key] and Color3.fromRGB(0,255,185) or Color3.fromRGB(240,230,230)
+    btn.MouseButton1Down:Connect(function()
+        hackEnabled[opt.Key] = not hackEnabled[opt.Key]
+        btn.Text = opt.Name .. " [" .. (hackEnabled[opt.Key] and "Açık" or "Kapalı") .. "]"
+        btn.TextColor3 = hackEnabled[opt.Key] and Color3.fromRGB(0,255,185) or Color3.fromRGB(240,230,230)
     end)
-    butRef[data.Key] = btn
+    local Bcrn = Instance.new("UICorner", btn)
+    Bcrn.CornerRadius = UDim.new(0,8)
+    butRef[opt.Key] = btn
 end
 
--- FOV
-local fovLbl = Instance.new("TextLabel")
-fovLbl.Parent = hilelerFrame
-fovLbl.Position = UDim2.new(0.55,0,0,16)
-fovLbl.Size = UDim2.new(0,88,0,26)
-fovLbl.BackgroundTransparency = 1
-fovLbl.Font = Enum.Font.GothamBold
-fovLbl.TextSize = 14
-fovLbl.TextXAlignment = Enum.TextXAlignment.Left
-fovLbl.TextColor3 = Color3.fromRGB(140,255,140)
-fovLbl.Text = "Aimbot FOV"
+local lb = Instance.new("TextLabel")
+lb.Parent = hileTab
+lb.Text = "Aimbot FOV"
+lb.Font = Enum.Font.GothamBold
+lb.TextSize = 14
+lb.Size = UDim2.new(0,75,0,25)
+lb.BackgroundTransparency = 1
+lb.Position = UDim2.new(0.525,0,0,20)
+lb.TextColor3 = Color3.fromRGB(140,255,140)
 
 local fovBox = Instance.new("TextBox")
-fovBox.Parent = hilelerFrame
-fovBox.Position = UDim2.new(0.55,100,0,16)
-fovBox.Size = UDim2.new(0,44,0,26)
+fovBox.Parent = hileTab
+fovBox.Position = UDim2.new(0.525,76,0,20)
+fovBox.Size = UDim2.new(0,50,0,25)
 fovBox.Font = Enum.Font.GothamBold
 fovBox.TextSize = 14
 fovBox.Text = tostring(config.FOV)
-fovBox.BackgroundColor3 = Color3.fromRGB(30,38,42)
-fovBox.TextColor3 = Color3.fromRGB(0,230,170)
+fovBox.BackgroundColor3 = Color3.fromRGB(38,56,62)
+fovBox.TextColor3 = Color3.fromRGB(0,220,170)
 fovBox.BorderSizePixel = 0
-
+local Bf = Instance.new("UICorner", fovBox)
+Bf.CornerRadius = UDim.new(0,7)
 fovBox.FocusLost:Connect(function()
     local n = tonumber(fovBox.Text)
     if n and n>=5 then
@@ -193,25 +201,23 @@ fovBox.FocusLost:Connect(function()
     end
 end)
 
--- Bilgi
-local infoLbl = Instance.new("TextLabel")
-infoLbl.Parent = hilelerFrame
-infoLbl.Size = UDim2.new(1, 0, 0, 18)
-infoLbl.Position = UDim2.new(0, 8, 1, -26)
-infoLbl.Text = "(Menuyu aç/kapat: F4) | FOV Default: 120" 
-infoLbl.TextColor3 = Color3.fromRGB(64,200,180)
-infoLbl.Font = Enum.Font.Gotham
-infoLbl.TextSize = 13
-infoLbl.BackgroundTransparency = 1
-infoLbl.TextXAlignment = Enum.TextXAlignment.Left
+local abt = Instance.new("TextLabel")
+abt.Parent = hileTab
+abt.Text = "(Menü aç/kapa: F4) | FOV Default: 120"
+abt.TextColor3 = Color3.fromRGB(64,200,180)
+abt.Font = Enum.Font.Gotham
+abt.TextSize = 13
+abt.BackgroundTransparency = 1
+abt.TextXAlignment = Enum.TextXAlignment.Left
+abt.Size = UDim2.new(1,0,0,18)
+abt.Position = UDim2.new(0, 8, 1, -26)
 
-------------------- OYUNCU AKSİYONLARI -----------------
-
+------------------- Oyuncu Tabı -------------------
 local secilenOyuncu = nil
 local oyuncuYaz = Instance.new("TextLabel")
-oyuncuYaz.Parent = oyuncuFrame
-oyuncuYaz.Size = UDim2.new(0, 168, 0, 28)
-oyuncuYaz.Position = UDim2.new(0,16,0,8)
+oyuncuYaz.Parent = oyuncuTab
+oyuncuYaz.Size = UDim2.new(0, 190, 0, 28)
+oyuncuYaz.Position = UDim2.new(0,14,0,4)
 oyuncuYaz.Text = "Seçili Oyuncu : Yok"
 oyuncuYaz.Font = Enum.Font.GothamBold
 oyuncuYaz.TextSize = 15
@@ -220,25 +226,28 @@ oyuncuYaz.BackgroundTransparency = 1
 oyuncuYaz.TextXAlignment = Enum.TextXAlignment.Left
 
 local acBtn = Instance.new("TextButton")
-acBtn.Parent = oyuncuFrame
-acBtn.Size = UDim2.new(0,110,0,28)
-acBtn.Position = UDim2.new(0,200,0,8)
+acBtn.Parent = oyuncuTab
+acBtn.Size = UDim2.new(0,105,0,28)
+acBtn.Position = UDim2.new(0,212,0,4)
 acBtn.Text = "Oyuncu Seç"
-acBtn.Font = Enum.Font.Gotham
+acBtn.Font = Enum.Font.GothamBold
 acBtn.TextSize = 15
 acBtn.BorderSizePixel = 0
-acBtn.BackgroundColor3 = Color3.fromRGB(46,56,66)
-acBtn.TextColor3 = Color3.fromRGB(0,240,200)
+acBtn.BackgroundColor3 = Color3.fromRGB(66,85,108)
+acBtn.TextColor3 = Color3.fromRGB(5,240,200)
+local UIV = Instance.new("UICorner", acBtn)
+UIV.CornerRadius = UDim.new(0,7)
 
 local scFrame = Instance.new("ScrollingFrame")
-scFrame.Parent = oyuncuFrame
-scFrame.Size = UDim2.new(1, -40, 0, 90)
-scFrame.Position = UDim2.new(0, 16, 0, 42)
-scFrame.BackgroundColor3 = Color3.fromRGB(30,39,56)
+scFrame.Parent = oyuncuTab
+scFrame.Size = UDim2.new(1, -38, 0, 90)
+scFrame.Position = UDim2.new(0, 15, 0, 38)
+scFrame.BackgroundColor3 = Color3.fromRGB(38,51,82)
 scFrame.BorderSizePixel = 0
 scFrame.Visible = false
 scFrame.CanvasSize = UDim2.new(0,0,0,0)
-scFrame.ScrollBarThickness = 6
+scFrame.ScrollBarThickness = 5
+Instance.new("UICorner",scFrame).CornerRadius = UDim.new(0,7)
 
 local function updateOyuncular()
     scFrame:ClearAllChildren()
@@ -247,14 +256,15 @@ local function updateOyuncular()
         if plr ~= LocalPlayer then
             local btn = Instance.new("TextButton")
             btn.Parent = scFrame
-            btn.Size = UDim2.new(1, -8, 0, 24)
-            btn.Position = UDim2.new(0, 4, 0, i * 28)
+            btn.Size = UDim2.new(1, -8, 0, 25)
+            btn.Position = UDim2.new(0, 4, 0, i * 29)
             btn.BackgroundColor3 = Color3.fromRGB(57,69,99)
             btn.BorderSizePixel = 0
             btn.Font = Enum.Font.Gotham
             btn.Text = plr.Name
             btn.TextSize = 15
             btn.TextColor3 = Color3.fromRGB(5,255,255)
+            Instance.new("UICorner", btn).CornerRadius = UDim.new(0,7)
             btn.MouseButton1Click:Connect(function()
                 secilenOyuncu = plr
                 oyuncuYaz.Text = "Seçili Oyuncu : " .. plr.Name
@@ -263,7 +273,7 @@ local function updateOyuncular()
             i = i+1
         end
     end
-    scFrame.CanvasSize = UDim2.new(0,0,0,i*28)
+    scFrame.CanvasSize = UDim2.new(0,0,0,i*29)
 end
 
 acBtn.MouseButton1Click:Connect(function()
@@ -271,18 +281,19 @@ acBtn.MouseButton1Click:Connect(function()
     if scFrame.Visible then updateOyuncular() end
 end)
 
+-- Oyuncu aksiyon butonları (TP, patlat, yak, freeze, yaklaştır, spectate)
 local aksiyonlar = {
-    { Name="Yanına Çek",   Fn=function()
+    { Name="Yanıma Çek", Fn=function()
         if secilenOyuncu and secilenOyuncu.Character and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") and secilenOyuncu.Character:FindFirstChild("HumanoidRootPart") then
             secilenOyuncu.Character.HumanoidRootPart.CFrame = LocalPlayer.Character.HumanoidRootPart.CFrame + Vector3.new(3,0,0)
         end
     end },
-    { Name="Işınlan",      Fn=function()
+    { Name="Işınlan", Fn=function()
         if secilenOyuncu and secilenOyuncu.Character and LocalPlayer.Character and secilenOyuncu.Character:FindFirstChild("HumanoidRootPart") and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
             LocalPlayer.Character.HumanoidRootPart.CFrame = secilenOyuncu.Character.HumanoidRootPart.CFrame * CFrame.new(2,0,0)
         end
     end },
-    { Name="Dondur",       Fn=function()
+    { Name="Dondur", Fn=function()
         if secilenOyuncu and secilenOyuncu.Character then
             for _,v in ipairs(secilenOyuncu.Character:GetDescendants()) do
                 if v:IsA("BasePart") then
@@ -293,7 +304,7 @@ local aksiyonlar = {
             if hum then hum.WalkSpeed = 0; hum.JumpPower = 0; hum.PlatformStand = true end
         end
     end },
-    { Name="Patlat",       Fn=function()
+    { Name="Patlat", Fn=function()
         if secilenOyuncu and secilenOyuncu.Character and secilenOyuncu.Character:FindFirstChild("HumanoidRootPart") then
             local boom = Instance.new("Explosion")
             boom.BlastRadius = 10
@@ -302,7 +313,7 @@ local aksiyonlar = {
             boom.Parent = workspace
         end
     end },
-    { Name="Yak",          Fn=function()
+    { Name="Yak", Fn=function()
         if secilenOyuncu and secilenOyuncu.Character then
             for _,bp in ipairs(secilenOyuncu.Character:GetChildren()) do
                 if bp:IsA("BasePart") and not bp:FindFirstChild("ONFIRE") then
@@ -314,11 +325,11 @@ local aksiyonlar = {
                 end
             end
             local hum = secilenOyuncu.Character:FindFirstChildOfClass("Humanoid")
-            if hum then hum.Health = hum.Health - math.random(30,60) end
+            if hum then hum.Health = hum.Health - math.random(35,65) end
         end
     end },
 }
--- Spectate özelliği: Canlı izleme
+-- Spectate
 local isSpectating = false
 local specBtn
 local function specPlayer()
@@ -337,42 +348,40 @@ local function unspecPlayer()
         specBtn.Text = "Spectate"
     end
 end
-
--- Butonları yerleştir (Player Tools)
 for i,ax in ipairs(aksiyonlar) do
     local b = Instance.new("TextButton")
-    b.Parent = oyuncuFrame
-    b.Size = UDim2.new(0,110,0,28)
-    b.Position = UDim2.new(0,16 + ((i-1)%3)*120,0,148 + math.floor((i-1)/3)*38)
-    b.BackgroundColor3 = Color3.fromRGB(42,56,66)
+    b.Parent = oyuncuTab
+    b.Size = UDim2.new(0,117,0,29)
+    b.Position = UDim2.new(0,17 + ((i-1)%3)*127,0,133 + math.floor((i-1)/3)*37)
+    b.BackgroundColor3 = Color3.fromRGB(52,65,104)
     b.BorderSizePixel = 0
     b.Text = ax.Name
     b.Font = Enum.Font.GothamBold
     b.TextSize = 14
-    b.TextColor3 = Color3.fromRGB(230,240,240)
+    b.TextColor3 = Color3.fromRGB(220,250,250)
+    Instance.new("UICorner",b).CornerRadius = UDim.new(0,7)
     b.MouseButton1Click:Connect(ax.Fn)
 end
-
--- Spectate ayrı
 specBtn = Instance.new("TextButton")
-specBtn.Parent = oyuncuFrame
-specBtn.Size = UDim2.new(0,110,0,28)
-specBtn.Position = UDim2.new(0,16 + 3*120,0,148)
-specBtn.BackgroundColor3 = Color3.fromRGB(65,80,120)
+specBtn.Parent = oyuncuTab
+specBtn.Size = UDim2.new(0,130,0,29)
+specBtn.Position = UDim2.new(0,17 + 3*127,0,133)
+specBtn.BackgroundColor3 = Color3.fromRGB(80,80,140)
 specBtn.BorderSizePixel = 0
 specBtn.Text = "Spectate"
 specBtn.Font = Enum.Font.GothamBold
 specBtn.TextSize = 14
 specBtn.TextColor3 = Color3.fromRGB(255,240,70)
+Instance.new("UICorner",specBtn).CornerRadius = UDim.new(0,7)
 specBtn.MouseButton1Click:Connect(function()
     if not isSpectating then specPlayer() else unspecPlayer() end
 end)
 
-------------------------------------------------
----- HİLE FONKSİYONELLİKLERİ
-------------------------------------------------
+--------------------------------------------------------------
+-- Hilelerin Asıl Fonksiyonelliği
+--------------------------------------------------------------
 
--- Hileler
+-- NoClip
 local NoclipConn, NoclipLastEn = nil, false
 local function SetNoClipOnChar(state)
     local char = LocalPlayer.Character
@@ -396,7 +405,7 @@ NoclipConn = RunService.Stepped:Connect(function()
     end
 end)
 
--- FLY
+-- Fly
 local flyBV, flyBG
 RunService.RenderStepped:Connect(function()
     if hackEnabled.Fly and LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
@@ -404,12 +413,12 @@ RunService.RenderStepped:Connect(function()
         if not flyBV or flyBV.Parent ~= hrp then
             if flyBV then pcall(function() flyBV:Destroy() end) end
             flyBV = Instance.new("BodyVelocity")
-            flyBV.Name = "___FlyBV"
+            flyBV.Name = "__FlyBV"
             flyBV.MaxForce = Vector3.new(1e9,1e9,1e9)
             flyBV.Velocity = Vector3.new()
             flyBV.Parent = hrp
             flyBG = Instance.new("BodyGyro")
-            flyBG.Name = "___FlyBG"
+            flyBG.Name = "__FlyBG"
             flyBG.MaxTorque = Vector3.new(1e9,1e9,1e9)
             flyBG.CFrame = Camera.CFrame
             flyBG.Parent = hrp
@@ -423,9 +432,7 @@ RunService.RenderStepped:Connect(function()
         if UserInputService:IsKeyDown(Enum.KeyCode.D) then movevec = movevec + camCF.RightVector end
         if UserInputService:IsKeyDown(Enum.KeyCode.Space) then movevec = movevec + camCF.UpVector end
         if UserInputService:IsKeyDown(Enum.KeyCode.LeftShift) then movevec = movevec - camCF.UpVector end
-        if movevec.Magnitude > 0 then
-            movevec = movevec.Unit * 75
-        end
+        if movevec.Magnitude > 0 then movevec = movevec.Unit * 70 end
         flyBV.Velocity = movevec
     else
         if flyBV then pcall(function() flyBV:Destroy() end) flyBV = nil end
@@ -433,7 +440,7 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
--- GODMODE
+-- Godmode
 RunService.Heartbeat:Connect(function()
     if hackEnabled.Godmode then
         local chr = LocalPlayer.Character
@@ -456,7 +463,7 @@ RunService.Heartbeat:Connect(function()
     end
 end)
 
--- NORELOAD
+-- NoReload Patch (Script'lerde reload/ammo disable)
 local function tryRemoveReloadGuns()
     if hackEnabled.NoReload then
         local backpack = LocalPlayer:FindFirstChildOfClass("Backpack")
@@ -477,18 +484,18 @@ local function tryRemoveReloadGuns()
 end
 RunService.Heartbeat:Connect(tryRemoveReloadGuns)
 
--- SPINBOT
+-- Spinbot
 RunService.RenderStepped:Connect(function()
     if hackEnabled.Spinbot and LocalPlayer.Character and LocalPlayer.Character:FindFirstChildOfClass("Humanoid") then
         local hrp = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
         local hum = LocalPlayer.Character:FindFirstChildOfClass("Humanoid")
         if hrp and hum then
-            hrp.CFrame = hrp.CFrame * CFrame.Angles(0,math.rad(24),0)
+            hrp.CFrame = hrp.CFrame * CFrame.Angles(0,math.rad(26),0)
         end
     end
 end)
 
--- TEAM CHECK
+-- TeamCheck fonksiyonu
 local function isEnemy(ply)
     if hackEnabled.TeamCheck and ply.Team and LocalPlayer.Team and ply.Team == LocalPlayer.Team then
         return false
@@ -496,7 +503,7 @@ local function isEnemy(ply)
     return true
 end
 
--- AIMBOT/SILENTAIM (otomatik kilit)
+-- Aimbot/SilentAim HEAD (En yakın)
 local function getClosestHead()
     local closest, minDist = nil, math.huge
     local mousePos = UserInputService:GetMouseLocation()
@@ -526,8 +533,7 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
--- SİLENTAİM (vuruş performansı - örnek basic implementation)
--- (Simulated: If SilentAim is on, shoot always hits closest head)
+-- SilentAim (fake shoot always hit closest head hitbox)
 local oldMeta = getrawmetatable(game)
 local oldNamecall = oldMeta.__namecall
 setreadonly(oldMeta, false)
@@ -542,9 +548,9 @@ oldMeta.__namecall = newcclosure(function(self, ...)
     end
     return oldNamecall(self, ...)
 end)
-setreadonly(oldMeta, true)
+setreadonly(oldMeta,true)
 
--- ESP (görsel)
+-- ESP
 local espDrawn = {}
 local function removeESP()
     for _, obj in pairs(espDrawn) do
@@ -553,7 +559,6 @@ local function removeESP()
     end
     espDrawn = {}
 end
-
 local function DrawLine(from,to,c)
     local line = Drawing.new("Line")
     line.From = from
@@ -587,13 +592,18 @@ RunService:BindToRenderStep("ESP_PRO",201,function()
     if not hackEnabled.ESP then removeESP() return end
     removeESP()
     for _,ply in ipairs(Players:GetPlayers()) do
-        if ply ~= LocalPlayer and ply.Character and ply.Character:FindFirstChild("HumanoidRootPart") and ply.Character:FindFirstChild("Head") and ply.Character:FindFirstChildOfClass("Humanoid") and ply.Character:FindFirstChildOfClass("Humanoid").Health > 0 and isEnemy(ply) then
+        if ply ~= LocalPlayer and ply.Character and ply.Character:FindFirstChild("HumanoidRootPart")
+            and ply.Character:FindFirstChild("Head")
+            and ply.Character:FindFirstChildOfClass("Humanoid")
+            and ply.Character:FindFirstChildOfClass("Humanoid").Health > 0
+            and isEnemy(ply) then
             local hrp = ply.Character.HumanoidRootPart
             local head = ply.Character.Head
             local dist = (hrp.Position - Camera.CFrame.Position).Magnitude
-            if dist < 400 then -- mesafe
+            if dist < 400 then
                 local parts = {}
-                for _,p in ipairs({"Head","UpperTorso","LowerTorso","Torso","LeftLeg","LeftFoot","LeftLowerLeg","LeftUpperLeg","RightLeg","RightFoot","RightLowerLeg","RightUpperLeg"}) do
+                for _,p in ipairs({"Head","UpperTorso","LowerTorso","Torso","LeftLeg","LeftFoot","LeftLowerLeg","LeftUpperLeg",
+                    "RightLeg","RightFoot","RightLowerLeg","RightUpperLeg"}) do
                     if ply.Character:FindFirstChild(p) then table.insert(parts, ply.Character:FindFirstChild(p)) end
                 end
                 local min, max = Vector3.new(math.huge,math.huge,math.huge), Vector3.new(-math.huge,-math.huge,-math.huge)
@@ -624,7 +634,6 @@ RunService:BindToRenderStep("ESP_PRO",201,function()
                     local box = DrawBox(pminX,pminY,pmaxX,pmaxY,Color3.new(1,1,1))
                     for _,l in ipairs(box) do table.insert(espDrawn,l) end
                 end
-                -- HEAD
                 local headVP,headOn = Camera:WorldToViewportPoint(head.Position)
                 if headOn and headVP.Z > 0 then
                     local r = Camera:WorldToViewportPoint(head.Position + Vector3.new(0,head.Size.Y/1.33,0))
@@ -637,7 +646,7 @@ RunService:BindToRenderStep("ESP_PRO",201,function()
                         Color3.new(1,1,1)
                     ))
                 end
-                -- İskelet
+                -- Skeleton
                 local function W2V(pos)
                     local vp,ons = Camera:WorldToViewportPoint(pos)
                     return Vector2.new(vp.X,vp.Y),ons and vp.Z>0
