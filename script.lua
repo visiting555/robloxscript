@@ -239,10 +239,10 @@ addSlider(tabAimbot,18,72,150,"FOV Açısı (50-150)",states.fov,50,150,1,functi
     Camera.FieldOfView=val
 end)
 
--- ESP (body + head only, bacon proportions, fixed pixel size)
+-- ESP (box and head: fixed, correct size and non-freezing, bacon proportions)
 local espObjects = {}
-local BACON_BOX_W, BACON_BOX_H = 36, 55
-local HEAD_RADIUS = 10
+local BACON_BOX_W, BACON_BOX_H = 24, 38 -- smaller, matches regular bacon
+local HEAD_RADIUS = 6 -- fairly small circle for actual head
 
 local function makeESP(player)
     if player == LocalPlayer or espObjects[player] then return end
@@ -252,37 +252,39 @@ local function makeESP(player)
         if not char then return nil end
         local head = char:FindFirstChild("Head")
         local hrp = char:FindFirstChild("HumanoidRootPart")
-        return head, hrp
+        local lfoot = char:FindFirstChild("LeftFoot") or char:FindFirstChild("Left Leg")
+        local rfoot = char:FindFirstChild("RightFoot") or char:FindFirstChild("Right Leg")
+        return head, hrp, lfoot, rfoot
     end
+    local stopped = false
     obj.run = RunService.RenderStepped:Connect(function()
-        if not states.esp or not player or not player.Character or not Camera then return end
-        local head, hrp = getCharacterData()
+        if stopped or not states.esp or not player or not player.Character or not Camera then
+            for _, d in pairs(obj.drawings) do if d.Remove then pcall(function() d:Remove() end) end end
+            return
+        end
+        local head, hrp, lfoot, rfoot = getCharacterData()
         if not head or not hrp then
-            if obj.drawings.box then obj.drawings.box.Visible = false end
-            if obj.drawings.circle then obj.drawings.circle.Visible = false end
+            for _, d in pairs(obj.drawings) do if d.Visible~=nil then d.Visible = false end end
             return
         end
         local headScreen, onHead = Camera:WorldToViewportPoint(head.Position)
         local hrpScreen, onTorso = Camera:WorldToViewportPoint(hrp.Position)
         if not onHead or not onTorso then
-            if obj.drawings.box then obj.drawings.box.Visible = false end
-            if obj.drawings.circle then obj.drawings.circle.Visible = false end
+            for _, d in pairs(obj.drawings) do if d.Visible~=nil then d.Visible = false end end
             return
         end
 
         if not obj.drawings.box then
             obj.drawings.box = Drawing.new("Square")
-            obj.drawings.box.Color = Color3.new(0, 0, 0)
+            obj.drawings.box.Color = Color3.fromRGB(0,0,0)
             obj.drawings.box.Thickness = 2
             obj.drawings.box.Filled = false
             obj.drawings.box.Transparency = 1
         end
-        -- Position the center of box between head and HRP, using bacon size
-        local centerY = (headScreen.Y + hrpScreen.Y) / 2
-        local boxCenter = Vector2.new(hrpScreen.X, centerY+4)
 
+        local boxY = hrpScreen.Y - BACON_BOX_H/2
         obj.drawings.box.Size = Vector2.new(BACON_BOX_W, BACON_BOX_H)
-        obj.drawings.box.Position = boxCenter - Vector2.new(BACON_BOX_W/2, BACON_BOX_H/2)
+        obj.drawings.box.Position = Vector2.new(hrpScreen.X - BACON_BOX_W/2, boxY)
         obj.drawings.box.Visible = states.esp
 
         if not obj.drawings.circle then
@@ -293,20 +295,43 @@ local function makeESP(player)
             obj.drawings.circle.Filled = false
             obj.drawings.circle.Transparency = 1
         end
-        -- Draw directly at head Y
         obj.drawings.circle.Position = Vector2.new(headScreen.X, headScreen.Y)
         obj.drawings.circle.Radius = HEAD_RADIUS
         obj.drawings.circle.Visible = states.esp
 
-        if not obj.drawings.body then
-            obj.drawings.body = Drawing.new("Line")
-            obj.drawings.body.Color = Color3.new(0,0,0)
-            obj.drawings.body.Thickness = 2
-            obj.drawings.body.Transparency = 1
+        if not obj.drawings.skel then
+            obj.drawings.skel = {
+                body = Drawing.new("Line"),
+                leftLeg = Drawing.new("Line"),
+                rightLeg = Drawing.new("Line"),
+            }
+            obj.drawings.skel.body.Color = Color3.fromRGB(200,200,200)
+            obj.drawings.skel.body.Thickness = 2
+            obj.drawings.skel.body.Transparency=1
+            obj.drawings.skel.leftLeg.Color = Color3.fromRGB(200,200,200)
+            obj.drawings.skel.leftLeg.Thickness = 2
+            obj.drawings.skel.leftLeg.Transparency=1
+            obj.drawings.skel.rightLeg.Color = Color3.fromRGB(200,200,200)
+            obj.drawings.skel.rightLeg.Thickness = 2
+            obj.drawings.skel.rightLeg.Transparency=1
         end
-        obj.drawings.body.From = Vector2.new(hrpScreen.X, headScreen.Y+HEAD_RADIUS)
-        obj.drawings.body.To = Vector2.new(hrpScreen.X, hrpScreen.Y)
-        obj.drawings.body.Visible = states.esp
+        obj.drawings.skel.body.From = Vector2.new(headScreen.X, headScreen.Y+HEAD_RADIUS)
+        obj.drawings.skel.body.To = Vector2.new(hrpScreen.X, hrpScreen.Y)
+        obj.drawings.skel.body.Visible = states.esp
+
+        if lfoot and rfoot then
+            local lfootScreen, lfok = Camera:WorldToViewportPoint(lfoot.Position)
+            local rfootScreen, rfok = Camera:WorldToViewportPoint(rfoot.Position)
+            obj.drawings.skel.leftLeg.From = Vector2.new(hrpScreen.X, hrpScreen.Y)
+            obj.drawings.skel.leftLeg.To = lfootScreen
+            obj.drawings.skel.leftLeg.Visible = states.esp and lfok
+            obj.drawings.skel.rightLeg.From = Vector2.new(hrpScreen.X, hrpScreen.Y)
+            obj.drawings.skel.rightLeg.To = rfootScreen
+            obj.drawings.skel.rightLeg.Visible = states.esp and rfok
+        else
+            obj.drawings.skel.leftLeg.Visible = false
+            obj.drawings.skel.rightLeg.Visible = false
+        end
     end)
     espObjects[player] = obj
 end
@@ -314,10 +339,16 @@ end
 local function removeESP(player)
     local obj = espObjects[player]
     if obj then
-        if obj.run then obj.run:Disconnect() end
-        if obj.drawings.box then pcall(function() obj.drawings.box:Remove() end) end
-        if obj.drawings.circle then pcall(function() obj.drawings.circle:Remove() end) end
-        if obj.drawings.body then pcall(function() obj.drawings.body:Remove() end) end
+        pcall(function()
+            if obj.run then obj.run:Disconnect() end
+            for _,d in pairs(obj.drawings) do
+                if d.Remove then
+                    d:Remove()
+                elseif typeof(d)=="table" then
+                    for _,ld in pairs(d) do pcall(function() ld:Remove() end) end
+                end
+            end
+        end)
         espObjects[player] = nil
     end
 end
@@ -329,7 +360,7 @@ addBtn(tabVisual,18,18,240,30,function() return "ESP ["..(states.esp and "AÇIK"
             if plr ~= LocalPlayer then makeESP(plr) end
         end
     else
-        for _,plr in pairs(espObjects) do removeESP(plr) end
+        for plr,_ in pairs(espObjects) do removeESP(plr) end
     end
 end)
 
