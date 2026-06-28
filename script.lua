@@ -243,9 +243,25 @@ local espObjects = {}
 local BACON_BOX_W, BACON_BOX_H = 38, 67
 local HEAD_RADIUS = 10
 
-local function getScreenFixed(v3)
+local function getScreenFixed3D(v3)
+    local cf, sz = Camera.CFrame, Camera.ViewportSize
     local v = Camera:WorldToViewportPoint(v3)
-    return Vector2.new(v.X, v.Y), v.Z>0 and v
+    return Vector2.new((math.clamp(v.X, 0, sz.X)), (math.clamp(v.Y, 0, sz.Y))), v.Z > 0, Vector3.new(v.X, v.Y, v.Z)
+end
+
+local function getEspBounding(char)
+    local min, max = nil, nil
+    for _,bp in ipairs(char:GetChildren()) do
+        if bp:IsA("BasePart") and bp.Transparency < 0.96 then
+            if not min then
+                min, max = bp.Position, bp.Position
+            else
+                min = Vector3.new(math.min(min.X, bp.Position.X), math.min(min.Y, bp.Position.Y), math.min(min.Z, bp.Position.Z))
+                max = Vector3.new(math.max(max.X, bp.Position.X), math.max(max.Y, bp.Position.Y), math.max(max.Z, bp.Position.Z))
+            end
+        end
+    end
+    return min, max
 end
 
 local function makeESP(player)
@@ -279,11 +295,40 @@ local function makeESP(player)
             for _, d in pairs(obj.drawings) do if d.Visible~=nil then d.Visible = false end end
             return
         end
-        local boxCenter, onScreen = getScreenFixed(hrp.Position + Vector3.new(0,0.7,0))
-        if not onScreen then
-            for _, d in pairs(obj.drawings) do if d.Visible~=nil then d.Visible = false end end
-            return
+
+        local cf = CFrame.new(hrp.Position)
+        local size = Vector3.new(BACON_BOX_W/12, BACON_BOX_H/14, 3)
+        local corners = {}
+        for x=-1,1,2 do
+            for y=-1,1,2 do
+                for z=-1,1,2 do
+                    local corner = cf * Vector3.new(size.X/2 * x, size.Y/2 * y, size.Z/2 * z)
+                    table.insert(corners, corner)
+                end
+            end
         end
+        local screenPoints = {}
+        local minVec2, maxVec2
+        for _,corner in ipairs(corners) do
+            local vec2, onscreen = getScreenFixed3D(corner)
+            table.insert(screenPoints, vec2)
+            if onscreen then
+                if not minVec2 then
+                    minVec2, maxVec2 = vec2, vec2
+                else
+                    minVec2 = Vector2.new(math.min(minVec2.X, vec2.X), math.min(minVec2.Y, vec2.Y))
+                    maxVec2 = Vector2.new(math.max(maxVec2.X, vec2.X), math.max(maxVec2.Y, vec2.Y))
+                end
+            end
+        end
+        -- Use median between head and feet for accurate size on all orientations
+        local topScreen, onS1 = getScreenFixed3D(head.Position)
+        local footVector = rfoot and rfoot.Position or (lfoot and lfoot.Position or hrp.Position)
+        local feetScreen, onS2 = getScreenFixed3D(footVector)
+        local height = math.abs(topScreen.Y - feetScreen.Y)
+        local width = math.abs(topScreen.X - feetScreen.X) + BACON_BOX_W
+
+        -- Fix: Always keep box the required fixed size & locked to root/head projection, not camera angle
         if not obj.drawings.box then
             obj.drawings.box = Drawing.new("Square")
             obj.drawings.box.Color = Color3.fromRGB(0,0,0)
@@ -291,22 +336,28 @@ local function makeESP(player)
             obj.drawings.box.Filled = false
             obj.drawings.box.Transparency = 1
         end
-        obj.drawings.box.Size = Vector2.new(BACON_BOX_W, BACON_BOX_H)
-        obj.drawings.box.Position = Vector2.new(boxCenter.X - BACON_BOX_W/2, boxCenter.Y - BACON_BOX_H/2)
-        obj.drawings.box.Visible = states.esp
+        local headScreen, onScreenHead = getScreenFixed3D(head.Position)
+        local hrpScreen, onScreenRoot = getScreenFixed3D(hrp.Position)
+        if onScreenRoot then
+            obj.drawings.box.Size = Vector2.new(BACON_BOX_W, BACON_BOX_H)
+            -- Box position always centered between root/head and at constant pixel size
+            obj.drawings.box.Position = Vector2.new(hrpScreen.X - BACON_BOX_W/2, headScreen.Y - (HEAD_RADIUS+8))
+            obj.drawings.box.Visible = states.esp
+        else
+            obj.drawings.box.Visible = false
+        end
 
         if not obj.drawings.circle then
             obj.drawings.circle = Drawing.new("Circle")
             obj.drawings.circle.Color = Color3.fromRGB(220,78,27)
             obj.drawings.circle.Thickness = 2
-            obj.drawings.circle.NumSides = 18
+            obj.drawings.circle.NumSides = 20
             obj.drawings.circle.Filled = false
             obj.drawings.circle.Transparency = 1
         end
-        local headScreen, headV = getScreenFixed(head.Position)
         obj.drawings.circle.Position = Vector2.new(headScreen.X, headScreen.Y)
         obj.drawings.circle.Radius = HEAD_RADIUS
-        obj.drawings.circle.Visible = states.esp
+        obj.drawings.circle.Visible = onScreenHead and states.esp or false
 
         if not obj.drawings.skel then
             obj.drawings.skel = {
@@ -326,30 +377,34 @@ local function makeESP(player)
         end
 
         local function partScreen(part)
-            if part then return getScreenFixed(part.Position) else return false end
+            if part then return getScreenFixed3D(part.Position) else return false end
         end
 
-        local rootScreen = boxCenter
-        local headScreen2, _ = getScreenFixed(head.Position)
-        local upperScreen = upper and select(1, getScreenFixed(upper.Position)) or rootScreen
-        local lowerScreen = lower and select(1, getScreenFixed(lower.Position)) or rootScreen
-        local lfootScreen = lfoot and select(1, getScreenFixed(lfoot.Position)) or rootScreen
-        local rfootScreen = rfoot and select(1, getScreenFixed(rfoot.Position)) or rootScreen
-        local lhandScreen = lhand and select(1, getScreenFixed(lhand.Position)) or rootScreen
-        local rhandScreen = rhand and select(1, getScreenFixed(rhand.Position)) or rootScreen
+        local rootScreen2 = hrpScreen
+        local upperScreen, onsU = upper and getScreenFixed3D(upper.Position)
+        upperScreen = onsU and upperScreen or rootScreen2
 
-        -- Body line (head to upperTorso/Torso/rootpart)
-        obj.drawings.skel.body.From = Vector2.new(headScreen2.X, headScreen2.Y + HEAD_RADIUS)
+        local lowerScreen, onsL = lower and getScreenFixed3D(lower.Position)
+        lowerScreen = onsL and lowerScreen or rootScreen2
+
+        local lfootScreen, onsLF = lfoot and getScreenFixed3D(lfoot.Position)
+        lfootScreen = onsLF and lfootScreen or rootScreen2
+        local rfootScreen, onsRF = rfoot and getScreenFixed3D(rfoot.Position)
+        rfootScreen = onsRF and rfootScreen or rootScreen2
+
+        local lhandScreen, onsLH = lhand and getScreenFixed3D(lhand.Position)
+        lhandScreen = onsLH and lhandScreen or rootScreen2
+        local rhandScreen, onsRH = rhand and getScreenFixed3D(rhand.Position)
+        rhandScreen = onsRH and rhandScreen or rootScreen2
+
+        obj.drawings.skel.body.From = Vector2.new(headScreen.X, headScreen.Y + HEAD_RADIUS)
         obj.drawings.skel.body.To = upperScreen
-        obj.drawings.skel.body.Visible = states.esp
+        obj.drawings.skel.body.Visible = states.esp and onScreenHead
 
-        -- Spine line (upper->lower/root)
         obj.drawings.skel.spine.From = upperScreen
         obj.drawings.skel.spine.To = lowerScreen
         obj.drawings.skel.spine.Visible = states.esp
 
-        -- LowerTorso -> root
-        -- Legs
         obj.drawings.skel.leftLeg.From = lowerScreen
         obj.drawings.skel.leftLeg.To = lfootScreen
         obj.drawings.skel.leftLeg.Visible = states.esp
@@ -358,7 +413,6 @@ local function makeESP(player)
         obj.drawings.skel.rightLeg.To = rfootScreen
         obj.drawings.skel.rightLeg.Visible = states.esp
 
-        -- Arms (shoulders to hands)
         obj.drawings.skel.leftArm.From = upperScreen
         obj.drawings.skel.leftArm.To = lhandScreen
         obj.drawings.skel.leftArm.Visible = states.esp
@@ -366,6 +420,7 @@ local function makeESP(player)
         obj.drawings.skel.rightArm.From = upperScreen
         obj.drawings.skel.rightArm.To = rhandScreen
         obj.drawings.skel.rightArm.Visible = states.esp
+
     end)
     espObjects[player] = obj
 end
