@@ -239,10 +239,15 @@ addSlider(tabAimbot,18,72,150,"FOV Açısı (50-150)",states.fov,50,150,1,functi
     Camera.FieldOfView=val
 end)
 
--- ESP (box and head: fixed, correct size and non-freezing, bacon proportions)
+-- ESP (box and head: fixed, correct size and non-freezing, bacon proportions, box absolutely never changes by distance)
 local espObjects = {}
-local BACON_BOX_W, BACON_BOX_H = 24, 38 -- smaller, matches regular bacon
-local HEAD_RADIUS = 6 -- fairly small circle for actual head
+local BACON_BOX_W, BACON_BOX_H = 38, 67 -- fixed to match full bacon; 2.5 studs width x 4.5 studs height -> scale
+local HEAD_RADIUS = 10 -- small and fixed
+
+local function getScreenFixed(x, y, z)
+    local v = Camera:WorldToViewportPoint(Vector3.new(x, y, z))
+    return Vector2.new(v.X, v.Y), v.Z>0 and v
+end
 
 local function makeESP(player)
     if player == LocalPlayer or espObjects[player] then return end
@@ -254,7 +259,7 @@ local function makeESP(player)
         local hrp = char:FindFirstChild("HumanoidRootPart")
         local lfoot = char:FindFirstChild("LeftFoot") or char:FindFirstChild("Left Leg")
         local rfoot = char:FindFirstChild("RightFoot") or char:FindFirstChild("Right Leg")
-        return head, hrp, lfoot, rfoot
+        return head, hrp, lfoot, rfoot, char
     end
     local stopped = false
     obj.run = RunService.RenderStepped:Connect(function()
@@ -262,18 +267,21 @@ local function makeESP(player)
             for _, d in pairs(obj.drawings) do if d.Remove then pcall(function() d:Remove() end) end end
             return
         end
-        local head, hrp, lfoot, rfoot = getCharacterData()
+        local head, hrp, lfoot, rfoot, char = getCharacterData()
         if not head or not hrp then
             for _, d in pairs(obj.drawings) do if d.Visible~=nil then d.Visible = false end end
             return
         end
-        local headScreen, onHead = Camera:WorldToViewportPoint(head.Position)
-        local hrpScreen, onTorso = Camera:WorldToViewportPoint(hrp.Position)
-        if not onHead or not onTorso then
+        local hrpPos = hrp.Position
+        local headPos = head.Position
+        local fixedBoxHeight = 5   -- studs; standard bacon
+        local fixedBoxWidth = 2.2 -- studs (width shoulder-shoulder)
+        -- Get screen coords, not scaled by Z
+        local boxCenter, onScreen = getScreenFixed(hrpPos.X, hrpPos.Y+0.7, hrpPos.Z)
+        if not onScreen then
             for _, d in pairs(obj.drawings) do if d.Visible~=nil then d.Visible = false end end
             return
         end
-
         if not obj.drawings.box then
             obj.drawings.box = Drawing.new("Square")
             obj.drawings.box.Color = Color3.fromRGB(0,0,0)
@@ -281,10 +289,9 @@ local function makeESP(player)
             obj.drawings.box.Filled = false
             obj.drawings.box.Transparency = 1
         end
-
-        local boxY = hrpScreen.Y - BACON_BOX_H/2
+        -- Box is always a fixed screen size (not world size), so no distance division
         obj.drawings.box.Size = Vector2.new(BACON_BOX_W, BACON_BOX_H)
-        obj.drawings.box.Position = Vector2.new(hrpScreen.X - BACON_BOX_W/2, boxY)
+        obj.drawings.box.Position = Vector2.new(boxCenter.X - BACON_BOX_W/2, boxCenter.Y - BACON_BOX_H/2)
         obj.drawings.box.Visible = states.esp
 
         if not obj.drawings.circle then
@@ -295,6 +302,7 @@ local function makeESP(player)
             obj.drawings.circle.Filled = false
             obj.drawings.circle.Transparency = 1
         end
+        local headScreen, headV = getScreenFixed(headPos.X, headPos.Y, headPos.Z)
         obj.drawings.circle.Position = Vector2.new(headScreen.X, headScreen.Y)
         obj.drawings.circle.Radius = HEAD_RADIUS
         obj.drawings.circle.Visible = states.esp
@@ -315,19 +323,23 @@ local function makeESP(player)
             obj.drawings.skel.rightLeg.Thickness = 2
             obj.drawings.skel.rightLeg.Transparency=1
         end
-        obj.drawings.skel.body.From = Vector2.new(headScreen.X, headScreen.Y+HEAD_RADIUS)
-        obj.drawings.skel.body.To = Vector2.new(hrpScreen.X, hrpScreen.Y)
+
+        -- Body skeleton
+        local rootScreen = boxCenter
+        local headScreen2 = headScreen
+        obj.drawings.skel.body.From = Vector2.new(headScreen2.X, headScreen2.Y+HEAD_RADIUS)
+        obj.drawings.skel.body.To = Vector2.new(rootScreen.X, rootScreen.Y)
         obj.drawings.skel.body.Visible = states.esp
 
         if lfoot and rfoot then
-            local lfootScreen, lfok = Camera:WorldToViewportPoint(lfoot.Position)
-            local rfootScreen, rfok = Camera:WorldToViewportPoint(rfoot.Position)
-            obj.drawings.skel.leftLeg.From = Vector2.new(hrpScreen.X, hrpScreen.Y)
+            local lfootScreen = getScreenFixed(lfoot.Position.X, lfoot.Position.Y, lfoot.Position.Z)
+            local rfootScreen = getScreenFixed(rfoot.Position.X, rfoot.Position.Y, rfoot.Position.Z)
+            obj.drawings.skel.leftLeg.From = Vector2.new(rootScreen.X, rootScreen.Y)
             obj.drawings.skel.leftLeg.To = lfootScreen
-            obj.drawings.skel.leftLeg.Visible = states.esp and lfok
-            obj.drawings.skel.rightLeg.From = Vector2.new(hrpScreen.X, hrpScreen.Y)
+            obj.drawings.skel.leftLeg.Visible = states.esp
+            obj.drawings.skel.rightLeg.From = Vector2.new(rootScreen.X, rootScreen.Y)
             obj.drawings.skel.rightLeg.To = rfootScreen
-            obj.drawings.skel.rightLeg.Visible = states.esp and rfok
+            obj.drawings.skel.rightLeg.Visible = states.esp
         else
             obj.drawings.skel.leftLeg.Visible = false
             obj.drawings.skel.rightLeg.Visible = false
